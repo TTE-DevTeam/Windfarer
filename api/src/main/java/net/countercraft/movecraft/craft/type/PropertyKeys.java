@@ -413,6 +413,10 @@ public class PropertyKeys {
             register(PropertyKeyTypes.boolPropertyKey(
                     key("serialization/save_to_disk"), false
             )).perWorld();
+    public static final PropertyKey<PerWorldData<Boolean>> DELETE_ON_WORLD_UNLOAD =
+            register(PropertyKeyTypes.boolPropertyKey(
+                    key("serialization/delete_on_unload"), false
+            )).perWorld();
     // endregion serialization
 
     public static <T> PropertyKey<T> register(PropertyKey<T> propertyKey) {
