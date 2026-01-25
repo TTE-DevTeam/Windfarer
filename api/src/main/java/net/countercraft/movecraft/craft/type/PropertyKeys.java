@@ -1,5 +1,7 @@
 package net.countercraft.movecraft.craft.type;
 
+import net.countercraft.movecraft.craft.controller.AbstractRotationController;
+import net.countercraft.movecraft.craft.controller.rotation.DefaultRotationController;
 import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
 import org.bukkit.Material;
@@ -142,6 +144,8 @@ public class PropertyKeys {
             register(PropertyKeyTypes.boolPropertyKey(key("movement/collision/explosion/focused"), t -> false).immutable());
     public static final PropertyKey<Boolean> MUST_BE_SUBCRAFT =
             register(PropertyKeyTypes.boolPropertyKey(key("constraints/must_be_subcraft"), t -> false).immutable());
+    public static final PropertyKey<Boolean> CAN_BE_SUBCRAFT =
+            register(PropertyKeyTypes.boolPropertyKey(key("constraints/can_be_subcraft"), t -> true).immutable());
     // TODO: Remove, worlds have their own waterlevel which should be used instead
     public static final PropertyKey<Integer> STATIC_WATER_LEVEL =
             register(PropertyKeyTypes.intPropertyKey(key("static_water_level"), t -> 0).immutable());
@@ -287,7 +291,7 @@ public class PropertyKeys {
             register(PropertyKeyTypes.boolPropertyKey(
                     key("gear_shifts/modify/direct_movement"), t -> false
             ).immutable());
-    public static final PropertyKey<Boolean> GEAR_SHIFT_AFFECT_AFFECT_CRUISE_SKIP_BLOCKS =
+    public static final PropertyKey<Boolean> GEAR_SHIFT_AFFECT_CRUISE_SKIP_BLOCKS =
             register(PropertyKeyTypes.boolPropertyKey(
                     key("gear_shifts/modify/cruise_skip_blocks"), t -> false
             ).immutable());
@@ -386,11 +390,30 @@ public class PropertyKeys {
             ).immutable());
     // endregion disabled stuff
 
+    // region movement controllers
+    public static final PropertyKey<AbstractRotationController> ROTATION_CONTROLLER =
+            register(
+                    new PropertyKey<AbstractRotationController>(
+                            key("movement/controller/rotation"),
+                            type -> new DefaultRotationController(),
+                            (obj, type) -> {
+                                if (obj != null && (obj instanceof AbstractRotationController)) {
+                                    // AbstractRotationController is serializable!
+                                    return (AbstractRotationController)obj;
+                                }
+                                return new DefaultRotationController();
+                            },
+                            (s) -> s,
+                            AbstractRotationController::clone
+                    )
+            );
+    // endregion movement controllers
     // region serialization
     public static final PropertyKey<PerWorldData<Boolean>> SAVE_TO_DISK =
             register(PropertyKeyTypes.boolPropertyKey(
                     key("serialization/save_to_disk"), false
             )).perWorld();
+    // endregion serialization
 
     public static <T> PropertyKey<T> register(PropertyKey<T> propertyKey) {
         return TypeSafeCraftType.PROPERTY_REGISTRY.register(propertyKey.key(), propertyKey);

@@ -30,6 +30,7 @@ import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.logging.Level;
 
 import static net.countercraft.movecraft.util.SignUtils.getFacing;
@@ -77,6 +79,7 @@ public abstract class BaseCraft implements Craft {
     private Component name = Component.empty();
     @NotNull
     private MovecraftLocation lastTranslation = new MovecraftLocation(0, 0, 0);
+    private Vector bresenhamError = new Vector(0.0, 0.0, 0.0);
     private Map<NamespacedKey, Set<TrackedLocation>> trackedLocations = new ConcurrentHashMap<>();
 
     @NotNull
@@ -157,6 +160,31 @@ public abstract class BaseCraft implements Craft {
         translate(w, dx, dy, dz);
     }
 
+    // Bresenham translation
+    public Vector translate(@NotNull World world, Vector translateVector) {
+        // Java double to int casting truncates, e.g. -4 == (int) -4.9
+        Vector discreteTranslate = new Vector(
+                (int) translateVector.getX(),
+                (int) translateVector.getY(),
+                (int) translateVector.getZ()
+        );
+        // Add the remainder to the bresenham errors
+        Vector error = translateVector.subtract(discreteTranslate);
+        bresenhamError.add(error);
+        // Adjust if error is greater than 0.5 in each direction
+        Vector adjust = new Vector(
+                (Math.abs(bresenhamError.getX()) > 0.5) ? Math.signum(bresenhamError.getX()) : 0.0,
+                (Math.abs(bresenhamError.getY()) > 0.5) ? Math.signum(bresenhamError.getY()) : 0.0,
+                (Math.abs(bresenhamError.getZ()) > 0.5) ? Math.signum(bresenhamError.getZ()) : 0.0
+        );
+        discreteTranslate.add(adjust);
+        bresenhamError.subtract(adjust);
+        // Kind of messy using doubles but their mantissa has 52 bits which should be enough
+        // Can change algo to use ints but it would be more ugly
+        translate(world, (int) discreteTranslate.getX(), (int) discreteTranslate.getY(), (int) discreteTranslate.getZ());
+        return discreteTranslate;
+    }
+
     @Override
     public void translate(@NotNull World world, int dx, int dy, int dz) {
         var v = getCraftProperties().get(PropertyKeys.DISABLE_TELEPORT_TO_WORLDS);
@@ -192,19 +220,22 @@ public abstract class BaseCraft implements Craft {
         Movecraft.getInstance().getAsyncManager().submitTask(new TranslationTask(this, world, dx, dy, dz), this);
     }
 
+    // TODO: replace with RotationController!
     @Override
-    public void rotate(MovecraftRotation rotation, MovecraftLocation originPoint) {
+    public boolean rotate(MovecraftRotation rotation, MovecraftLocation originPoint, BiConsumer<Craft, MovecraftRotation> rotationProcessor) {
         if (getLastRotateTime() + 1e9 > System.nanoTime()) {
             getAudience().sendMessage(I18nSupport.getInternationalisedComponent("Rotation - Turning Too Quickly"));
-            return;
+            return false;
         }
         setLastRotateTime(System.nanoTime());
-        Movecraft.getInstance().getAsyncManager().submitTask(new RotationTask(this, originPoint, rotation, getWorld()), this);
+        Movecraft.getInstance().getAsyncManager().submitTask(new RotationTask(this, originPoint, rotation, getWorld(), rotationProcessor), this);
+        return true;
     }
 
     @Override
-    public void rotate(MovecraftRotation rotation, MovecraftLocation originPoint, boolean isSubCraft) {
-        Movecraft.getInstance().getAsyncManager().submitTask(new RotationTask(this, originPoint, rotation, getWorld(), isSubCraft), this);
+    public boolean rotate(MovecraftRotation rotation, MovecraftLocation originPoint, boolean isSubCraft, BiConsumer<Craft, MovecraftRotation> rotationProcessor) {
+        Movecraft.getInstance().getAsyncManager().submitTask(new RotationTask(this, originPoint, rotation, getWorld(), isSubCraft, rotationProcessor), this);
+        return true;
     }
 
     @Override

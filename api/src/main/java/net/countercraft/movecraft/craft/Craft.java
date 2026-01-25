@@ -43,11 +43,12 @@ import org.bukkit.block.Sign;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Vector3i;
 
 import javax.naming.Name;
 import java.util.*;
+import java.util.function.BiConsumer;
 
 public interface Craft {
     // TODO: Unify with RECENT_CONTACTS tag and use a object to also store distance and direction
@@ -145,6 +146,14 @@ public interface Craft {
      */
     void translate(World world, int dx, int dy, int dz);
 
+    /**
+     * Attempts to translate the blocks controlled by the craft by a vector. If a world argument is supplied, the blocks will be transformed to a different world.
+     * @param world The world to move to
+     * @param dv The translation vector
+     * @return The discrete (integer) translation vector performed
+     */
+    Vector translate(World world, Vector dv);
+
     @Deprecated
     void translate(int dx, int dy, int dz);
 
@@ -153,10 +162,16 @@ public interface Craft {
      * @param rotation The direction to rotate the craft
      * @param originPoint the origin point of the rotation
      */
-    void rotate(MovecraftRotation rotation, MovecraftLocation originPoint);
+    default boolean rotate(MovecraftRotation rotation, MovecraftLocation originPoint) {
+        return this.rotate(rotation, originPoint, null);
+    }
+    boolean rotate(MovecraftRotation rotation, MovecraftLocation originPoint, BiConsumer<Craft, MovecraftRotation> rotationProcessor);
 
     @Deprecated
-    void rotate(MovecraftRotation rotation, MovecraftLocation originPoint, boolean isSubCraft);
+    default boolean rotate(MovecraftRotation rotation, MovecraftLocation originPoint, boolean isSubCraft) {
+        return rotate(rotation, originPoint, isSubCraft, null);
+    }
+    boolean rotate(MovecraftRotation rotation, MovecraftLocation originPoint, boolean isSubCraft, BiConsumer<Craft, MovecraftRotation> rotationProcessor);
 
     /**
      * Gets the cruising state of the craft.
