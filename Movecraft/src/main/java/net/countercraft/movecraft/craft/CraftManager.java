@@ -397,5 +397,10 @@ public class CraftManager implements Iterable<Craft>{
     public long getTimeFromOverboard(Player player) {
         return overboards.getOrDefault(player, 0L);
     }
+
+    public UUID getAvailableUUID() {
+        // TODO: Respect "sleeping" craft's UUIDs
+        return UUID.randomUUID();
+    }
     //endregion
 }

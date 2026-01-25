@@ -89,9 +89,9 @@ public abstract class BaseCraft implements Craft {
 
     private double cruiseTickMultiplier = 1;
 
-    // TODO: Replace CraftType with TypeSafeCraftProperties
+    // DONE: Replace CraftType with TypeSafeCraftProperties
     public BaseCraft(@NotNull TypeSafeCraftType type, @NotNull World world) {
-        this(type, world, UUID.randomUUID());
+        this(type, world, CraftManager.getInstance().getAvailableUUID());
     }
 
     public BaseCraft(@NotNull TypeSafeCraftType type, @NotNull World world, final @NotNull UUID uuid) {
