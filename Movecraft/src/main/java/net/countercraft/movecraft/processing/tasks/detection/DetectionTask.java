@@ -299,7 +299,9 @@ public class DetectionTask implements Supplier<Effect> {
                     craft.getCraftProperties().getName(),
                     craft.getHitBox().size(),
                     craft.getHitBox().getMinX(),
-                    craft.getHitBox().getMinZ()
+                    craft.getHitBox().getMinY(),
+                    craft.getHitBox().getMinZ(),
+                    craft.getWorld().getName()
             ));
         }).andThen(
                 // Apply water effect
