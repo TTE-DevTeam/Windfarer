@@ -3,6 +3,7 @@ package net.countercraft.movecraft.async.translation;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftChunk;
 import net.countercraft.movecraft.MovecraftLocation;
+import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.async.AsyncTask;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.*;
@@ -15,10 +16,7 @@ import net.countercraft.movecraft.mapUpdater.update.*;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.NamespacedIDUtil;
 import net.countercraft.movecraft.util.Tags;
-import net.countercraft.movecraft.util.hitboxes.HitBox;
-import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
-import net.countercraft.movecraft.util.hitboxes.SetHitBox;
-import net.countercraft.movecraft.util.hitboxes.SolidHitBox;
+import net.countercraft.movecraft.util.hitboxes.*;
 import net.kyori.adventure.key.Key;
 import org.bukkit.*;
 import org.bukkit.World.Environment;
@@ -334,6 +332,8 @@ public class TranslationTask extends AsyncTask {
         //prevents torpedo and rocket pilots
         preventsTorpedoRocketsPilots();
         captureYield(harvestedBlocks);
+
+        updates.add(new FinishMovementEventCommand(this.craft, MovecraftRotation.NONE, this.craft.getWorld().getUID(), dx, dy, dz, new BitmapHitBox(this.oldHitBox), new BitmapHitBox(this.newHitBox)));
     }
 
     // TODO: Rename, this just moves the entities
