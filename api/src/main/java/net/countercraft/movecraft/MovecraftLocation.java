@@ -34,10 +34,23 @@ import static net.countercraft.movecraft.util.BitMath.unpackZ;
 final public class MovecraftLocation implements Comparable<MovecraftLocation>{
     private final int x, y, z;
 
+    public MovecraftLocation(final MovecraftLocation toCopy) {
+        if (toCopy == null) {
+            throw new IllegalArgumentException("toCopy must not be null!");
+        }
+        this.x = toCopy.getX();
+        this.y = toCopy.getY();
+        this.z = toCopy.getZ();
+    }
+
     public MovecraftLocation(int x, int y, int z) {
         this.x = x;
         this.y = y;
         this.z = z;
+    }
+
+    public static MovecraftLocation zero() {
+        return new MovecraftLocation(0,0,0);
     }
 
     public int getX() {

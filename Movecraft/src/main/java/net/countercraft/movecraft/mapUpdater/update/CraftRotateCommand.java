@@ -11,14 +11,17 @@ import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SinkingCraft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
+import net.countercraft.movecraft.events.CraftFinishMovementEvent;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
 import net.countercraft.movecraft.sign.SignListener;
 import net.countercraft.movecraft.util.CollectionUtils;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.Tags;
+import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
 import net.countercraft.movecraft.util.hitboxes.SetHitBox;
 import net.countercraft.movecraft.util.hitboxes.SolidHitBox;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -180,6 +183,17 @@ public class CraftRotateCommand extends UpdateCommand {
         time = System.nanoTime() - time;
         if (Settings.Debug)
             logger.info("Total time: " + (time / 1e6) + " milliseconds. Moving with cooldown of " + craft.getTickCooldown() + ". Speed of: " + String.format("%.2f", craft.getSpeed()));
+
+        Bukkit.getPluginManager().callEvent(new CraftFinishMovementEvent(
+                this.craft,
+                this.rotation,
+                new MovecraftLocation(this.originLocation),
+                this.craft.getMovecraftWorld().getWorldUUID(),
+                0,
+                0,
+                0,
+                new BitmapHitBox(this.craft.getHitBox())
+        ));
     }
 
     private void sendSignEvents() {

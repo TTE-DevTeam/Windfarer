@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
+import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.WorldHandler;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
@@ -11,17 +12,16 @@ import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SinkingCraft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
+import net.countercraft.movecraft.events.CraftFinishMovementEvent;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
 import net.countercraft.movecraft.sign.SignListener;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.Tags;
+import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
 import net.countercraft.movecraft.util.hitboxes.SetHitBox;
 import net.countercraft.movecraft.util.hitboxes.SolidHitBox;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Tag;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.data.Waterlogged;
 import org.jetbrains.annotations.NotNull;
 
@@ -185,6 +185,17 @@ public class CraftTranslateCommand extends UpdateCommand {
         // Only add cruise time if cruising
         if(craft.getCruising() && displacement.getY() == 0 && (displacement.getX() == 0 || displacement.getZ() == 0))
             craft.addCruiseTime(time / 1e9f);
+
+        Bukkit.getPluginManager().callEvent(new CraftFinishMovementEvent(
+                this.craft,
+                MovecraftRotation.NONE,
+                MovecraftLocation.zero(),
+                oldWorld.getUID(),
+                displacement.getX(),
+                displacement.getY(),
+                displacement.getZ(),
+                new BitmapHitBox(this.craft.getHitBox())
+        ));
     }
 
     @NotNull

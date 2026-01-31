@@ -1,5 +1,6 @@
 package net.countercraft.movecraft.events;
 
+import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
@@ -11,6 +12,12 @@ import java.util.UUID;
 public class CraftFinishMovementEvent extends CraftEvent {
 
     private final MovecraftRotation rotation;
+
+    public MovecraftLocation getRotationOrigin() {
+        return rotationOrigin;
+    }
+
+    private final MovecraftLocation rotationOrigin;
 
     public UUID getOldWorld() {
         return oldWorld;
@@ -35,27 +42,22 @@ public class CraftFinishMovementEvent extends CraftEvent {
         return dz;
     }
 
-    public HitBox getOldHitBox() {
-        return oldHitBox;
-    }
-
     public HitBox getNewHitBox() {
         return newHitBox;
     }
 
-    private final HitBox oldHitBox;
     private final HitBox newHitBox;
 
     @NotNull private static final HandlerList HANDLERS = new HandlerList();
 
-    public CraftFinishMovementEvent(final Craft craft, MovecraftRotation rotation, UUID oldWorld, int dx, int dy, int dz, HitBox oldHitBox, HitBox newHitBox) {
+    public CraftFinishMovementEvent(final Craft craft, MovecraftRotation rotation, MovecraftLocation rotationOrigin, UUID oldWorld, int dx, int dy, int dz, HitBox newHitBox) {
         super(craft);
         this.rotation = rotation;
+        this.rotationOrigin = rotationOrigin;
         this.oldWorld = oldWorld;
         this.dx = dx;
         this.dy = dy;
         this.dz = dz;
-        this.oldHitBox = oldHitBox;
         this.newHitBox = newHitBox;
     }
 

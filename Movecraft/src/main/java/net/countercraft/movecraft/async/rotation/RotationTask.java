@@ -31,12 +31,9 @@ import net.countercraft.movecraft.events.CraftTeleportEntityEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.mapUpdater.update.CraftRotateCommand;
 import net.countercraft.movecraft.mapUpdater.update.EntityUpdateCommand;
-import net.countercraft.movecraft.mapUpdater.update.FinishMovementEventCommand;
 import net.countercraft.movecraft.mapUpdater.update.UpdateCommand;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.NamespacedIDUtil;
-import net.countercraft.movecraft.util.Tags;
-import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
 import net.countercraft.movecraft.util.hitboxes.SetHitBox;
 import net.kyori.adventure.text.Component;
@@ -245,8 +242,6 @@ public class RotationTask extends AsyncTask {
             }
             break;
         }
-
-        updates.add(new FinishMovementEventCommand(this.craft, rotation, this.craft.getWorld().getUID(), 0, 0, 0, new BitmapHitBox(this.oldHitBox), new BitmapHitBox(this.newHitBox)));
     }
 
     private Component getRotationMessage(int farthestX, int farthestZ) {
