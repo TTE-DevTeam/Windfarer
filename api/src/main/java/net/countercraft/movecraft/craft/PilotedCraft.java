@@ -9,6 +9,7 @@ import java.util.UUID;
 public interface PilotedCraft extends Craft {
 
     @Nullable
+    // TODO: Change to entity
     Player getPilot();
 
     @NotNull
