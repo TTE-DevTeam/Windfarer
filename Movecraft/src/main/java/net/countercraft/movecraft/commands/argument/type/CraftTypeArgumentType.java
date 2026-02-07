@@ -1,4 +1,4 @@
-package de.dertoaster.movecrafttteadditions.util.command.argument.type;
+package net.countercraft.movecraft.commands.argument.type;
 
 import com.google.common.base.Predicates;
 import com.mojang.brigadier.arguments.ArgumentType;
