@@ -107,19 +107,31 @@ public class SerializationUtil {
         }
 
         Set<NamespacedKey> result = new HashSet<>();
+        Set<NamespacedKey> unresolvable = new HashSet<>(resultTmp);
         for (RegistryKey<T> registryKey : registryKeys) {
             final Registry<T> registry = RegistryAccess.registryAccess().getRegistry(registryKey);
             for (NamespacedKey namespacedKey : resultTmp) {
                 T value = registry.get(namespacedKey);
                 if (value != null) {
                     result.add(namespacedKey);
+                    unresolvable.remove(namespacedKey);
                 } else {
-                   System.err.println("Unable to lookup value for key <" + namespacedKey.toString() + "> in registry <" + registryKey.toString() + ">!");
+                   //System.err.println("Unable to lookup value for key <" + namespacedKey.toString() + "> in registry <" + registryKey.toString() + ">!");
                 }
             }
             for (NamespacedKey tagNamespacedKey : tagsTmp) {
                 parseTagInternal(result, TagKey.create(registryKey, tagNamespacedKey), registry);
             }
+        }
+        String registries = "";
+        for (RegistryKey<T> registryKey : registryKeys) {
+            if (!registries.isEmpty()) {
+                registries += ", ";
+            }
+            registries += registryKey.toString();
+        }
+        for (NamespacedKey unresolved : unresolvable) {
+            System.err.println("Unable to lookup value for key <" + unresolved.toString() + "> in registries <" + registries + ">!");
         }
 
         if (result.isEmpty()) {
