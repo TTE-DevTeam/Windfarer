@@ -51,8 +51,14 @@ public abstract class AsyncTask extends BukkitRunnable {
     // DONE: Move into it's own async task
     // DONE: Check against craft datatag
     protected boolean checkFuel() {
-        if (!FuelBurnRunnable.doesBurnFuel(this.getCraft())) {
+        final Craft craft = this.getCraft();
+        if (!FuelBurnRunnable.doesBurnFuel(craft)) {
             return true;
+        }
+        // Workaround for stick movement being treated as passive
+        // If we are not cruising, we are either sinking or stick-moving
+        if (!craft.getCruising()) {
+            FuelBurnRunnable.burnFuel(craft, FuelBurnRunnable.getFuelBurnRateStickMovement(craft));
         }
         return this.getCraft().getDataTag(FuelBurnRunnable.IS_FUELED);
     }

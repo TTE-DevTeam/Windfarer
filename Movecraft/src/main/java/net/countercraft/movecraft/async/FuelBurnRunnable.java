@@ -57,7 +57,8 @@ public class FuelBurnRunnable implements Runnable {
             }
 
             // Burn current item or find a new one
-            burnFuel(craft);
+            double fuelBurnRate = getFuelBurnRate(craft);
+            burnFuel(craft, fuelBurnRate);
 
             boolean isFueled = craft.getDataTag(IS_FUELED);
             // Activate engines
@@ -65,7 +66,16 @@ public class FuelBurnRunnable implements Runnable {
         }
     }
 
-    static double getFuelBurnRate(final Craft craft) {
+    public static double getFuelBurnRateStickMovement(final Craft craft) {
+        double fuelBurnRate = craft.getCurrentGear();
+
+        // Different fuel burn rate depending on gear and if the craft is moving
+        fuelBurnRate *= craft.getCraftProperties().get(PropertyKeys.FUEL_BURN_RATE, craft.getWorld());
+
+        return fuelBurnRate;
+    }
+
+    public static double getFuelBurnRate(final Craft craft) {
         double fuelBurnRate = craft.getCurrentGear();
 
         // Different fuel burn rate depending on gear and if the craft is moving
@@ -79,11 +89,10 @@ public class FuelBurnRunnable implements Runnable {
         return fuelBurnRate;
     }
 
-    static void burnFuel(final Craft craft) {
+    public static void burnFuel(final Craft craft, double fuelBurnRate) {
         // TODO: The more furnaces a craft has, the more fuel it should consume, but also the more furnaces, the faster it accelerates
         // TODO: Skiffs randomly sink now, fix that!
         boolean isBurningFuel = false;
-        double fuelBurnRate = getFuelBurnRate(craft);
 
         // Fuel item burning
         // We currently have somethign that we are burning
@@ -344,6 +353,7 @@ public class FuelBurnRunnable implements Runnable {
         if (craft instanceof SinkingCraft) {
             return false;
         }
+        // TODO: Squadrons are subcrafts too! So treat them properly
         if (craft instanceof SubCraft) {
             return false;
         }
