@@ -2,6 +2,7 @@ package net.countercraft.movecraft.craft.type.property;
 
 import io.papermc.paper.registry.RegistryKey;
 import net.countercraft.movecraft.util.SerializationUtil;
+import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.SerializableAs;
@@ -64,12 +65,8 @@ public class NamespacedKeyToDoubleProperty implements ConfigurationSerializable 
             List<String> strings = Arrays.asList(entry.getKey().split(","));
             Set<NamespacedKey> keys = new HashSet<>();
             try {
-                keys.addAll(SerializationUtil.deserializeNamespacedKeySet(strings, new HashSet<>(), RegistryKey.BLOCK));
-            } catch(IllegalArgumentException ex) {
-                System.err.println(ex.getMessage());
-            }
-            try {
-                keys.addAll(SerializationUtil.deserializeNamespacedKeySet(strings, new HashSet<>(), RegistryKey.ITEM));
+                final RegistryKey<Keyed>[] registries = new RegistryKey[] {RegistryKey.BLOCK, RegistryKey.ITEM};
+                keys.addAll(SerializationUtil.deserializeNamespacedKeySet(strings, new HashSet<>(), registries));
             } catch(IllegalArgumentException ex) {
                 System.err.println(ex.getMessage());
             }
