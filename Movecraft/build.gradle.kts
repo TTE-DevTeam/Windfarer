@@ -8,14 +8,14 @@ plugins {
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 dependencies {
-    runtimeOnly(project(":movecraft-v1_20_6"))
-    runtimeOnly(project(":movecraft-v1_21_1"))
-    runtimeOnly(project(":movecraft-v1_21_4"))
-    runtimeOnly(project(":movecraft-v1_21_5"))
-    runtimeOnly(project(":movecraft-v1_21_8"))
-    runtimeOnly(project(":movecraft-v1_21_10"))
-    runtimeOnly(project(":movecraft-v1_21_11"))
-    implementation(project(":movecraft-api"))
+    runtimeOnly(project(":windfarer-v1_20_6"))
+    runtimeOnly(project(":windfarer-v1_21_1"))
+    runtimeOnly(project(":windfarer-v1_21_4"))
+    runtimeOnly(project(":windfarer-v1_21_5"))
+    runtimeOnly(project(":windfarer-v1_21_8"))
+    runtimeOnly(project(":windfarer-v1_21_10"))
+    runtimeOnly(project(":windfarer-v1_21_11"))
+    implementation(project(":windfarer-api"))
     compileOnly("org.yaml:snakeyaml:2.0")
 }
 
@@ -25,14 +25,14 @@ tasks.shadowJar {
     archiveVersion.set("")
 
     dependencies {
-        include(project(":movecraft-api"))
-        include(project(":movecraft-v1_20_6"))
-        include(project(":movecraft-v1_21_1"))
-        include(project(":movecraft-v1_21_4"))
-        include(project(":movecraft-v1_21_5"))
-        include(project(":movecraft-v1_21_8"))
-        include(project(":movecraft-v1_21_10"))
-        include(project(":movecraft-v1_21_11"))
+        include(project(":windfarer-api"))
+        include(project(":windfarer-v1_20_6"))
+        include(project(":windfarer-v1_21_1"))
+        include(project(":windfarer-v1_21_4"))
+        include(project(":windfarer-v1_21_5"))
+        include(project(":windfarer-v1_21_8"))
+        include(project(":windfarer-v1_21_10"))
+        include(project(":windfarer-v1_21_11"))
     }
 
     manifest.attributes(
@@ -42,8 +42,8 @@ tasks.shadowJar {
 
 tasks.processResources {
     from(rootProject.file("LICENSE.md"))
-    from(project(":movecraft-datapack").file("build/zip/movecraft-data.zip"))
-    dependsOn(project(":movecraft-datapack").tasks.build)
+    from(project(":windfarer-datapack").file("build/zip/windfarer-data.zip"))
+    dependsOn(project(":windfarer-datapack").tasks.build)
     filesMatching("*.yml") {
         expand(mapOf("projectVersion" to project.version))
     }
@@ -86,4 +86,4 @@ hangarPublish {
     }
 }
 
-description = "Movecraft"
+description = "Windfarer"
