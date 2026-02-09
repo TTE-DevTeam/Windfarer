@@ -1,4 +1,4 @@
-Movecraft - TTE Edition
+Windfarer
 ======
 
 Maintained former fork of Movecraft.
