@@ -20,7 +20,7 @@ dependencies {
 }
 
 tasks.shadowJar {
-    archiveBaseName.set("Windfarer")
+    archiveBaseName.set("Windfarer-1.21.x-${project.version}")
     archiveClassifier.set("")
     archiveVersion.set("")
 
