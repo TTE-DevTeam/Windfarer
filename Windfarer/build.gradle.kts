@@ -20,7 +20,7 @@ dependencies {
 }
 
 tasks.shadowJar {
-    archiveBaseName.set("Movecraft")
+    archiveBaseName.set("Windfarer")
     archiveClassifier.set("")
     archiveVersion.set("")
 
