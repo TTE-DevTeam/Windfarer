@@ -164,18 +164,16 @@ public class BlockListener implements Listener {
     // prevent hoppers on cruising crafts
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onHopperEvent(@NotNull InventoryMoveItemEvent e) {
-        if (!(e.getSource().getHolder() instanceof Hopper))
-            return;
+        if ((e.getSource().getHolder(false) instanceof Hopper hopper)) {
+            Location location = hopper.getLocation();
+            MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
+            for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
+                if (craft.isNotProcessing() || !craft.getHitBox().contains(loc))
+                    continue;
 
-        Hopper block = (Hopper) e.getSource().getHolder();
-        Location location = block.getLocation();
-        MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
-        for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
-            if (craft.isNotProcessing() || !craft.getHitBox().contains(loc))
-                continue;
-
-            e.setCancelled(true);
-            return;
+                e.setCancelled(true);
+                return;
+            }
         }
     }
 
