@@ -132,7 +132,11 @@ public class DirectControlController implements ConfigurationSerializable {
 
     public boolean onPreCruise(final CruiseDirection cruiseDirection, final Craft craft, final Consumer<Integer> applyCooldown, final int currentCooldown) {
         if (craft instanceof PilotedCraft pilotedCraft) {
-            AbstractDirectControlSlot slot = this.getSlotForPilot(pilotedCraft.getPilot());
+            final Player activePilot = this.getRelevantPilot(pilotedCraft);
+            if (activePilot == null) {
+                return false;
+            }
+            AbstractDirectControlSlot slot = this.getSlotForPilot(activePilot);
             if (slot == null) {
                 return false;
             }
@@ -140,6 +144,14 @@ public class DirectControlController implements ConfigurationSerializable {
             return slot.onPreCruise(pilotedCraft.getPilot(), craft, currentCooldown, applyCooldown, cruiseDirection);
         }
         return false;
+    }
+
+    protected Player getRelevantPilot(final Craft craft) {
+        // TODO: Support someone else besides the pilot!
+        if (craft instanceof PilotedCraft pilotedCraft) {
+            return pilotedCraft.getPilot();
+        }
+        return null;
     }
 
     @Override
