@@ -23,6 +23,7 @@ import net.countercraft.movecraft.commands.*;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.ChunkManager;
 import net.countercraft.movecraft.craft.CraftManager;
+import net.countercraft.movecraft.craft.controller.directControl.DirectControlController;
 import net.countercraft.movecraft.craft.controller.rotation.DefaultRotationController;
 import net.countercraft.movecraft.craft.type.ConfiguredSound;
 import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
@@ -44,6 +45,7 @@ import net.countercraft.movecraft.util.BukkitTeleport;
 import net.countercraft.movecraft.util.Tags;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -83,6 +85,7 @@ public class Movecraft extends JavaPlugin {
         ConfigurationSerialization.registerClass(RequiredBlockEntry.class, "Movecraft_RequiredBlockEntry");
         ConfigurationSerialization.registerClass(NamespacedKeyToDoubleProperty.class, "Movecraft_NamespacedKeyToDoubleProperty");
         ConfigurationSerialization.registerClass(DefaultRotationController.class, "Movecraft_DefaultRotationController");
+        ConfigurationSerialization.registerClass(DirectControlController.class, "Movecraft_DirectControlController");
 
         // Read in config
         Settings.LOCALE = getConfig().getString("Locale");
