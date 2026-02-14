@@ -20,6 +20,7 @@ package net.countercraft.movecraft.listener;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.PlayerCraft;
+import net.countercraft.movecraft.craft.controller.directControl.DirectControlController;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.localisation.I18nSupport;
@@ -142,18 +143,14 @@ public final class InteractListener implements Listener {
             if (!MathUtils.locationNearHitBox(craft.getHitBox(), p.getLocation(), 2))
                 return; // Player is not near the craft, so don't do anything
 
-            if (craft.getPilotLocked()) {
-                // Direct control mode allows vertical movements when right-clicking
-                int dy = 1; // Default to up
-                if (p.isSneaking())
-                    dy = -1; // Down if sneaking
-                if (craft.getCraftProperties().get(PropertyKeys.GEAR_SHIFT_AFFECT_DIRECT_MOVEMENT))
-                    dy *= currentGear; // account for gear shifts
-
-                craft.translate(craft.getWorld(), 0, dy, 0);
-                INTERACTION_TIME_MAP.put(craft.getUUID(), System.currentTimeMillis());
-                PLAYER_INTERACTION_TIME_MAP.put(p.getUniqueId(), System.currentTimeMillis());
-                craft.setLastCruiseUpdate(System.currentTimeMillis());
+            if (craft.getPilotLocked() && type.get(PropertyKeys.CAN_DIRECT_CONTROL)) {
+                final DirectControlController dcController = type.get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
+                if (dcController != null) {
+                    if (dcController.onPlayerInteract(e, craft)) {
+                        INTERACTION_TIME_MAP.put(craft.getUUID(), System.currentTimeMillis());
+                        PLAYER_INTERACTION_TIME_MAP.put(p.getUniqueId(), System.currentTimeMillis());
+                    }
+                }
                 return;
             }
 
