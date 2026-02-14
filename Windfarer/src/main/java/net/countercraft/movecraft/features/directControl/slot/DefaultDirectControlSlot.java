@@ -11,6 +11,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.NumberConversions;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -22,6 +23,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
     private final boolean clickToAscendOrDescend;
     private final boolean requirePilotToolForAscendOrDescend;
 
+    private final int ascendDescendDelta;
     private final double rotationAngle;
 
     private DefaultDirectControlSlot(final DefaultDirectControlSlot other) {
@@ -31,6 +33,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
         this.clickToAscendOrDescend = other.clickToAscendOrDescend;
         this.requirePilotToolForAscendOrDescend = other.requirePilotToolForAscendOrDescend;
         this.rotationAngle = other.rotationAngle;
+        this.ascendDescendDelta = other.ascendDescendDelta;
     }
 
     public DefaultDirectControlSlot(Map<String, Object> args) {
@@ -40,6 +43,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
         this.clickToAscendOrDescend = SerializationUtil.deserializeBoolean("click_to_ascend_or_descend", args, false);
         this.requirePilotToolForAscendOrDescend = SerializationUtil.deserializeBoolean("require_pilot_tool_to_ascend_or_descend", args, false);
         this.rotationAngle = Math.toRadians(NumberConversions.toDouble(args.getOrDefault("bearing_delta", 0.0D)));
+        this.ascendDescendDelta = NumberConversions.toInt(args.getOrDefault("delta_y", 1));
     }
 
     @Override
@@ -50,17 +54,24 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
 
     @Override
     public boolean onRightClick(ItemStack itemStack, Player interactor, Craft craft) {
-        if (itemStack.getType() != Settings.PilotTool && this.requirePilotToolForAscendOrDescend) {
-            return false;
-        }
         if (!this.clickToAscendOrDescend) {
             return false;
         }
+        if (itemStack.getType() != Settings.PilotTool && this.requirePilotToolForAscendOrDescend) {
+            return false;
+        }
 
-        // No shift: ascend
-        // Shift: descend
+        int dy = this.ascendDescendDelta; // Default to up
+        if (interactor.isSneaking())
+            dy = -dy; // Down if sneaking
+        if (craft.getCraftProperties().get(PropertyKeys.GEAR_SHIFT_AFFECT_DIRECT_MOVEMENT))
+            dy *= craft.getCurrentGear(); // account for gear shifts
 
-        return false;
+        craft.translate(craft.getWorld(), 0, dy, 0);
+
+        craft.setLastCruiseUpdate(System.currentTimeMillis());
+
+        return true;
     }
 
     @Override
@@ -125,6 +136,16 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
 
     @Override
     public @NotNull Map<String, Object> serialize() {
-        return Map.of();
+        Map<String, Object> result = new HashMap<>();
+
+        result.put("modify_bearing", this.modifyBearing);
+        result.put("shift_to_dive", this.shiftToDive);
+        result.put("shift_to_rise", this.shiftToRise);
+        result.put("click_to_ascend_or_descend", this.clickToAscendOrDescend);
+        result.put("require_pilot_tool_to_ascend_or_descend", this.requirePilotToolForAscendOrDescend);
+        result.put("bearing_delta", Math.toDegrees(this.rotationAngle));
+        result.put("delta_y", this.ascendDescendDelta);
+
+        return result;
     }
 }
