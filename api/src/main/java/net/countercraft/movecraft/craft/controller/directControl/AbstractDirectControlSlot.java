@@ -16,4 +16,6 @@ public abstract class AbstractDirectControlSlot implements ConfigurationSerializ
     public abstract boolean onSwapHand(ItemStack itemStackMainHand, ItemStack itemStackOffHand, Player interactor, Craft craft);
     public abstract boolean onPreCruise(Player activePilot, Craft craft, int tickCooldown, Consumer<Integer> modifyTickCooldown, CruiseDirection cruiseDirection);
 
+    public abstract AbstractDirectControlSlot clone();
+
 }
