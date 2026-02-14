@@ -1,5 +1,6 @@
 package net.countercraft.movecraft.craft.type;
 
+import net.countercraft.movecraft.craft.controller.directControl.DirectControlController;
 import net.countercraft.movecraft.util.Pair;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -91,6 +92,22 @@ public class Validators {
                     return true;
                 },
                 "Max-Height limits are invalid for at least one world (min/max exceeds the world's height properties!)"
+        );
+
+        // Direct control
+        register(
+                type -> {
+                    boolean dcEnabled = type.get(PropertyKeys.CAN_DIRECT_CONTROL);
+                    if (!dcEnabled) {
+                        return true;
+                    }
+                    if (!type.hasInSelfOrAnyParent(PropertyKeys.DIRECT_CONTROL_CONTROLLER)) {
+                        return false;
+                    }
+                    Object dcController = type.get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
+                    return dcController != null && (dcController instanceof DirectControlController);
+                },
+                "Direct control is enabled but the controller instance is eitehr not configured or of wrong type!"
         );
     }
 
