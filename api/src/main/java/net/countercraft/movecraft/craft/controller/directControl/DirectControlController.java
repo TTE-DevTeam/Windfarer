@@ -130,18 +130,16 @@ public class DirectControlController implements ConfigurationSerializable {
         event.setCancelled(slot.onSwapHand(event.getMainHandItem(), event.getOffHandItem(), event.getPlayer(), craft));
     }
 
-    public void onPreCruise(final CruiseDirection cruiseDirection, final Craft craft, final Consumer<Integer> applyCooldown, final int currentCooldown) {
+    public boolean onPreCruise(final CruiseDirection cruiseDirection, final Craft craft, final Consumer<Integer> applyCooldown, final int currentCooldown) {
         if (craft instanceof PilotedCraft pilotedCraft) {
             AbstractDirectControlSlot slot = this.getSlotForPilot(pilotedCraft.getPilot());
             if (slot == null) {
-                return;
+                return false;
             }
 
-            AtomicInteger newCooldown = new AtomicInteger(currentCooldown);
-            if (slot.onPreCruise(pilotedCraft.getPilot(), craft, currentCooldown, newCooldown::set, cruiseDirection)) {
-                applyCooldown.accept(newCooldown.get());
-            }
+            return slot.onPreCruise(pilotedCraft.getPilot(), craft, currentCooldown, applyCooldown, cruiseDirection);
         }
+        return false;
     }
 
     @Override
