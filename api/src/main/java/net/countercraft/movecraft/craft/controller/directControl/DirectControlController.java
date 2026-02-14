@@ -28,7 +28,6 @@ import java.util.function.Consumer;
 // TODO: Add method stub for reacting to movement inputs!
 public class DirectControlController implements ConfigurationSerializable {
 
-    // TODO: Config option
     protected boolean playerMustBeInMoveBox;
 
     // Slots. Slot 10 is the offhand
@@ -38,8 +37,42 @@ public class DirectControlController implements ConfigurationSerializable {
     public static DirectControlController deserialize(Map<String, Object> yamlData) {
         boolean playerMustBeInMoveBox = SerializationUtil.deserializeBoolean("pilot_must_be_in_movebox", yamlData, true);
         Map<Byte, AbstractDirectControlSlot> slotMap = new HashMap<>(10);
-        // TODO: Deserialize the map
+        Object slotMappingRaw = yamlData.getOrDefault("slots", null);
+        if (slotMappingRaw != null && slotMappingRaw instanceof Map slotMappingRawMap) {
+            try {
+                Map<String, Object> slotMapping = (Map<String, Object>) slotMappingRawMap;
+                for (Map.Entry<String, Object> entry : slotMapping.entrySet()) {
+                    if (entry.getValue() instanceof AbstractDirectControlSlot adcs) {
+                        try {
+                            byte index = Byte.parseByte(entry.getKey());
+                            slotMap.put(index, adcs);
+                        } catch(NumberFormatException nfe) {
+                            System.err.println("Slot index <" + entry.getKey() + "> is not a byte!");
+                        }
+                    } else {
+                        System.err.println("Provided entry is not a instance of AbstractDirectControlSlot!");
+                    }
+                }
+            } catch(ClassCastException cce) {
+                System.err.println("Invalid configuration! Slot mapping is not String-to-object");
+            }
+        }
+
+        if (!slotMap.isEmpty()) {
+            return new DirectControlController(slotMap, playerMustBeInMoveBox);
+        }
         return null;
+    }
+
+    protected DirectControlController(final DirectControlController other) {
+        this.playerMustBeInMoveBox = other.playerMustBeInMoveBox;
+        for (int i = 0; i < other.SLOTS.length; i++) {
+            AbstractDirectControlSlot slot = other.SLOTS[i];
+            if (slot == null) {
+                continue;
+            }
+            this.SLOTS[i] = slot.clone();
+        }
     }
 
     protected DirectControlController(final Map<Byte, AbstractDirectControlSlot> slotInstances, final boolean playerMustBeInMoveBox) {
@@ -113,6 +146,23 @@ public class DirectControlController implements ConfigurationSerializable {
 
     @Override
     public @NotNull Map<String, Object> serialize() {
-        return Map.of();
+        Map<String, Object> result = new HashMap<>();
+        result.put("pilot_must_be_in_movebox", this.playerMustBeInMoveBox);
+        final Map<String, Object> slotMap = new HashMap<>(10);
+        for (int i = 0; i < this.SLOTS.length; i++) {
+            AbstractDirectControlSlot controlSlot = this.SLOTS[i];
+            if (controlSlot == null)
+                continue;
+
+            slotMap.put("" + i, controlSlot);
+        }
+        result.put("slots", slotMap);
+
+        return result;
     }
+
+    public static DirectControlController clone(DirectControlController toClone) {
+        return new DirectControlController(toClone);
+    }
+
 }
