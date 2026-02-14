@@ -1,6 +1,7 @@
 package net.countercraft.movecraft.craft.type;
 
 import net.countercraft.movecraft.craft.controller.AbstractRotationController;
+import net.countercraft.movecraft.craft.controller.directControl.DirectControlController;
 import net.countercraft.movecraft.craft.controller.rotation.DefaultRotationController;
 import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
@@ -222,8 +223,24 @@ public class PropertyKeys {
             ).perWorld().immutable());
     public static final PropertyKey<Boolean> CAN_DIRECT_CONTROL =
             register(PropertyKeyTypes.boolPropertyKey(
-                    key("movement/can_direct_control"), t -> true
+                    key("movement/direct_control/enabled"), t -> false
             ).immutable());
+    public static final PropertyKey<DirectControlController> DIRECT_CONTROL_CONTROLLER =
+            register(
+                    new PropertyKey<DirectControlController>(
+                            key("movement/direct_control/controller"),
+                            type -> null,
+                            (obj, type) -> {
+                                if (obj != null && (obj instanceof DirectControlController)) {
+                                    // DirectControlController is serializable!
+                                    return (DirectControlController)obj;
+                                }
+                                return null;
+                            },
+                            (s) -> s,
+                            DirectControlController::clone
+                    )
+            );
     public static final PropertyKey<Boolean> CAN_HOVER =
             register(PropertyKeyTypes.boolPropertyKey(
                     key("constraints/movement/hover/enabled"), t -> false
