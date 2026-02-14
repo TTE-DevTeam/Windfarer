@@ -99,16 +99,18 @@ public class DirectControlController implements ConfigurationSerializable {
         }
     }
 
-    public void onPlayerInteract(final PlayerInteractEvent event, final Craft craft) {
+    public boolean onPlayerInteract(final PlayerInteractEvent event, final Craft craft) {
         AbstractDirectControlSlot slot = this.getSlotForPilot(event.getPlayer());
         if (slot == null) {
-            return;
+            return false;
         }
 
         if (event.getAction().isLeftClick()) {
-            event.setCancelled(slot.onLeftClick(event.getItem(), event.getPlayer(), craft));
+            return slot.onLeftClick(event.getItem(), event.getPlayer(), craft);
         } else if (event.getAction().isRightClick()) {
-            event.setCancelled(slot.onRightClick(event.getItem(), event.getPlayer(), craft));
+            return slot.onRightClick(event.getItem(), event.getPlayer(), craft);
+        } else {
+            return false;
         }
     }
 
