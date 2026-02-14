@@ -26,6 +26,7 @@ import java.util.function.Consumer;
  * OFFHAND slot is the last one it calls!
  */
 // TODO: Add method stub for reacting to movement inputs!
+// TODO: configurable list of commands that is run when DC is entered and left
 public class DirectControlController implements ConfigurationSerializable {
 
     protected boolean playerMustBeInMoveBox;
