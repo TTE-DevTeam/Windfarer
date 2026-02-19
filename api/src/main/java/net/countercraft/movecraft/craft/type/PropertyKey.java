@@ -1,16 +1,10 @@
 package net.countercraft.movecraft.craft.type;
 
-import net.countercraft.movecraft.util.SerializationUtil;
-import net.countercraft.movecraft.util.Tags;
 import net.countercraft.movecraft.util.registration.TypedKey;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.util.NumberConversions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.lang.model.type.PrimitiveType;
-import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
