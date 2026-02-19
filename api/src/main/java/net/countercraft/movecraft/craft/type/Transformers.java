@@ -29,9 +29,9 @@ public class Transformers {
             }
             Map<String, Integer> mapping = new HashMap<>(speedData.getOverrides().size());
             for (Map.Entry<String, Double> entry : speedData.getOverrides().entrySet()) {
-                mapping.put(entry.getKey(), (int) Math.ceil(20 / entry.getValue()));
+                mapping.put(entry.getKey(), (int) Math.ceil(20 / entry.getValue().doubleValue()));
             }
-            int defaultValue = (int) Math.ceil(20 / speedData.getDefaultFallback());
+            int defaultValue = (int) Math.ceil(20 / speedData.getDefaultFallback().doubleValue());
             PerWorldData<Integer> tickCooldown = new PerWorldData<>(defaultValue, mapping);
             setter.accept(PropertyKeys.TICK_COOLDOWN, tickCooldown);
             deleter.add(PropertyKeys.SPEED);
@@ -57,11 +57,11 @@ public class Transformers {
             };
 
             for (String world : worlds) {
-                double speed = speedData.get(world);
-                int skip = skipData.get(world);
+                double speed = speedData.get(world).doubleValue();
+                int skip = skipData.get(world).intValue();
                 mapping.put(world, calculationFunction.apply(skip, speed));
             }
-            final int defaultValue = calculationFunction.apply(skipData.getDefaultFallback(), speedData.getDefaultFallback());
+            final int defaultValue = calculationFunction.apply(skipData.getDefaultFallback().intValue(), speedData.getDefaultFallback().doubleValue());
 
             PerWorldData<Integer> tickCooldown = new PerWorldData<>(defaultValue, mapping);
             setter.accept(PropertyKeys.CRUISE_TICK_COOLDOWN, tickCooldown);
@@ -88,11 +88,11 @@ public class Transformers {
             };
 
             for (String world : worlds) {
-                double speed = speedData.get(world);
-                int skip = skipData.get(world);
+                double speed = speedData.get(world).doubleValue();
+                int skip = skipData.get(world).intValue();
                 mapping.put(world, calculationFunction.apply(skip, speed));
             }
-            final int defaultValue = calculationFunction.apply(skipData.getDefaultFallback(), speedData.getDefaultFallback());
+            final int defaultValue = calculationFunction.apply(skipData.getDefaultFallback().intValue(), speedData.getDefaultFallback().doubleValue());
 
             PerWorldData<Integer> tickCooldown = new PerWorldData<>(defaultValue, mapping);
             setter.accept(PropertyKeys.VERT_CRUISE_TICK_COOLDOWN, tickCooldown);
