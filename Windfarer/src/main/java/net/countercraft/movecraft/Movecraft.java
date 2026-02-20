@@ -17,7 +17,10 @@
 
 package net.countercraft.movecraft;
 
+import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.datapack.Datapack;
+import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import net.countercraft.movecraft.async.AsyncManager;
 import net.countercraft.movecraft.commands.*;
 import net.countercraft.movecraft.config.Settings;
@@ -48,6 +51,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
@@ -181,14 +185,19 @@ public class Movecraft extends JavaPlugin {
 
         getCommand("movecraft").setExecutor(new MovecraftCommand());
         getCommand("release").setExecutor(new ReleaseCommand());
-        getCommand("pilot").setExecutor(new PilotCommand());
-        getCommand("rotate").setExecutor(new RotateCommand());
-        getCommand("cruise").setExecutor(new CruiseCommand());
         getCommand("craftreport").setExecutor(new CraftReportCommand());
         getCommand("manoverboard").setExecutor(new ManOverboardCommand());
         getCommand("scuttle").setExecutor(new ScuttleCommand());
         getCommand("crafttype").setExecutor(new CraftTypeCommand());
         getCommand("craftinfo").setExecutor(new CraftInfoCommand());
+
+        LifecycleEventManager<Plugin> manager = this.getLifecycleManager();
+        manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
+            final Commands commands = event.registrar();
+            PilotCommand.register(commands);
+            RotateCommand.register(commands);
+            CruiseCommand.register(commands);
+        });
 
         // Naming scheme: If it has parameters, append a double colon except if it is a subcraft
         // Parameters follow on the following lines
