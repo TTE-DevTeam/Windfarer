@@ -84,8 +84,6 @@ public class EntityUpdateCommand extends UpdateCommand {
     @Override
     public void doUpdate() {
         Location location = entity.getLocation().add(x, y, z);
-        location.setYaw(location.getYaw() + yaw);
-        location.setPitch(location.getPitch() + pitch);
         location.setWorld(world);
         if (sound != null) {
             ((Player) entity).playSound(location, sound, volume, 1.0f);

@@ -98,8 +98,6 @@ public class ManOverboardCommand implements CommandExecutor {
 
         player.getPersistentDataContainer().set(MANOVERBOARD_LAST_TIME, PersistentDataType.LONG, Long.valueOf(System.currentTimeMillis()));
 
-        telPoint.setYaw(player.getLocation().getYaw());
-        telPoint.setPitch(player.getLocation().getPitch());
         player.setVelocity(new Vector(0, 0, 0));
         player.setFallDistance(0);
         Movecraft.getInstance().getSmoothTeleport().teleport(player, telPoint);
