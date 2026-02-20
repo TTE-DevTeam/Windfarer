@@ -100,12 +100,17 @@ public class StatusManager extends BukkitRunnable implements Listener {
 
             for(NamespacedKey material : materials.getKeySet()) {
                 for(RequiredBlockEntry entry : craft.getCraftProperties().get(PropertyKeys.FLY_BLOCKS)) {
+                    if (entry == null)
+                        continue;
                     if(entry.contains(material)) {
                         flyblocks.add(entry, materials.get(material) );
                     }
                 }
 
                 for(RequiredBlockEntry entry : craft.getCraftProperties().get(PropertyKeys.MOVE_BLOCKS)) {
+                    // TODO: For whatever reason, this can be null?!
+                    if (entry == null)
+                        continue;
                     if(entry.contains(material)) {
                         moveblocks.add(entry, materials.get(material) );
                     }
