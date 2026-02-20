@@ -6,7 +6,10 @@ public interface PlayerCraft extends PilotedCraft {
 
     boolean getPilotLocked();
 
-    Player getPilotPlayer();
+    // TODO: Check back with addons
+    default Player getPilotPlayer() {
+        return this.getPilot();
+    }
 
     void setPilotLocked(boolean pilotLocked);
 
