@@ -9,6 +9,7 @@ import net.countercraft.movecraft.processing.functions.Result;
 import org.bukkit.Tag;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -18,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
 public class PilotSignValidator implements DetectionPredicate<MovecraftLocation> {
     @Override
     @Contract(pure = true)
-    public @NotNull Result validate(@NotNull MovecraftLocation movecraftLocation, @NotNull TypeSafeCraftType type, @NotNull MovecraftWorld world, @Nullable Player player) {
+    public @NotNull Result validate(@NotNull MovecraftLocation movecraftLocation, @NotNull TypeSafeCraftType type, @NotNull MovecraftWorld world, @Nullable Entity pilot) {
         if(!Tag.SIGNS.isTagged(world.getMaterial(movecraftLocation))){
             return Result.succeed();
         }
@@ -27,10 +28,10 @@ public class PilotSignValidator implements DetectionPredicate<MovecraftLocation>
             return Result.succeed();
         }
         Sign s = (Sign) state;
-        if (!s.getLine(0).equalsIgnoreCase("Pilot:") || player == null) {
+        if (!s.getLine(0).equalsIgnoreCase("Pilot:") || pilot == null) {
             return Result.succeed();
         }
-        String playerName = player.getName();
+        String playerName = pilot.getName();
         boolean foundPilot = false;
         for(int line = 1; line<4; line++){
             if(s.getLine(line).equalsIgnoreCase(playerName)){
@@ -38,6 +39,6 @@ public class PilotSignValidator implements DetectionPredicate<MovecraftLocation>
                 break;
             }
         }
-        return foundPilot || (player.hasPermission("movecraft.bypasslock")) ? Result.succeed() : Result.failWithMessage(I18nSupport.getInternationalisedString("Detection - Not Registered Pilot"));
+        return foundPilot || (pilot.hasPermission("movecraft.bypasslock")) ? Result.succeed() : Result.failWithMessage(I18nSupport.getInternationalisedString("Detection - Not Registered Pilot"));
     }
 }

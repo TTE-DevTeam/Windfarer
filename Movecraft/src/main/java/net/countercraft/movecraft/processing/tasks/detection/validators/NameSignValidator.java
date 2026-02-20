@@ -10,6 +10,7 @@ import net.countercraft.movecraft.processing.functions.Result;
 import org.bukkit.Tag;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -18,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
 public class NameSignValidator implements DetectionPredicate<MovecraftLocation> {
     @Override
     @Contract(pure = true)
-    public @NotNull Result validate(@NotNull MovecraftLocation movecraftLocation, @NotNull TypeSafeCraftType type, @NotNull MovecraftWorld world, @Nullable Player player) {
+    public @NotNull Result validate(@NotNull MovecraftLocation movecraftLocation, @NotNull TypeSafeCraftType type, @NotNull MovecraftWorld world, @Nullable Entity pilot) {
         if(!Tag.SIGNS.isTagged(world.getMaterial(movecraftLocation))){
             return Result.succeed();
         }
