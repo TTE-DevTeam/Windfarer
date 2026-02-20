@@ -98,7 +98,11 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
                                 return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedString(
                                         "Detection - Failed - Already commanding a craft")), null);
 
-                            result = new PlayerCraftImpl(type, w, p);
+                            if (p instanceof Player player1) {
+                                result = new PlayerCraftImpl(type, w, player1);
+                            } else {
+                                result = new PilotedCraftImpl(type, w, p);
+                            }
                         }
 
                         if (result != null) {
