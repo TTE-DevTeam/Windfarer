@@ -64,8 +64,14 @@ public class PilotCommand {
                         return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedString(
                                 "Detection - Failed - Already commanding a craft")), null);
 
-                    return new Pair<>(Result.succeed(),
-                            new PlayerCraftImpl(type, w, p));
+                    if (p instanceof Player player) {
+                        return new Pair<>(Result.succeed(),
+                                new PlayerCraftImpl(type, w, player));
+                    } else {
+                        //return new Pair<>(Result.succeed(), new PilotedCraftImpl(type, w, p));
+                        return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedString(
+                                "Detection - Failed - Pilot must be player")), null);
+                    }
                 },
                 world,
                 // Pilot
