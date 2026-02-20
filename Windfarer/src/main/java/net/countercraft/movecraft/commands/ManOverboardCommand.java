@@ -100,7 +100,7 @@ public class ManOverboardCommand implements CommandExecutor {
 
         player.setVelocity(new Vector(0, 0, 0));
         player.setFallDistance(0);
-        Movecraft.getInstance().getSmoothTeleport().teleport(player, telPoint);
+        Movecraft.getInstance().getSmoothTeleport().teleport(player, telPoint.getWorld(), telPoint.getX(), telPoint.getY(), telPoint.getZ(), 0, 0);
         return true;
     }
 

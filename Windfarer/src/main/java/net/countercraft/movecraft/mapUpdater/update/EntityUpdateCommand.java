@@ -95,7 +95,7 @@ public class EntityUpdateCommand extends UpdateCommand {
             return;
         }
 
-        Movecraft.getInstance().getSmoothTeleport().teleport((Player) entity, location);
+        Movecraft.getInstance().getSmoothTeleport().teleport((Player) entity, world, location.getX(), location.getY(), location.getZ(), yaw, pitch);
     }
 
     @Override
