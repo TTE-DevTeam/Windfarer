@@ -3,6 +3,7 @@ package net.countercraft.movecraft.craft.controller.directControl;
 import net.countercraft.movecraft.CruiseDirection;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.PilotedCraft;
+import net.countercraft.movecraft.craft.PlayerCraft;
 import net.countercraft.movecraft.util.SerializationUtil;
 import org.bukkit.GameMode;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
@@ -144,7 +145,7 @@ public class DirectControlController implements ConfigurationSerializable {
                 return false;
             }
 
-            return slot.onPreCruise(pilotedCraft.getPilot(), craft, currentCooldown, applyCooldown, cruiseDirection);
+            return slot.onPreCruise(activePilot, craft, currentCooldown, applyCooldown, cruiseDirection);
         }
         return false;
     }
@@ -152,7 +153,12 @@ public class DirectControlController implements ConfigurationSerializable {
     protected Player getRelevantPilot(final Craft craft) {
         // TODO: Support someone else besides the pilot!
         if (craft instanceof PilotedCraft pilotedCraft) {
-            return pilotedCraft.getPilot();
+            if (pilotedCraft.getPilotEntity() instanceof Player) {
+                return (Player) pilotedCraft.getPilotEntity();
+            }
+        }
+        else if (craft instanceof PlayerCraft playerCraft) {
+            return playerCraft.getPilotPlayer();
         }
         return null;
     }

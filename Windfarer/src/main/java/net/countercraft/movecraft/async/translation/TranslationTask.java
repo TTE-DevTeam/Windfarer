@@ -405,9 +405,9 @@ public class TranslationTask extends AsyncTask {
                         continue;
                     }
                     // Playerspecific check
-                    if (craftTmp instanceof PilotedCraft pilotedCraft && pilotedCraft.getPilot() == entity) {
+                    if (craftTmp instanceof PilotedCraft pilotedCraft && pilotedCraft.getPilotEntity() == entity) {
                         // Only skip, if the found craft is smaller
-                        if (craft instanceof  PilotedCraft pilotedCraft1 && pilotedCraft1.getPilot() == entity) {
+                        if (craft instanceof  PilotedCraft pilotedCraft1 && pilotedCraft1.getPilotEntity() == entity) {
                             // Squadron or subskiff moving, can be ignored
                         } else {
                             int sizeTmp = craftTmp.getHitBox().size();

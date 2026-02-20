@@ -73,10 +73,10 @@ public class NameSign extends AbstractCraftSign {
 
     public static void tryApplyName(final Craft craft, final SignListener.SignWrapper sign) {
         if (craft != null && craft instanceof PilotedCraft pc) {
-            if (pc.getPilot() == null) {
+            if (pc.getPilotEntity() == null) {
                 return;
             }
-            if (Settings.RequireNamePerm && !pc.getPilot().hasPermission(NAME_SIGN_PERMISSION))
+            if (Settings.RequireNamePerm && !pc.getPilotEntity().hasPermission(NAME_SIGN_PERMISSION))
                 return;
         }
 

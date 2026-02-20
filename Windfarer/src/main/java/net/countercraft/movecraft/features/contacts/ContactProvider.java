@@ -33,7 +33,7 @@ public interface ContactProvider {
             if (target instanceof SubCraft)
                 continue;
             if (self instanceof PilotedCraft && target instanceof PilotedCraft
-                    && ((PilotedCraft) self).getPilot() == ((PilotedCraft) target).getPilot())
+                    && ((PilotedCraft) self).getPilotEntity() == ((PilotedCraft) target).getPilotEntity())
                 continue;
 
             MovecraftLocation baseCenter;

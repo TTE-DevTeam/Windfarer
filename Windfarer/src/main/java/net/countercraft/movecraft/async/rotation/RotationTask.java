@@ -306,7 +306,7 @@ public class RotationTask extends AsyncTask {
                     if (craftTmp == craft) {
                         continue;
                     }
-                    if (craftTmp instanceof PilotedCraft pilotedCraft && pilotedCraft.getPilot() == entity) {
+                    if (craftTmp instanceof PilotedCraft pilotedCraft && pilotedCraft.getPilotEntity() == entity) {
                         skip = true;
                         break;
                     }

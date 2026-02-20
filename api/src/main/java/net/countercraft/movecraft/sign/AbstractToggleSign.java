@@ -3,6 +3,7 @@ package net.countercraft.movecraft.sign;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.PilotedCraft;
+import net.countercraft.movecraft.craft.PlayerCraft;
 import net.countercraft.movecraft.events.CraftDetectEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.Style;
@@ -161,7 +162,11 @@ public abstract class AbstractToggleSign extends AbstractCraftSign {
     public void onCraftDetect(CraftDetectEvent event, SignListener.SignWrapper sign) {
         Player p = null;
         if (event.getCraft() instanceof PilotedCraft pc) {
-            p = pc.getPilot();
+            if (pc.getPilotEntity() instanceof Player) {
+                p = (Player) pc.getPilotEntity();
+            }
+        } else if (event.getCraft() instanceof PlayerCraft pc) {
+            p = pc.getPilotPlayer();
         }
 
         if (this.isSignValid(Action.PHYSICAL, sign, p)) {

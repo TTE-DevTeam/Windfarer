@@ -40,9 +40,9 @@ public class PlayerCraftImpl extends BaseCraft implements PlayerCraft {
 
     @Nullable
     @Override
-    public Player getPilot() {
+    public Entity getPilotEntity() {
         if (this.pilot.get() == null) {
-            this.pilot = new WeakReference<> (Bukkit.getPlayer(this.getPilotUUID()));
+            this.pilot = new WeakReference<>(Bukkit.getPlayer(this.getPilotUUID()));
             this.setAudience(this.pilot.get());
         } else {
             Player bukkitPilot = Bukkit.getPlayer(this.getPilotUUID());
@@ -61,6 +61,18 @@ public class PlayerCraftImpl extends BaseCraft implements PlayerCraft {
 
     public boolean getPilotLocked() {
         return pilotLocked;
+    }
+
+    @Override
+    public Player getPilotPlayer() {
+        Entity pilotEntity = this.getPilotEntity();
+        if (pilotEntity == null) {
+            return null;
+        }
+        if (pilotEntity instanceof Player) {
+            return (Player) pilotEntity;
+        }
+        return null;
     }
 
     public void setPilotLocked(boolean pilotLocked) {

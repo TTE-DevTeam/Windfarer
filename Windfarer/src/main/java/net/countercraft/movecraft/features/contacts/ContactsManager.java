@@ -146,7 +146,7 @@ public class ContactsManager extends BukkitRunnable implements Listener {
                 if (target instanceof SubCraft)
                     continue;
                 if (base instanceof PilotedCraft && target instanceof PilotedCraft
-                        && ((PilotedCraft) base).getPilot() == ((PilotedCraft) target).getPilot())
+                        && ((PilotedCraft) base).getPilotEntity() == ((PilotedCraft) target).getPilotEntity())
                     continue;
             }
 

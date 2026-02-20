@@ -22,7 +22,7 @@ public class ReleaseSign extends AbstractMovecraftSign {
 
     @Override
     protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Player player, @Nullable Craft craft) {
-        if (craft == null || (craft instanceof PilotedCraft pc && pc.getPilot() != player)) {
+        if (craft == null || (craft instanceof PilotedCraft pc && pc.getPilotEntity() != player)) {
             craft = CraftManager.getInstance().getCraftByPlayer(player);
         }
         if (craft != null) {
