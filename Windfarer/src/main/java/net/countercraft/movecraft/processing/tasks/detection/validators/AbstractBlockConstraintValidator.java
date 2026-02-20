@@ -7,6 +7,7 @@ import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.functions.DetectionPredicate;
 import net.countercraft.movecraft.processing.functions.Result;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -24,7 +25,7 @@ public abstract class AbstractBlockConstraintValidator implements DetectionPredi
     @Override
     @Contract(pure = true)
     public @NotNull Result validate(@NotNull Map<NamespacedKey, Deque<MovecraftLocation>> materialDequeMap,
-                                    @NotNull TypeSafeCraftType type, @NotNull MovecraftWorld world, @Nullable Player player) {
+                                    @NotNull TypeSafeCraftType type, @NotNull MovecraftWorld world, @Nullable Entity pilot) {
         int total = materialDequeMap.values().parallelStream().mapToInt(Deque::size).sum();
         for (RequiredBlockEntry entry : getRelevantConstraintSet(type)) {
             int count = 0;
