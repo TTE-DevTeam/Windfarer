@@ -8,6 +8,9 @@ import org.jetbrains.annotations.NotNull;
 
 public class ISmoothTeleport extends SmoothTeleport {
     public void teleport(@NotNull Player player, @NotNull Location location) {
+        location.setYaw(0.0F);
+        location.setPitch(0.0F);
+
         player.teleport(
                 location,
                 TeleportFlag.Relative.X,
