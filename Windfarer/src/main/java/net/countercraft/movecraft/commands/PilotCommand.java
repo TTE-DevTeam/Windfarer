@@ -5,6 +5,7 @@ import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.commands.argument.type.CraftTypeArgumentType;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
+import net.countercraft.movecraft.craft.PilotedCraftImpl;
 import net.countercraft.movecraft.craft.PlayerCraftImpl;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
@@ -68,9 +69,7 @@ public class PilotCommand {
                         return new Pair<>(Result.succeed(),
                                 new PlayerCraftImpl(type, w, player));
                     } else {
-                        //return new Pair<>(Result.succeed(), new PilotedCraftImpl(type, w, p));
-                        return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedString(
-                                "Detection - Failed - Pilot must be player")), null);
+                        return new Pair<>(Result.succeed(), new PilotedCraftImpl(type, w, p));
                     }
                 },
                 world,
