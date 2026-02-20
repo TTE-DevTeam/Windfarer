@@ -38,6 +38,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -103,7 +104,7 @@ public class DetectionTask implements Supplier<Effect> {
     private final TypeSafeCraftType type;
     private final CraftSupplier supplier;
     private final World world;
-    private final Player player;
+    private final Entity pilot;
     private final Audience audience;
     private final Function<Craft, Effect> postDetection;
     private final Function<@Nullable Craft, Effect> alwaysRunAfter;
@@ -119,15 +120,15 @@ public class DetectionTask implements Supplier<Effect> {
 
     public DetectionTask(@NotNull MovecraftLocation startLocation, @NotNull MovecraftWorld movecraftWorld,
                          @NotNull TypeSafeCraftType type, @NotNull CraftSupplier supplier,
-                         @NotNull World world, @Nullable Player player,
+                         @NotNull World world, @Nullable Entity pilot,
                          @NotNull Audience audience,
                          @NotNull Function<Craft, Effect> postDetection) {
-        this(startLocation, movecraftWorld, type, supplier, world, player, audience, postDetection, null);
+        this(startLocation, movecraftWorld, type, supplier, world, pilot, audience, postDetection, null);
     }
 
     public DetectionTask(@NotNull MovecraftLocation startLocation, @NotNull MovecraftWorld movecraftWorld,
                             @NotNull TypeSafeCraftType type, @NotNull CraftSupplier supplier,
-                            @NotNull World world, @Nullable Player player,
+                            @NotNull World world, @Nullable Entity pilot,
                             @NotNull Audience audience,
                             @NotNull Function<Craft, Effect> postDetection,
                             @Nullable Function<@Nullable Craft, Effect> alwaysRunAFter) {
@@ -137,7 +138,7 @@ public class DetectionTask implements Supplier<Effect> {
         this.supplier = supplier;
 
         this.world = world;
-        this.player = player;
+        this.pilot = pilot;
         this.audience = audience;
         this.postDetection = postDetection;
         this.alwaysRunAfter = alwaysRunAFter;
@@ -246,10 +247,10 @@ public class DetectionTask implements Supplier<Effect> {
 
         var result = COMPLETION_VALIDATORS.stream().reduce(DetectionPredicate::and).orElse(
                 (a, b, c, d) -> Result.fail()
-        ).validate(materials, type, movecraftWorld, player);
+        ).validate(materials, type, movecraftWorld, pilot);
         result = result.isSucess() ? VISITED_VALIDATORS.stream().reduce(DetectionPredicate::and).orElse(
                 (a, b, c, d) -> Result.fail()
-        ).validate(visitedMaterials, type, movecraftWorld, player) : result;
+        ).validate(visitedMaterials, type, movecraftWorld, pilot) : result;
         if (!result.isSucess()) {
             String message = result.getMessage();
             if (this.alwaysRunAfter != null)
@@ -260,7 +261,7 @@ public class DetectionTask implements Supplier<Effect> {
         var hitbox = new BitmapHitBox(legal);
         var parents = findParents(hitbox);
 
-        var supplied = supplier.apply(type, world, player, parents);
+        var supplied = supplier.apply(type, world, pilot, parents);
         result = supplied.getLeft();
         Craft craft = supplied.getRight();
 
@@ -295,7 +296,7 @@ public class DetectionTask implements Supplier<Effect> {
             )));
             Movecraft.getInstance().getLogger().info(String.format(
                     I18nSupport.getInternationalisedString("Detection - Success - Log Output"),
-                    player == null ? "null" : player.getName(),
+                    pilot == null ? "null" : pilot.getName(),
                     craft.getCraftProperties().getName(),
                     craft.getHitBox().size(),
                     craft.getHitBox().getMinX(),
@@ -349,7 +350,7 @@ public class DetectionTask implements Supplier<Effect> {
 
     @Override
     public String toString(){
-        return String.format("DetectionTask{%s:%s:%s}", player, type, startLocation);
+        return String.format("DetectionTask{%s:%s:%s}", pilot, type, startLocation);
     }
 
     private class DetectAction implements Runnable {
@@ -393,10 +394,10 @@ public class DetectionTask implements Supplier<Effect> {
 
                 visitedMaterials.computeIfAbsent(material, Functions.forSupplier(ConcurrentLinkedDeque::new)).add(probe);
                 // TODO: Use BlockData.getAsString() for validation
-                if(!ALLOWED_BLOCK_VALIDATOR.validate(probe, type, movecraftWorld, player).isSucess())
+                if(!ALLOWED_BLOCK_VALIDATOR.validate(probe, type, movecraftWorld, pilot).isSucess())
                     continue;
 
-                var result = chain.validate(probe, type, movecraftWorld, player);
+                var result = chain.validate(probe, type, movecraftWorld, pilot);
 
                 if (result.isSucess()) {
                     legal.add(probe);

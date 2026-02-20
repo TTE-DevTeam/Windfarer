@@ -37,6 +37,7 @@ import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -144,7 +145,7 @@ public class CraftManager implements Iterable<Craft>{
      * @param supplier the supplier run post-detection to create the craft.
      *   Note: This is where you can construct a custom Craft object if you want to, or tailor the detection process.
      * @param world the world to detect in
-     * @param player the player who is causing the detection
+     * @param pilot the entity who is causing the detection
      *   Note: This is only used for logging and forwarded to the supplier.
      *   - It is highly encouraged to pass in a non-null value if a player is causing the detection.
      *   - If player is null, this will bypass protections like pilot signs and the like.
@@ -154,13 +155,13 @@ public class CraftManager implements Iterable<Craft>{
      */
     public void detect(@NotNull MovecraftLocation startPoint,
                         @NotNull TypeSafeCraftType type, @NotNull CraftSupplier supplier,
-                        @NotNull World world, @Nullable Player player,
+                        @NotNull World world, @Nullable Entity pilot,
                         @NotNull Audience audience,
                         @NotNull Function<Craft, Effect> postDetection) {
         WorldManager.INSTANCE.submit(new DetectionTask(
                 startPoint, CachedMovecraftWorld.of(world),
                 type, supplier,
-                world, player,
+                world, pilot,
                 audience,
                 postDetection
         ));
@@ -168,14 +169,14 @@ public class CraftManager implements Iterable<Craft>{
 
     public void detect(@NotNull MovecraftLocation startPoint,
                        @NotNull TypeSafeCraftType type, @NotNull CraftSupplier supplier,
-                       @NotNull World world, @Nullable Player player,
+                       @NotNull World world, @Nullable Entity pilot,
                        @NotNull Audience audience,
                        @NotNull Function<Craft, Effect> postDetection,
                        @Nullable Function<@Nullable Craft, Effect> alwaysRunAfter) {
         WorldManager.INSTANCE.submit(new DetectionTask(
                 startPoint, CachedMovecraftWorld.of(world),
                 type, supplier,
-                world, player,
+                world, pilot,
                 audience,
                 postDetection,
                 alwaysRunAfter

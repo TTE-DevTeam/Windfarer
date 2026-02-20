@@ -1,6 +1,8 @@
 package net.countercraft.movecraft.commands;
 
+import io.papermc.paper.command.brigadier.Commands;
 import net.countercraft.movecraft.MovecraftLocation;
+import net.countercraft.movecraft.commands.argument.type.CraftTypeArgumentType;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.PlayerCraftImpl;
@@ -11,47 +13,48 @@ import net.countercraft.movecraft.processing.functions.Result;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.Pair;
 import org.bukkit.World;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabExecutor;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static net.countercraft.movecraft.util.ChatUtils.MOVECRAFT_COMMAND_PREFIX;
 
-public class PilotCommand implements TabExecutor {
-    @Override
-    public boolean onCommand(CommandSender commandSender, Command command, String s, String[] args) {
-        if (!command.getName().equalsIgnoreCase("pilot"))
-            return false;
-        if (!(commandSender instanceof Player)) {
-            commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Pilot - Must Be Player"));
-            return true;
-        }
-        Player player = (Player) commandSender;
-        if (!player.hasPermission("movecraft.commands") || !player.hasPermission("movecraft.commands.pilot")) {
-            player.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Insufficient Permissions"));
-            return true;
-        }
-        if (args.length < 1) {
-            player.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Pilot - No Craft Type"));
-            return true;
-        }
-        if (!player.hasPermission("movecraft." + args[0] + ".pilot")) {
-            player.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Insufficient Permissions"));
-            return true;
-        }
-        TypeSafeCraftType craftType = CraftManager.getInstance().getCraftTypeByName(args[0]);
-        if (craftType == null) {
-            player.sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Pilot - Invalid Craft Type"));
-            return true;
-        }
+public class PilotCommand {
 
-        final World world = player.getWorld();
-        MovecraftLocation startPoint = MathUtils.bukkit2MovecraftLoc(player.getLocation());
+    public static void register(final Commands commands) {
+        commands.register(
+                Commands.literal("pilot")
+                        .requires(source -> {
+                            if (!(source.getExecutor() instanceof Entity)) {
+                                source.getSender().sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Pilot - Must Be Entity"));
+                                return false;
+                            }
+                            if (!source.getSender().hasPermission("movecraft.commands")) {
+                                return false;
+                            }
+                            return source.getSender().hasPermission("movecraft.commands.pilot");
+                        })
+                        .executes(context -> {
+                            context.getSource().getSender().sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Pilot - No Craft Type"));
+                            return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+                        })
+                        .then(Commands.argument("type", new CraftTypeArgumentType())
+                                .executes(context -> {
+                                    TypeSafeCraftType type = context.getArgument("type", TypeSafeCraftType.class);
+                                    process(context.getSource().getExecutor(), type);
+                                    return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+                                })
+                        )
+                        .build(),
+                "Command to change the cruise state of your craft",
+                List.of()
+        );
+    }
+
+    static void process(Entity executor, final TypeSafeCraftType craftType) {
+        final World world = executor.getWorld();
+        MovecraftLocation startPoint = MathUtils.bukkit2MovecraftLoc(executor.getLocation());
 
         CraftManager.getInstance().detect(
                 startPoint,
@@ -61,36 +64,29 @@ public class PilotCommand implements TabExecutor {
                         return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedString(
                                 "Detection - Failed - Already commanding a craft")), null);
 
-                    return new Pair<>(Result.succeed(),
-                            new PlayerCraftImpl(type, w, p));
+                    if (p instanceof Player player) {
+                        return new Pair<>(Result.succeed(),
+                                new PlayerCraftImpl(type, w, player));
+                    } else {
+                        //return new Pair<>(Result.succeed(), new PilotedCraftImpl(type, w, p));
+                        return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedString(
+                                "Detection - Failed - Pilot must be player")), null);
+                    }
                 },
-                world, player, player,
+                world,
+                // Pilot
+                executor,
+                // Audience
+                executor,
                 craft -> () -> {
-                    // Release old craft if it exists
-                    Craft oldCraft = CraftManager.getInstance().getCraftByPlayer(player);
-                    if(oldCraft != null)
-                        CraftManager.getInstance().release(oldCraft, CraftReleaseEvent.Reason.PLAYER, false);
+                    if (executor instanceof Player player) {
+                        // Release old craft if it exists
+                        Craft oldCraft = CraftManager.getInstance().getCraftByPlayer(player);
+                        if(oldCraft != null)
+                            CraftManager.getInstance().release(oldCraft, CraftReleaseEvent.Reason.PLAYER, false);
+                    }
                 }
         );
-       return true;
     }
 
-    @Override
-    public List<String> onTabComplete(CommandSender commandSender, Command command, String s, String[] strings) {
-        if (strings.length != 1 || !commandSender.hasPermission("movecraft.commands")
-                || !commandSender.hasPermission("movecraft.commands.pilot"))
-            return Collections.emptyList();
-
-        List<String> completions = new ArrayList<>();
-        for (TypeSafeCraftType type : CraftManager.getInstance().getTypesafeCraftTypes())
-            if (commandSender.hasPermission("movecraft." + type.getName().toLowerCase() + ".pilot"))
-                completions.add(type.getName());
-
-        List<String> returnValues = new ArrayList<>();
-        for (String completion : completions)
-            if (completion.toLowerCase().startsWith(strings[strings.length-1].toLowerCase()))
-                returnValues.add(completion);
-
-        return returnValues;
-    }
 }

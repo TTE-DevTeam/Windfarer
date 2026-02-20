@@ -5,6 +5,7 @@ import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.util.Pair;
 import net.countercraft.movecraft.util.functions.QuadFunction;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,7 +17,7 @@ import java.util.Set;
  * @see QuadFunction
  */
 @FunctionalInterface
-public interface CraftSupplier extends QuadFunction<TypeSafeCraftType, World, Player, Set<Craft>, Pair<Result, Craft>> {
+public interface CraftSupplier extends QuadFunction<TypeSafeCraftType, World, Entity, Set<Craft>, Pair<Result, Craft>> {
     /**
      * Applies this function to the given arguments.
      *
@@ -27,5 +28,5 @@ public interface CraftSupplier extends QuadFunction<TypeSafeCraftType, World, Pl
      * @return the result of construction and possibly a craft
      */
     @NotNull
-    Pair<@NotNull Result, @Nullable Craft> apply(@NotNull TypeSafeCraftType type, @NotNull World w, @Nullable Player player, @NotNull Set<Craft> parents);
+    Pair<@NotNull Result, @Nullable Craft> apply(@NotNull TypeSafeCraftType type, @NotNull World w, @Nullable Entity player, @NotNull Set<Craft> parents);
 }

@@ -9,6 +9,7 @@ import net.countercraft.movecraft.processing.functions.DetectionPredicate;
 import net.countercraft.movecraft.processing.functions.Result;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.BlockType;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -23,7 +24,7 @@ public class WaterContactValidator implements DetectionPredicate<Map<NamespacedK
 
     @Override
     @Contract(pure = true)
-    public @NotNull Result validate(@NotNull Map<NamespacedKey, Deque<MovecraftLocation>> materialDequeMap, @NotNull TypeSafeCraftType type, @NotNull MovecraftWorld world, @Nullable Player player) {
+    public @NotNull Result validate(@NotNull Map<NamespacedKey, Deque<MovecraftLocation>> materialDequeMap, @NotNull TypeSafeCraftType type, @NotNull MovecraftWorld world, @Nullable Entity pilot) {
         return type.get(PropertyKeys.REQUIRE_WATER_CONTACT) && !materialDequeMap.containsKey(WATER_ID) ? Result.failWithMessage(I18nSupport.getInternationalisedString("Detection - Failed - Water contact required but not found")) : Result.succeed();
     }
 }
