@@ -3,9 +3,7 @@ package net.countercraft.movecraft.commands;
 import io.papermc.paper.command.brigadier.Commands;
 import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.commands.argument.type.EnumArgumentType;
-import net.countercraft.movecraft.craft.Craft;
-import net.countercraft.movecraft.craft.CraftManager;
-import net.countercraft.movecraft.craft.PlayerCraft;
+import net.countercraft.movecraft.craft.*;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.util.ChatUtils;
 import org.bukkit.entity.Entity;
@@ -48,7 +46,7 @@ public class RotateCommand {
                         })
                         .executes(
                                 context -> {
-                                    process((Player) (context.getSource().getSender()));
+                                    process(context.getSource().getExecutor());
                                     return com.mojang.brigadier.Command.SINGLE_SUCCESS;
                                 }
                         )
@@ -56,9 +54,9 @@ public class RotateCommand {
                                 .executes(context -> {
                                     ROTATE_OPTIONS rotation = context.getArgument("rotation", ROTATE_OPTIONS.class);
                                     if (rotation == null) {
-                                        process((Player) (context.getSource().getExecutor()));
+                                        process(context.getSource().getExecutor());
                                     } else {
-                                        process((Player) (context.getSource().getExecutor()), rotation);
+                                        process(context.getSource().getExecutor(), rotation);
                                     }
                                     return com.mojang.brigadier.Command.SINGLE_SUCCESS;
                                 })
@@ -69,11 +67,15 @@ public class RotateCommand {
         );
     }
 
-    static void process (Player sender, ROTATE_OPTIONS rotation) {
+    static void process (Entity sender, ROTATE_OPTIONS rotation) {
         final Optional<Craft> optCraft = CraftManager.getInstance().getCraftsInWorld(sender.getWorld())
                 .stream()
                 .filter(craftTmp -> {
-                    return craftTmp instanceof PlayerCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(sender.getUniqueId());
+                    if (sender instanceof Player) {
+                        return craftTmp instanceof PlayerCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(sender.getUniqueId());
+                    } else {
+                        return craftTmp instanceof PilotedCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(sender.getUniqueId());
+                    }
                 })
                 .findFirst();
         if (optCraft.isPresent()) {
@@ -93,7 +95,7 @@ public class RotateCommand {
         }
     }
 
-    static void process(Player sender) {
+    static void process(Entity sender) {
         process(sender, ROTATE_OPTIONS.RIGHT);
     }
 

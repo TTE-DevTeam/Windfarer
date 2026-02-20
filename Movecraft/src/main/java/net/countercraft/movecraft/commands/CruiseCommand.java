@@ -6,11 +6,13 @@ import net.countercraft.movecraft.commands.argument.type.EnumArgumentType;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.PilotedCraft;
+import net.countercraft.movecraft.craft.PlayerCraft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.util.ChatUtils;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 
 import java.util.List;
 import java.util.Optional;
@@ -43,7 +45,7 @@ public class CruiseCommand {
                         })
                         .executes(
                                 context -> {
-                                    process((Entity) (context.getSource().getSender()));
+                                    process(context.getSource().getExecutor());
                                     return com.mojang.brigadier.Command.SINGLE_SUCCESS;
                                 }
                         )
@@ -51,9 +53,9 @@ public class CruiseCommand {
                                 .executes(context -> {
                                     CRUISE_DIRECTION direction = context.getArgument("direction", CRUISE_DIRECTION.class);
                                     if (direction == null) {
-                                        process((context.getSource().getExecutor()));
+                                        process(context.getSource().getExecutor());
                                     } else {
-                                        process((context.getSource().getExecutor()), direction);
+                                        process(context.getSource().getExecutor(), direction);
                                     }
                                     return com.mojang.brigadier.Command.SINGLE_SUCCESS;
                                 })
@@ -68,7 +70,11 @@ public class CruiseCommand {
         final Optional<Craft> optCraft = CraftManager.getInstance().getCraftsInWorld(sender.getWorld())
                 .stream()
                 .filter(craftTmp -> {
-                    return craftTmp instanceof PilotedCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(sender.getUniqueId());
+                    if (sender instanceof Player) {
+                        return craftTmp instanceof PlayerCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(sender.getUniqueId());
+                    } else {
+                        return craftTmp instanceof PilotedCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(sender.getUniqueId());
+                    }
                 })
                 .findFirst();
         if (optCraft.isPresent()) {
