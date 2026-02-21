@@ -46,8 +46,20 @@ public class DirectControlController implements ConfigurationSerializable {
                 for (Map.Entry<String, Object> entry : slotMapping.entrySet()) {
                     if (entry.getValue() instanceof AbstractDirectControlSlot adcs) {
                         try {
-                            byte index = Byte.parseByte(entry.getKey());
-                            slotMap.put(index, adcs);
+                            Object indexObj = entry.getKey();
+                            byte index = -1;
+                            // TODO: Maybe support arrays in the future?
+                            if (indexObj instanceof Number number) {
+                                index = number.byteValue();
+                            } else if (indexObj instanceof String string) {
+                                index = Byte.parseByte(entry.getKey());
+                            }
+
+                            if (index < 0) {
+                                System.err.println("Slot index <" + entry.getKey() + "> is not a byte or less than zero!");
+                            } else {
+                                slotMap.put(index, adcs);
+                            }
                         } catch(NumberFormatException nfe) {
                             System.err.println("Slot index <" + entry.getKey() + "> is not a byte!");
                         }
@@ -57,6 +69,7 @@ public class DirectControlController implements ConfigurationSerializable {
                 }
             } catch(ClassCastException cce) {
                 System.err.println("Invalid configuration! Slot mapping is not String-to-object");
+                cce.printStackTrace();
             }
         }
 
@@ -89,16 +102,16 @@ public class DirectControlController implements ConfigurationSerializable {
         if (pilot == null || pilot.getGameMode() == GameMode.SPECTATOR) {
             return null;
         }
-        int currentSlot = pilot.getInventory().getHeldItemSlot() - 1;
-        if (this.SLOTS[currentSlot] != null) {
-            return this.SLOTS[currentSlot];
-        } else {
-            ItemStack offhand = pilot.getInventory().getItemInOffHand();
-            if (offhand == null || offhand.isEmpty()) {
-                return null;
+
+        // TODO: Proper offhand support!
+        ItemStack offhand = pilot.getInventory().getItemInOffHand();
+        if (offhand == null || offhand.isEmpty()) {
+            int currentSlot = pilot.getInventory().getHeldItemSlot() - 1;
+            if (this.SLOTS[currentSlot] != null) {
+                return this.SLOTS[OFFHAND_SLOT];
             }
-            return this.SLOTS[OFFHAND_SLOT];
         }
+        return this.SLOTS[OFFHAND_SLOT];
     }
 
     public boolean onPlayerInteract(final PlayerInteractEvent event, final Craft craft) {
