@@ -228,14 +228,17 @@ public class AsyncManager extends BukkitRunnable {
             int jumpDistance = 1 + (direction.isVertical() ? vertCruiseSkipBlocks : cruiseSkipBlocks);
 
             // Direct control: Call controller and take over values if necessary
-            if (!direction.isVertical() && craft.getCraftProperties().get(PropertyKeys.CAN_DIRECT_CONTROL)) {
-                DirectControlController dcController = craft.getCraftProperties().get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
-                if (dcController != null) {
-                    AtomicInteger newTickCooldown = new AtomicInteger(tickCoolDown);
-                    CruiseDirection dcCruiseDirection = direction.clone();
-                    if (dcController.onPreCruise(dcCruiseDirection, craft, newTickCooldown::set, tickCoolDown)) {
-                        tickCoolDown = newTickCooldown.get();
-                        direction = dcCruiseDirection;
+            if (craft instanceof PlayerCraft playerCraft) {
+                // TODO: Find a prettier way than ... this
+                if (!direction.isVertical() && playerCraft.getCraftProperties().get(PropertyKeys.CAN_DIRECT_CONTROL) && playerCraft.getPilotLocked()) {
+                    DirectControlController dcController = playerCraft.getCraftProperties().get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
+                    if (dcController != null) {
+                        AtomicInteger newTickCooldown = new AtomicInteger(tickCoolDown);
+                        CruiseDirection dcCruiseDirection = direction.clone();
+                        if (dcController.onPreCruise(dcCruiseDirection, playerCraft, newTickCooldown::set, tickCoolDown)) {
+                            tickCoolDown = newTickCooldown.get();
+                            direction = dcCruiseDirection;
+                        }
                     }
                 }
             }
