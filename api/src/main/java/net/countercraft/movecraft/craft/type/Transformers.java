@@ -42,7 +42,7 @@ public class Transformers {
             PerWorldData<Double> speedData = getter.get(PropertyKeys.CRUISE_SPEED);
             PerWorldData<Integer> skipData = getter.get(PropertyKeys.CRUISE_SKIP_BLOCKS);
 
-            if (!getter.has(PropertyKeys.CRUISE_SPEED) || !getter.has(PropertyKeys.CRUISE_SKIP_BLOCKS)) {
+            if (!getter.hasInSelfOrAnyParent(PropertyKeys.CRUISE_SPEED, true) || !getter.hasInSelfOrAnyParent(PropertyKeys.CRUISE_SKIP_BLOCKS, true)) {
                 return false;
             }
 
@@ -73,7 +73,7 @@ public class Transformers {
             PerWorldData<Double> speedData = getter.get(PropertyKeys.VERT_CRUISE_SPEED);
             PerWorldData<Integer> skipData = getter.get(PropertyKeys.VERT_CRUISE_SKIP_BLOCKS);
 
-            if (!getter.has(PropertyKeys.VERT_CRUISE_SPEED) || !getter.has(PropertyKeys.VERT_CRUISE_SKIP_BLOCKS)) {
+            if (!getter.hasInSelfOrAnyParent(PropertyKeys.VERT_CRUISE_SPEED, true) || !getter.hasInSelfOrAnyParent(PropertyKeys.VERT_CRUISE_SKIP_BLOCKS, true)) {
                 return false;
             }
 

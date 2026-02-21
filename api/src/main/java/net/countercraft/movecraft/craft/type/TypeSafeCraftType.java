@@ -244,15 +244,29 @@ public class TypeSafeCraftType extends TypedContainer<PropertyKey<?>> {
     }
 
     public <T> boolean hasInSelfOrAnyParent(PropertyKey<T> key) {
+        return hasInSelfOrAnyParent(key, false);
+    }
+    public <T> boolean hasInSelfOrAnyParent(PropertyKey<T> key, final boolean ignoreDefaultFallback) {
         if (key == null) {
             return false;
         }
         // Actually check for the property being set SOMEWHERE
         // A value getting returned is not really valid as that could ALWAYS be the default!
-        if (!this.has(key) && this.getParent() != null) {
-            return this.getParent().hasInSelfOrAnyParent(key);
+        if (!this.has(key)) {
+            if (this.getParent() != null) {
+                return this.getParent().hasInSelfOrAnyParent(key);
+            }
+            // If we do ignore the default fallback, we do not have the property, period!
+            else if (ignoreDefaultFallback) {
+                return false;
+            }
+            // We dont ignore the default fallback, so we "have" the property stored!
+            else {
+                return true;
+            }
+        } else {
+            return true;
         }
-        return true;
     }
 
     @Nullable
