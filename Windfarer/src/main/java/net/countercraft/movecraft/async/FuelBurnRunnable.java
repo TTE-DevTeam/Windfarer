@@ -92,12 +92,16 @@ public class FuelBurnRunnable implements Runnable {
     public static void burnFuel(final Craft craft, double fuelBurnRate) {
         // TODO: The more furnaces a craft has, the more fuel it should consume, but also the more furnaces, the faster it accelerates
         // TODO: Skiffs randomly sink now, fix that!
-        boolean isBurningFuel = false;
+        boolean hasFuel = false;
 
+        // If the specified rate is 0 and we are here, then we burn fuel, but not currently!
+        if (fuelBurnRate <= 0.0D) {
+            craft.setBurningFuel(0.0);
+        }
         // Fuel item burning
         // We currently have somethign that we are burning
-        if (craft.getBurningFuel() >= fuelBurnRate) {
-            isBurningFuel = true;
+        else if (craft.getBurningFuel() >= fuelBurnRate) {
+            hasFuel = true;
 
             double burningFuel = craft.getBurningFuel();
             // call event
@@ -198,7 +202,7 @@ public class FuelBurnRunnable implements Runnable {
                     craft.setBurningFuel(craft.getBurningFuel() + burnTime);
                     craft.setMaxBurningFuel(craft.getBurningFuel());
 
-                    isBurningFuel = true;
+                    hasFuel = true;
 
                     if (Settings.Debug) {
                         Movecraft.getInstance().getLogger().info("Active furnace: " + furnaceInventory.getHolder().getLocation());
@@ -208,7 +212,7 @@ public class FuelBurnRunnable implements Runnable {
                 }
             }
 
-            if (!isBurningFuel) {
+            if (!hasFuel) {
                 // Search for fuel in fueltanks
             }
         }
@@ -216,7 +220,7 @@ public class FuelBurnRunnable implements Runnable {
 
         // Only sink it here if it is not moving. If it is moving, it is sunk via the task itself!
         // We are moving, that means our result could be faulty
-        if (!craft.isNotProcessing() && !isBurningFuel) {
+        if (!craft.isNotProcessing() && !hasFuel) {
             if (Settings.Debug) {
                 Movecraft.getInstance().getLogger().info("Craft <" + craft.getUUID().toString() +"> technically cant burn any more fuel but is currently busy, we will try again later!");
             }
@@ -225,7 +229,7 @@ public class FuelBurnRunnable implements Runnable {
 
         // We were fueld, but now we are no longer fueled
         if (craft.getDataTag(IS_FUELED)) {
-            if (craft.getCraftProperties().get(PropertyKeys.SINK_WHEN_OUT_OF_FUEL) && !isBurningFuel) {
+            if (craft.getCraftProperties().get(PropertyKeys.SINK_WHEN_OUT_OF_FUEL) && !hasFuel) {
                 if (Settings.Debug) {
                     Movecraft.getInstance().getLogger().info("Scuttling craft <" + craft.getUUID().toString() +"> at <" + craft.getHitBox().getMidPoint().toString() + "> as it ran out of fuel!");
                 }
@@ -233,7 +237,7 @@ public class FuelBurnRunnable implements Runnable {
                 CraftManager.getInstance().sink(craft);
             }
         }
-        craft.setDataTag(IS_FUELED, isBurningFuel);
+        craft.setDataTag(IS_FUELED, hasFuel);
     }
 
     public static void updateFurnaces(final Craft craft, final boolean active) {
