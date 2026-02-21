@@ -32,7 +32,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -140,6 +142,7 @@ public final class InteractListener implements Listener {
                 return; // Player doesn't have permission to move this craft, so don't do anything
             }
 
+            // TODO: Move into DC controller
             if (!MathUtils.locationNearHitBox(craft.getHitBox(), p.getLocation(), 2))
                 return; // Player is not near the craft, so don't do anything
 
@@ -173,4 +176,49 @@ public final class InteractListener implements Listener {
             craft.setLastCruiseUpdate(System.currentTimeMillis());
         }
     }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerDropItem(final PlayerDropItemEvent event) {
+        Player p = event.getPlayer();
+        PlayerCraft craft = CraftManager.getInstance().getCraftByPlayer(p);
+        if (craft == null)
+            return;
+
+        TypeSafeCraftType type = craft.getCraftProperties();
+
+
+        // TODO: Move into DC controller
+        if (!MathUtils.locationNearHitBox(craft.getHitBox(), p.getLocation(), 2))
+            return; // Player is not near the craft, so don't do anything
+
+        if (craft.getPilotLocked() && type.get(PropertyKeys.CAN_DIRECT_CONTROL)) {
+            final DirectControlController dcController = type.get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
+            if (dcController != null) {
+                dcController.onPlayerDropItem(event, craft);
+            }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerSwapItem(final PlayerSwapHandItemsEvent event) {
+        Player p = event.getPlayer();
+        PlayerCraft craft = CraftManager.getInstance().getCraftByPlayer(p);
+        if (craft == null)
+            return;
+
+        TypeSafeCraftType type = craft.getCraftProperties();
+
+
+        // TODO: Move into DC controller
+        if (!MathUtils.locationNearHitBox(craft.getHitBox(), p.getLocation(), 2))
+            return; // Player is not near the craft, so don't do anything
+
+        if (craft.getPilotLocked() && type.get(PropertyKeys.CAN_DIRECT_CONTROL)) {
+            final DirectControlController dcController = type.get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
+            if (dcController != null) {
+                dcController.onPlayerSwapItem(event, craft);
+            }
+        }
+    }
+
 }
