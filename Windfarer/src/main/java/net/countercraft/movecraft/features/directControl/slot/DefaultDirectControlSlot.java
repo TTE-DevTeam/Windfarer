@@ -25,6 +25,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
 
     private final int ascendDescendDelta;
     private final double rotationAngle;
+    private final double riseDiveAngle;
 
     private DefaultDirectControlSlot(final DefaultDirectControlSlot other) {
         this.modifyBearing = other.modifyBearing;
@@ -34,6 +35,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
         this.requirePilotToolForAscendOrDescend = other.requirePilotToolForAscendOrDescend;
         this.rotationAngle = other.rotationAngle;
         this.ascendDescendDelta = other.ascendDescendDelta;
+        this.riseDiveAngle = other.riseDiveAngle;
     }
 
     public DefaultDirectControlSlot(Map<String, Object> args) {
@@ -43,6 +45,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
         this.clickToAscendOrDescend = SerializationUtil.deserializeBoolean("click_to_ascend_or_descend", args, false);
         this.requirePilotToolForAscendOrDescend = SerializationUtil.deserializeBoolean("require_pilot_tool_to_ascend_or_descend", args, false);
         this.rotationAngle = Math.toRadians(NumberConversions.toDouble(args.getOrDefault("bearing_delta", 0.0D)));
+        this.riseDiveAngle = Math.toRadians(NumberConversions.toDouble(args.getOrDefault("rise_dive_angle", 0.0D)));
         this.ascendDescendDelta = NumberConversions.toInt(args.getOrDefault("delta_y", 1));
     }
 
@@ -99,11 +102,11 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
         if (activePilot.isSneaking()) {
             if (this.shiftToRise) {
                 modVertical = true;
-                cruiseDirection.rise2D(this.rotationAngle);
+                cruiseDirection.rise2D(this.riseDiveAngle);
             }
             if (this.shiftToDive) {
                 modVertical = true;
-                cruiseDirection.rise2D(-this.rotationAngle);
+                cruiseDirection.rise2D(-this.riseDiveAngle);
             }
         }
 
@@ -144,6 +147,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
         result.put("click_to_ascend_or_descend", this.clickToAscendOrDescend);
         result.put("require_pilot_tool_to_ascend_or_descend", this.requirePilotToolForAscendOrDescend);
         result.put("bearing_delta", Math.toDegrees(this.rotationAngle));
+        result.put("rise_dive_angle", Math.toDegrees(this.riseDiveAngle));
         result.put("delta_y", this.ascendDescendDelta);
 
         return result;
