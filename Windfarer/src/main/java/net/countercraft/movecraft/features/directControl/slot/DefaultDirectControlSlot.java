@@ -97,7 +97,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
 
         if (this.modifyBearing) {
             modHorizontal = true;
-            cruiseDirection.rotateAroundY(this.rotationAngle);
+            cruiseDirection.rotateAroundY(-this.rotationAngle);
         }
         if (activePilot.isSneaking()) {
             if (this.shiftToRise) {
