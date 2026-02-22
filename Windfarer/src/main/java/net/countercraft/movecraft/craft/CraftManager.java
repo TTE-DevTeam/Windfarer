@@ -373,6 +373,25 @@ public class CraftManager implements Iterable<Craft>{
         return playerCrafts.get(p.getUniqueId());
     }
 
+    @Contract("null -> null")
+    @Nullable
+    public Craft getCraftByEntity(@Nullable Entity entity) {
+        if(entity == null || entity.getUniqueId() == null)
+            return null;
+        if (entity instanceof Player) {
+            return getCraftByPlayer((Player) entity);
+        }
+        for (Craft craft : crafts) {
+            if (craft instanceof PilotedCraft pilotedCraft) {
+                final UUID pilotUUID = pilotedCraft.getPilotUUID();
+                if (entity.getUniqueId().equals(pilotUUID)) {
+                    return pilotedCraft;
+                }
+            }
+        }
+        return null;
+    }
+
     public PlayerCraft getCraftByPlayerName(String name) {
         for (var entry : playerCrafts.entrySet()) {
             if (entry.getKey() != null && (Bukkit.getPlayer(entry.getKey()).getName().equals(name) || Bukkit.getOfflinePlayer(entry.getKey()).getName().equals(name)))
