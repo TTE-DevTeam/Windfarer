@@ -72,13 +72,41 @@ public class CruiseDirection extends Vector {
     /** Rise or dive (if angle is positive), angle in radians. Will default to UP (or DOWN) if risen too much. */
     // TODO @HalfQuark: Check this function again, it does not seem to work how we want it to (always results in a vector point somewhere downwards)
     public void rise2D(double angle) {
-        Vector perpendicular = new Vector(this.getX(), this.getY(), this.getZ()).rotateAroundY(PI_HALF);
-        if (angle > 0) {
-            angle = Math.min(angle, this.angle(UP));
-        } else {
-            angle = Math.max(angle, -this.angle(DOWN));
+        // Project vector onto the 2d plane
+        // X axis: Length of the vector
+        // Y axis: Current Y value
+        // Calculate angle between X axis and the vector itself
+        // Modify the vector
+        // Recalculate x and y with the new angle and adjust for them to be the same length as previously (via scaling)
+        // Set own XYZ value
+        final double xLength = Math.sqrt((this.getX() * this.getX()) + (this.getZ() * this.getZ()));
+
+        if (xLength == 0.0D) {
+            return;
         }
-        this.rotateAroundNonUnitAxis(perpendicular, angle);
+
+        final double yHeight = this.getY();
+        final double currentLength = Math.sqrt((xLength * xLength) + (yHeight * yHeight));
+
+        final double currentAngle = Math.atan2(xLength, yHeight);
+        final double newAngle = currentAngle + angle;
+
+        final double newX = Math.cos(newAngle) * currentLength;
+        final double newY = Math.sin(newAngle) * currentLength;
+
+        final double scaleXZ = newX / xLength;
+
+        this.setX(this.getX() * scaleXZ);
+        this.setY(newY);
+        this.setZ(this.getZ() * scaleXZ);
+//
+//        Vector perpendicular = new Vector(this.getX(), this.getY(), this.getZ()).rotateAroundY(PI_HALF);
+//        if (angle > 0) {
+//            angle = Math.min(angle, this.angle(UP));
+//        } else {
+//            angle = Math.max(angle, -this.angle(DOWN));
+//        }
+//        this.rotateAroundNonUnitAxis(perpendicular, angle);
     }
 
     public double getYaw() {
