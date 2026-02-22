@@ -105,6 +105,7 @@ public abstract class AbstractCraftCommand {
                                     this::getCraftByPosition
                                 )
                         )
+                        // TODO: Add logic for craft-by-executor (aka no arg given) logic!
                         .build(),
                 this.description,
                 this.aliasList
@@ -128,6 +129,9 @@ public abstract class AbstractCraftCommand {
         });
     }
 
+    protected Craft getCraftByExecutor(CommandContext context) {
+        return null;
+    }
 
     protected Craft getCraftByPilot(CommandContext context) {
         final EntitySelectorArgumentResolver entitySelectorArgumentResolver = (EntitySelectorArgumentResolver) context.getArgument("pilot", EntitySelectorArgumentResolver.class);
