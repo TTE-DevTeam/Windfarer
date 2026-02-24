@@ -48,6 +48,10 @@ public class FuelBurnRunnable implements Runnable {
     private static final NamespacedKey FURNACES_KEY = new NamespacedKey(Movecraft.getInstance(), "furnaces");
     public static final CraftDataTagKey<Set<TrackedLocation>> FURNACES = CraftDataTagRegistry.INSTANCE.registerTagKey(FURNACES_KEY, FuelBurnRunnable::calcFurnaceLocations);
 
+    static boolean burnsOnlyOnMovement(final Craft craft) {
+        return craft.getCraftProperties().get(PropertyKeys.ONLY_CONSUME_FUEL_ON_MOVEMENT);
+    }
+
     @Override
     public void run() {
         List<Craft> crafts = Lists.newArrayList(CraftManager.getInstance());
@@ -56,17 +60,25 @@ public class FuelBurnRunnable implements Runnable {
                 continue;
             }
 
-            // Burn current item or find a new one
-            double fuelBurnRate = getFuelBurnRate(craft);
-            burnFuel(craft, fuelBurnRate);
+            if (burnsOnlyOnMovement(craft)) {
+                continue;
+            }
 
-            boolean isFueled = craft.getDataTag(IS_FUELED);
-            // Activate engines
-            updateFurnaces(craft, isFueled);
+            runFuelBurnLogic(craft, false);
         }
     }
 
-    public static double getFuelBurnRateStickMovement(final Craft craft) {
+    public static void runFuelBurnLogic(Craft craft, boolean isStick) {
+        // Burn current item or find a new one
+        double fuelBurnRate = getFuelBurnRate(craft, isStick);
+        burnFuel(craft, fuelBurnRate);
+
+        boolean isFueled = craft.getDataTag(IS_FUELED);
+        // Activate engines
+        updateFurnaces(craft, isFueled);
+    }
+
+    static double getFuelBurnRateStickMovement(final Craft craft) {
         double fuelBurnRate = craft.getCurrentGear();
 
         // Different fuel burn rate depending on gear and if the craft is moving
@@ -75,7 +87,10 @@ public class FuelBurnRunnable implements Runnable {
         return fuelBurnRate;
     }
 
-    public static double getFuelBurnRate(final Craft craft) {
+    static double getFuelBurnRate(final Craft craft, boolean isStick) {
+        if (isStick) {
+            return getFuelBurnRateStickMovement(craft);
+        }
         double fuelBurnRate = craft.getCurrentGear();
 
         // Different fuel burn rate depending on gear and if the craft is moving
@@ -89,7 +104,7 @@ public class FuelBurnRunnable implements Runnable {
         return fuelBurnRate;
     }
 
-    public static void burnFuel(final Craft craft, double fuelBurnRate) {
+    static void burnFuel(final Craft craft, double fuelBurnRate) {
         // TODO: The more furnaces a craft has, the more fuel it should consume, but also the more furnaces, the faster it accelerates
         // TODO: Skiffs randomly sink now, fix that!
         boolean hasFuel = false;

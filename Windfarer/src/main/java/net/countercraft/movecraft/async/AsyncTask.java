@@ -57,8 +57,10 @@ public abstract class AsyncTask extends BukkitRunnable {
         }
         // Workaround for stick movement being treated as passive
         // If we are not cruising, we are either sinking or stick-moving
-        if (!craft.getCruising()) {
-            FuelBurnRunnable.burnFuel(craft, FuelBurnRunnable.getFuelBurnRateStickMovement(craft));
+        // Or if we only consume on movement, we will consume fuel
+        boolean stick = !craft.getCruising();
+        if (stick || FuelBurnRunnable.burnsOnlyOnMovement(craft)) {
+            FuelBurnRunnable.runFuelBurnLogic(craft, stick);
         }
         return this.getCraft().getDataTag(FuelBurnRunnable.IS_FUELED);
     }

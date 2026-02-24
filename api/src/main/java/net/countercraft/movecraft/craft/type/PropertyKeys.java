@@ -150,8 +150,6 @@ public class PropertyKeys {
     // TODO: Remove, worlds have their own waterlevel which should be used instead
     public static final PropertyKey<Integer> STATIC_WATER_LEVEL =
             register(PropertyKeyTypes.intPropertyKey(key("static_water_level"), t -> 0).immutable());
-    public static final PropertyKey<PerWorldData<Double>> FUEL_BURN_RATE =
-            register(PropertyKeyTypes.doublePropertyKey(key("fuel/burn_rate"), t -> 0D).perWorld().immutable());
     public static final PropertyKey<Double> INACTIVE_FUEL_BURN_RATE =
             register(PropertyKeyTypes.doublePropertyKey(key("fuel/passive_burn_rate"), t -> 0D));
     public static final PropertyKey<Boolean> FURNACE_FUEL_VISUALIZATION =
@@ -284,14 +282,6 @@ public class PropertyKeys {
     public static final PropertyKey<ConfiguredSound> COLLISION_SOUND =
             register(PropertyKeyTypes.configuredSoundPropertyKey(
                     key("movement/collision/sound"), "block.anvil.land", SoundCategory.NEUTRAL, 2.0F, 1.0F
-            ).immutable());
-    public static final PropertyKey<NamespacedKeyToDoubleProperty> FUEL_TYPES =
-            register(PropertyKeyTypes.namespacedKeyToDoublePropertyKey(
-                    key("fuel/types"), Map.of(
-                            BlockType.COAL_BLOCK.getKey(), 80.0D,
-                            ItemType.COAL.getKey(), 8.0D,
-                            ItemType.CHARCOAL.getKey(), 8.0D
-                    )
             ).immutable());
     // Modified from original
     public static final PropertyKey<List<String>> DISABLE_TELEPORT_TO_WORLDS =
@@ -431,6 +421,24 @@ public class PropertyKeys {
                     key("serialization/save_to_disk"), false
             )).perWorld();
     // endregion serialization
+
+    // region fuel
+    public static final PropertyKey<PerWorldData<Double>> FUEL_BURN_RATE =
+            register(PropertyKeyTypes.doublePropertyKey(key("fuel/burn_rate"), t -> 0D).perWorld().immutable());
+    public static final PropertyKey<NamespacedKeyToDoubleProperty> FUEL_TYPES =
+            register(PropertyKeyTypes.namespacedKeyToDoublePropertyKey(
+                    key("fuel/types"), Map.of(
+                            BlockType.COAL_BLOCK.getKey(), 80.0D,
+                            ItemType.COAL.getKey(), 8.0D,
+                            ItemType.CHARCOAL.getKey(), 8.0D
+                    )
+            ).immutable());
+    public static final PropertyKey<Boolean> ONLY_CONSUME_FUEL_ON_MOVEMENT =
+            register(PropertyKeyTypes.boolPropertyKey(
+                    key("fuel/only_consume_on_movement"),
+                    false
+            ).immutable());
+    // endregion fuel
 
     public static <T> PropertyKey<T> register(PropertyKey<T> propertyKey) {
         return TypeSafeCraftType.PROPERTY_REGISTRY.register(propertyKey.key(), propertyKey);
