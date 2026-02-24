@@ -19,7 +19,7 @@ public class SerializationUtil {
         return result;
     }
 
-    static void parseInternal(Set<NamespacedKey> collectorNormal, Set<NamespacedKey> collectorTag, Object object) {
+    static void parseInternal(Set<NamespacedKey> collectorNormal, Set<NamespacedKey> collectorTag, Set<NamespacedKey> collectorToRemove, Set<NamespacedKey> collectorTagToRemove, Object object) {
         String workingString = null;
         if (object instanceof Keyed keyed) {
             if (keyed.key() instanceof NamespacedKey namespacedKey) {
@@ -38,12 +38,23 @@ public class SerializationUtil {
         if (workingString != null) {
             NamespacedKey namespacedKey = null;
             Set<NamespacedKey> collection = null;
-            if (workingString.startsWith("#")) {
-                collection = collectorTag;
-                namespacedKey = NamespacedKey.fromString(workingString.substring(1));
+            if (workingString.startsWith("!")) {
+                workingString = workingString.substring(1);
+                if (workingString.startsWith("#")) {
+                    collection = collectorTagToRemove;
+                    namespacedKey = NamespacedKey.fromString(workingString.substring(1));
+                } else {
+                    collection = collectorToRemove;
+                    namespacedKey = NamespacedKey.fromString(workingString);
+                }
             } else {
-                collection = collectorNormal;
-                namespacedKey = NamespacedKey.fromString(workingString);
+                if (workingString.startsWith("#")) {
+                    collection = collectorTag;
+                    namespacedKey = NamespacedKey.fromString(workingString.substring(1));
+                } else {
+                    collection = collectorNormal;
+                    namespacedKey = NamespacedKey.fromString(workingString);
+                }
             }
             if (namespacedKey != null && collection != null) {
                 collection.add(namespacedKey);
@@ -96,20 +107,24 @@ public class SerializationUtil {
     public static <T extends org.bukkit.Keyed> Set<NamespacedKey> deserializeNamespacedKeySet(Object rawDataObject, Set<NamespacedKey> defaultValue, RegistryKey<T>... registryKeys) {
         Set<NamespacedKey> resultTmp = new HashSet<>();
         Set<NamespacedKey> tagsTmp = new HashSet<>();
+        Set<NamespacedKey> removeList = new HashSet<>();
+        Set<NamespacedKey> removeTagList = new HashSet<>();
         if (rawDataObject != null) {
             if (rawDataObject instanceof List list) {
                 for (Object obj : list) {
-                    parseInternal(resultTmp, tagsTmp, obj);
+                    parseInternal(resultTmp, tagsTmp, removeList, removeTagList, obj);
                 }
             } else {
-                parseInternal(resultTmp, tagsTmp, rawDataObject);
+                parseInternal(resultTmp, tagsTmp, removeList, removeTagList, rawDataObject);
             }
         }
 
         Set<NamespacedKey> result = new HashSet<>();
         Set<NamespacedKey> unresolvable = new HashSet<>(resultTmp);
+        Set<NamespacedKey> unresolvableRemove = new HashSet<>(removeList);
         for (RegistryKey<T> registryKey : registryKeys) {
             final Registry<T> registry = RegistryAccess.registryAccess().getRegistry(registryKey);
+            // Add list
             for (NamespacedKey namespacedKey : resultTmp) {
                 T value = registry.get(namespacedKey);
                 if (value != null) {
@@ -122,6 +137,21 @@ public class SerializationUtil {
             for (NamespacedKey tagNamespacedKey : tagsTmp) {
                 parseTagInternal(result, TagKey.create(registryKey, tagNamespacedKey), registry);
             }
+            // Remove list
+            for (NamespacedKey namespacedKey : removeList) {
+                T value = registry.get(namespacedKey);
+                if (value != null) {
+                    result.remove(namespacedKey);
+                    unresolvableRemove.remove(namespacedKey);
+                } else {
+                    //System.err.println("Unable to lookup value for key <" + namespacedKey.toString() + "> in registry <" + registryKey.toString() + ">!");
+                }
+            }
+            Set<NamespacedKey> removeListTmp = new HashSet<>();
+            for (NamespacedKey tagNamespacedKey : removeTagList) {
+                parseTagInternal(removeListTmp, TagKey.create(registryKey, tagNamespacedKey), registry);
+            }
+            result.removeAll(removeListTmp);
         }
         String registries = "";
         for (RegistryKey<T> registryKey : registryKeys) {
@@ -130,6 +160,7 @@ public class SerializationUtil {
             }
             registries += registryKey.toString();
         }
+        unresolvable.addAll(unresolvableRemove);
         for (NamespacedKey unresolved : unresolvable) {
             System.err.println("Unable to lookup value for key <" + unresolved.toString() + "> in registries <" + registries + ">!");
         }
