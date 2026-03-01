@@ -19,7 +19,7 @@ public class TeleportCraftCommand extends AbstractCraftCommand {
 
     @Nullable
     @Override
-    protected RequiredArgumentBuilder<CommandSourceStack, ?> additionalArguments() {
+    protected RequiredArgumentBuilder<CommandSourceStack, ?> arguments() {
         return Commands.argument("destination-world", ArgumentTypes.world())
                 .then(
                         Commands.argument("destination-position", ArgumentTypes.blockPosition())

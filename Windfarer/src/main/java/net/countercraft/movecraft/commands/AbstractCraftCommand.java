@@ -7,6 +7,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.command.brigadier.argument.ArgumentTypes;
@@ -47,14 +48,19 @@ public abstract class AbstractCraftCommand {
         return sourceStack.getSender().hasPermission(this.permissionNode);
     }
 
+    protected boolean specialArgsPredicate(CommandSourceStack sourceStack) {
+        return sourceStack.getSender().hasPermission("movecraft.commands.selector-arguments");
+    }
+
     public void register(final Commands commands) {
-        commands.register(
+        ArgumentBuilder<CommandSourceStack, ?> literal =
                 Commands.literal("teleportcraft")
                         .requires(this::requiresCheck)
                         // By Pilot entity
                         .then(
                                 this.processRest(
                                     Commands.literal("--pilot")
+                                        .requires(this::specialArgsPredicate)
                                         .then(Commands.argument("pilot", ArgumentTypes.entity())),
                                     this::getCraftByPilot
                                 )
@@ -63,6 +69,7 @@ public abstract class AbstractCraftCommand {
                         .then(
                                 this.processRest(
                                     Commands.literal("--uuid")
+                                        .requires(this::specialArgsPredicate)
                                         .then(Commands.argument("uuid", new CraftUUIDArgumentType())),
                                     this::getByCraftUUID
                                 )
@@ -71,6 +78,7 @@ public abstract class AbstractCraftCommand {
                         .then(
                                 this.processRest(
                                     Commands.literal("--name")
+                                        .requires(this::specialArgsPredicate)
                                         .then(Commands.argument("name", StringArgumentType.string())
                                             .suggests(
                                                 (provider, builder) -> {
@@ -100,23 +108,29 @@ public abstract class AbstractCraftCommand {
                         .then(
                                 this.processRest(
                                     Commands.literal("--position")
+                                        .requires(this::specialArgsPredicate)
                                         .then(Commands.argument("positionWorld", ArgumentTypes.world()))
                                         .then(Commands.argument("position", ArgumentTypes.blockPosition())),
                                     this::getCraftByPosition
                                 )
-                        )
-                        // TODO: Add logic for craft-by-executor (aka no arg given) logic!
-                        .build(),
+                        );
+
+        // Append our additional logic => fallback logic, uses the executor's craft
+        literal = processRest(literal, this::getCraftByExecutor);
+
+        // Dirty, but works \o/
+        commands.register(
+                (LiteralCommandNode<CommandSourceStack>) literal.build(),
                 this.description,
                 this.aliasList
         );
     }
 
-    protected abstract @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> additionalArguments();
+    protected abstract @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> arguments();
     protected abstract int processCommand(final CommandContext context, final Craft craft);
 
-    protected ArgumentBuilder<CommandSourceStack, ?> processRest(final LiteralArgumentBuilder<CommandSourceStack> literal, final Function<CommandContext, Craft> craftSupplier) {
-        RequiredArgumentBuilder<CommandSourceStack, ?> addArgument = this.additionalArguments();
+    protected ArgumentBuilder<CommandSourceStack, ?> processRest(final ArgumentBuilder<CommandSourceStack, ?> literal, final Function<CommandContext<CommandSourceStack>, Craft> craftSupplier) {
+        RequiredArgumentBuilder<CommandSourceStack, ?> addArgument = this.arguments();
         final Function<Command<CommandSourceStack>, ArgumentBuilder<CommandSourceStack, ?>> actualCommand;
         if (addArgument == null) {
             actualCommand = literal::executes;
@@ -129,11 +143,15 @@ public abstract class AbstractCraftCommand {
         });
     }
 
-    protected Craft getCraftByExecutor(CommandContext context) {
-        return null;
+    protected Craft getCraftByExecutor(CommandContext<CommandSourceStack> context) {
+        final CommandSourceStack css = context.getSource();
+        if (css.getExecutor() == null) {
+            return null;
+        }
+        return CraftManager.getInstance().getCraftByEntity(css.getExecutor());
     }
 
-    protected Craft getCraftByPilot(CommandContext context) {
+    protected Craft getCraftByPilot(CommandContext<CommandSourceStack> context) {
         final EntitySelectorArgumentResolver entitySelectorArgumentResolver = (EntitySelectorArgumentResolver) context.getArgument("pilot", EntitySelectorArgumentResolver.class);
         try {
             final List<Entity> entities = entitySelectorArgumentResolver.resolve((CommandSourceStack) context.getSource());
@@ -145,18 +163,18 @@ public abstract class AbstractCraftCommand {
             Entity entityToUse = entities.getFirst();
             return CraftManager.getInstance().getCraftByEntity(entityToUse);
         } catch(CommandSyntaxException cse) {
-            ((CommandSourceStack) context.getSource()).getSender().sendMessage(cse.getMessage());
+            context.getSource().getSender().sendMessage(cse.getMessage());
             return null;
         }
     }
-    protected Craft getByCraftUUID(CommandContext context) {
+    protected Craft getByCraftUUID(CommandContext<CommandSourceStack> context) {
         final UUID uuid = (UUID) context.getArgument("uuid", UUID.class);
         if (uuid == null) {
             return null;
         }
         return Craft.getCraftByUUID(uuid);
     }
-    protected Craft getCraftByName(CommandContext context) {
+    protected Craft getCraftByName(CommandContext<CommandSourceStack> context) {
         final String name = (String) context.getArgument("name", String.class);
         if (name == null) {
             return null;
@@ -172,7 +190,7 @@ public abstract class AbstractCraftCommand {
         }
         return null;
     }
-    protected Craft getCraftByPosition(CommandContext context) {
+    protected Craft getCraftByPosition(CommandContext<CommandSourceStack> context) {
         final World world = (World) context.getArgument("positionWorld", World.class);
         final BlockPositionResolver blockPositionResolver = (BlockPositionResolver) context.getArgument("position", BlockPositionResolver.class);
 
@@ -208,7 +226,7 @@ public abstract class AbstractCraftCommand {
                 return craftsWithPos.getFirst();
             }
         } catch(CommandSyntaxException cse) {
-            ((CommandSourceStack) context.getSource()).getSender().sendMessage(cse.getMessage());
+            context.getSource().getSender().sendMessage(cse.getMessage());
         }
         return null;
     }
