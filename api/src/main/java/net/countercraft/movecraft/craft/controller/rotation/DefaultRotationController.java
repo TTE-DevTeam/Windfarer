@@ -6,7 +6,7 @@ import net.countercraft.movecraft.craft.controller.AbstractRotationController;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.sign.SignListener;
 import net.countercraft.movecraft.util.MathUtils;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,7 +24,7 @@ public class DefaultRotationController extends AbstractRotationController {
     }
 
     @Override
-    public boolean onHelmInteraction(Craft craft, SignListener.SignWrapper signWrapper, Action clickType, final Player interactor) {
+    public boolean onHelmInteraction(Craft craft, SignListener.SignWrapper signWrapper, Action clickType, final Entity interactor) {
         if (!super.onHelmInteraction(craft, signWrapper, clickType, interactor)) {
             return false;
         }

@@ -5,7 +5,7 @@ import net.countercraft.movecraft.events.InitiateTranslateEvent;
 import net.countercraft.movecraft.sign.SignListener;
 import net.countercraft.movecraft.util.SerializationUtil;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -22,7 +22,7 @@ public abstract class AbstractRotationController implements ConfigurationSeriali
         this.turningEnabled = SerializationUtil.deserializeBoolean("TurningEnabled", rawData, true);
     }
 
-    public boolean onHelmInteraction(final Craft craft, final @Nullable SignListener.SignWrapper signWrapper, final Action clickType, final Player interactor) {
+    public boolean onHelmInteraction(final Craft craft, final @Nullable SignListener.SignWrapper signWrapper, final Action clickType, final Entity interactor) {
         return this.turningEnabled;
     }
 
