@@ -11,6 +11,7 @@ import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.util.ChatUtils;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -45,7 +46,7 @@ public class CruiseCommand {
                         })
                         .executes(
                                 context -> {
-                                    process(context.getSource().getExecutor());
+                                    process(context.getSource().getExecutor(), context.getSource().getSender());
                                     return com.mojang.brigadier.Command.SINGLE_SUCCESS;
                                 }
                         )
@@ -53,9 +54,9 @@ public class CruiseCommand {
                                 .executes(context -> {
                                     CRUISE_DIRECTION direction = context.getArgument("direction", CRUISE_DIRECTION.class);
                                     if (direction == null) {
-                                        process(context.getSource().getExecutor());
+                                        process(context.getSource().getExecutor(), context.getSource().getSender());
                                     } else {
-                                        process(context.getSource().getExecutor(), direction);
+                                        process(context.getSource().getExecutor(), context.getSource().getSender(), direction);
                                     }
                                     return com.mojang.brigadier.Command.SINGLE_SUCCESS;
                                 })
@@ -66,30 +67,33 @@ public class CruiseCommand {
         );
     }
 
-    static void process(Entity sender, CRUISE_DIRECTION direction) {
-        final Optional<Craft> optCraft = CraftManager.getInstance().getCraftsInWorld(sender.getWorld())
+    static void process(Entity executor, CommandSender commandSender, CRUISE_DIRECTION direction) {
+        if (executor == null) {
+            return;
+        }
+        final Optional<Craft> optCraft = CraftManager.getInstance().getCraftsInWorld(executor.getWorld())
                 .stream()
                 .filter(craftTmp -> {
-                    if (sender instanceof Player) {
-                        return craftTmp instanceof PlayerCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(sender.getUniqueId());
+                    if (executor instanceof Player) {
+                        return craftTmp instanceof PlayerCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(executor.getUniqueId());
                     } else {
-                        return craftTmp instanceof PilotedCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(sender.getUniqueId());
+                        return craftTmp instanceof PilotedCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(executor.getUniqueId());
                     }
                 })
                 .findFirst();
         if (optCraft.isPresent()) {
             final Craft craft = optCraft.get();
             if (!craft.getCraftProperties().get(PropertyKeys.CAN_CRUISE)) {
-                sender.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Cruise - Craft Cannot Cruise"));
+                executor.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Cruise - Craft Cannot Cruise"));
             }
-            else if (!sender.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".move")) {
-                sender.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Insufficient Permissions"));
+            else if (!commandSender.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".move")) {
+                executor.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Insufficient Permissions"));
             }
             else if (direction == null) {
                 if (craft.getCruising()) {
                     craft.setCruising(false, CraftStopCruiseEvent.Reason.COMMAND);
                 } else {
-                    float yaw = (sender.getLocation().getYaw() + 360.0f);
+                    float yaw = (executor.getLocation().getYaw() + 360.0f);
                     if (yaw >= 360.0f) {
                         yaw %= 360.0f;
                     }
@@ -126,7 +130,7 @@ public class CruiseCommand {
                         craft.setCruiseDirection(CruiseDirection.WEST);
                         break;
                     default:
-                        float yaw = (sender.getLocation().getYaw() + 360.0f);
+                        float yaw = (executor.getLocation().getYaw() + 360.0f);
                         if (yaw >= 360.0f) {
                             yaw %= 360.0f;
                         }
@@ -144,12 +148,12 @@ public class CruiseCommand {
                 craft.setCruising(direction != CRUISE_DIRECTION.OFF, CraftStopCruiseEvent.Reason.COMMAND);
             }
         } else {
-            sender.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("You must be piloting a craft"));
+            executor.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("You must be piloting a craft"));
         }
     }
 
-    static void process(Entity sender) {
-        process(sender, null);
+    static void process(Entity sender, CommandSender commandSender) {
+        process(sender, commandSender, null);
     }
 
 }

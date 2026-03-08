@@ -6,6 +6,7 @@ import net.countercraft.movecraft.commands.argument.type.EnumArgumentType;
 import net.countercraft.movecraft.craft.*;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.util.ChatUtils;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
@@ -46,7 +47,7 @@ public class RotateCommand {
                         })
                         .executes(
                                 context -> {
-                                    process(context.getSource().getExecutor());
+                                    process(context.getSource().getExecutor(), context.getSource().getSender());
                                     return com.mojang.brigadier.Command.SINGLE_SUCCESS;
                                 }
                         )
@@ -54,9 +55,9 @@ public class RotateCommand {
                                 .executes(context -> {
                                     ROTATE_OPTIONS rotation = context.getArgument("rotation", ROTATE_OPTIONS.class);
                                     if (rotation == null) {
-                                        process(context.getSource().getExecutor());
+                                        process(context.getSource().getExecutor(), context.getSource().getSender());
                                     } else {
-                                        process(context.getSource().getExecutor(), rotation);
+                                        process(context.getSource().getExecutor(), context.getSource().getSender(), rotation);
                                     }
                                     return com.mojang.brigadier.Command.SINGLE_SUCCESS;
                                 })
@@ -67,14 +68,17 @@ public class RotateCommand {
         );
     }
 
-    static void process (Entity sender, ROTATE_OPTIONS rotation) {
-        final Optional<Craft> optCraft = CraftManager.getInstance().getCraftsInWorld(sender.getWorld())
+    static void process (Entity executor, CommandSender commandSender, ROTATE_OPTIONS rotation) {
+        if (executor == null) {
+            return;
+        }
+        final Optional<Craft> optCraft = CraftManager.getInstance().getCraftsInWorld(executor.getWorld())
                 .stream()
                 .filter(craftTmp -> {
-                    if (sender instanceof Player) {
-                        return craftTmp instanceof PlayerCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(sender.getUniqueId());
+                    if (executor instanceof Player) {
+                        return craftTmp instanceof PlayerCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(executor.getUniqueId());
                     } else {
-                        return craftTmp instanceof PilotedCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(sender.getUniqueId());
+                        return craftTmp instanceof PilotedCraft pc && pc.getPilotUUID() != null && pc.getPilotUUID().equals(executor.getUniqueId());
                     }
                 })
                 .findFirst();
@@ -83,20 +87,20 @@ public class RotateCommand {
             /*if (!craft.getCraftProperties().get(PropertyKeys.CAN_CRUISE)) {
                 sender.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Cruise - Craft Cannot Rotate"));
             }
-            else*/ if (!sender.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".rotate")) {
-                sender.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Insufficient Permissions"));
+            else*/ if (!commandSender.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".rotate")) {
+                executor.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Insufficient Permissions"));
             }
             else if (rotation == null) {
                 rotation = ROTATE_OPTIONS.RIGHT;
             }
             craft.rotate(MovecraftRotation.CLOCKWISE, craft.getHitBox().getMidPoint());
         } else {
-            sender.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("You must be piloting a craft"));
+            executor.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("You must be piloting a craft"));
         }
     }
 
-    static void process(Entity sender) {
-        process(sender, ROTATE_OPTIONS.RIGHT);
+    static void process(Entity executor, CommandSender commandSender) {
+        process(executor, commandSender, ROTATE_OPTIONS.RIGHT);
     }
 
 }
