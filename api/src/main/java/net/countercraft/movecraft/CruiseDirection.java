@@ -88,7 +88,7 @@ public class CruiseDirection extends Vector {
         final double yHeight = this.getY();
         final double currentLength = Math.sqrt((xLength * xLength) + (yHeight * yHeight));
 
-        final double currentAngle = Math.atan2(xLength, yHeight);
+        final double currentAngle = Math.atan2(yHeight, xLength);
         final double newAngle = currentAngle + angle;
 
         final double newX = Math.cos(newAngle) * currentLength;
