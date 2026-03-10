@@ -102,11 +102,11 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
         if (activePilot.isSneaking()) {
             if (this.shiftToRise) {
                 modVertical = true;
-                cruiseDirection.rise2D(-this.riseDiveAngle);
+                cruiseDirection.rise2D(this.riseDiveAngle);
             }
             if (this.shiftToDive) {
                 modVertical = true;
-                cruiseDirection.rise2D(this.riseDiveAngle);
+                cruiseDirection.rise2D(-this.riseDiveAngle);
             }
         }
 

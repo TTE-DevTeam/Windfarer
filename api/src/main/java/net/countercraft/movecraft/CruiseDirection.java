@@ -69,7 +69,7 @@ public class CruiseDirection extends Vector {
 
     static final double PI_HALF = Math.PI / 2;
 
-    /** Rise or dive (if angle is positive), angle in radians. Will default to UP (or DOWN) if risen too much. */
+    /** Rise or dive (if angle is negative), angle in radians. Will default to UP (or DOWN) if risen too much. */
     // TODO @HalfQuark: Check this function again, it does not seem to work how we want it to (always results in a vector point somewhere downwards)
     public void rise2D(double angle) {
         // Project vector onto the 2d plane
@@ -88,6 +88,7 @@ public class CruiseDirection extends Vector {
         final double yHeight = this.getY();
         final double currentLength = Math.sqrt((xLength * xLength) + (yHeight * yHeight));
 
+        // TODO: Properly respect the Y component too!
         final double currentAngle = Math.atan2(yHeight, xLength);
         final double newAngle = currentAngle + angle;
 
