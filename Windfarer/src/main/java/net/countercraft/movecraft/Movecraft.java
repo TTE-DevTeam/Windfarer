@@ -187,7 +187,6 @@ public class Movecraft extends JavaPlugin {
 
         getCommand("movecraft").setExecutor(new MovecraftCommand());
         getCommand("release").setExecutor(new ReleaseCommand());
-        getCommand("craftreport").setExecutor(new CraftReportCommand());
         getCommand("manoverboard").setExecutor(new ManOverboardCommand());
         getCommand("scuttle").setExecutor(new ScuttleCommand());
         getCommand("crafttype").setExecutor(new CraftTypeCommand());
@@ -196,9 +195,11 @@ public class Movecraft extends JavaPlugin {
         LifecycleEventManager<Plugin> manager = this.getLifecycleManager();
         manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             final Commands commands = event.registrar();
+
             PilotCommand.register(commands);
             RotateCommand.register(commands);
             CruiseCommand.register(commands);
+            CraftReportCommand.register(commands);
         });
 
         // Naming scheme: If it has parameters, append a double colon except if it is a subcraft
