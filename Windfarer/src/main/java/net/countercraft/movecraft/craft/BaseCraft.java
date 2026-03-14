@@ -596,6 +596,9 @@ public abstract class BaseCraft implements Craft {
     @Override
     @NotNull
     public Component getName() {
+        if (this.name == null || this.getNameRaw().isEmpty()) {
+            this.name = Component.text(this.getCraftProperties().getName());
+        }
         return name;
     }
 
