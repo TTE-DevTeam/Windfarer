@@ -1,4 +1,6 @@
-Windfarer
+<img width="1024" height="450" alt="logo" src="https://github.com/user-attachments/assets/9b0368dd-2ae0-4a79-9494-16b116f79f74" />
+
+<img width="1024" height="450" alt="logo" src="https://github.com/user-attachments/assets/ccb65d93-83ca-460e-bda6-c8b91090bdd2" />Windfarer
 ======
 
 Maintained former fork of Movecraft.
