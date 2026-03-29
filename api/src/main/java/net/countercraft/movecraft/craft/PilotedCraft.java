@@ -29,4 +29,16 @@ public interface PilotedCraft extends Craft {
 
     @NotNull
     UUID getPilotUUID();
+
+    @Override
+    default boolean shouldAutoRelease(final long autoReleaseTimeout, final long maxTimeBetweenCruiseUpdates) {
+        if (!this.isNotProcessing()) {
+            if (this.getCruising()) {
+                if(this.getLastCruiseUpdate() < System.currentTimeMillis() - maxTimeBetweenCruiseUpdates) {
+                    this.setProcessing(false);
+                }
+            }
+        }
+        return false;
+    }
 }

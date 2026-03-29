@@ -357,4 +357,13 @@ public interface Craft {
     }
 
     public CraftProperties getCraftProperties();
+
+    // TODO: Add method to get alle entities within this moveboxe
+
+    public default boolean shouldAutoRelease(final long autoReleaseTimeout, final long maxTimeBetweenCruiseUpdates) {
+        if (this.getLastCruiseUpdate() < System.currentTimeMillis() - autoReleaseTimeout) {
+            return true;
+        }
+        return false;
+    }
 }

@@ -499,15 +499,8 @@ public class AsyncManager extends BukkitRunnable {
         // now cleanup craft that are bugged and have not moved in the past 60 seconds,
         //  but have no pilot or are still processing
         for (Craft craft : CraftManager.getInstance()) {
-            if (!(craft instanceof PilotedCraft)) {
-                if (craft.getLastCruiseUpdate() < System.currentTimeMillis() - 60000)
-                    CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.INACTIVE, true);
-            }
-            if (!craft.isNotProcessing()) {
-                if (craft.getCruising()) {
-                    if (craft.getLastCruiseUpdate() < System.currentTimeMillis() - 5000)
-                        craft.setProcessing(false);
-                }
+            if (craft.shouldAutoRelease(60000, 5000)) {
+                CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.INACTIVE, true);
             }
         }
     }
