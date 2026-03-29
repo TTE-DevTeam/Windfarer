@@ -4,6 +4,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.UnmodifiableIterator;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.exception.EmptyHitBoxException;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.AbstractSet;
@@ -107,6 +109,13 @@ public interface HitBox extends Iterable<MovecraftLocation>{
     HitBox symmetricDifference(HitBox other);
 
     int getMinYAt(int x, int z);
+
+    default public BoundingBox asBoundingBox() {
+        final Vector p1 = new Vector(this.getMinX(), this.getMinY(), this.getMinZ());
+        final Vector p2 = new Vector(this.getMaxX(), this.getMaxY(), this.getMaxZ());
+
+        return BoundingBox.of(p1, p2);
+    }
 
     class HitBoxSetView extends AbstractSet<MovecraftLocation> {
         private final HitBox backing;

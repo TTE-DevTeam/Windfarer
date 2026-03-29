@@ -17,6 +17,7 @@
 
 package net.countercraft.movecraft.craft;
 
+import com.google.common.base.Predicates;
 import net.countercraft.movecraft.CruiseDirection;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.MovecraftRotation;
@@ -42,13 +43,17 @@ import org.bukkit.World;
 import org.bukkit.block.Sign;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import javax.naming.Name;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public interface Craft {
     // TODO: Unify with RECENT_CONTACTS tag and use a object to also store distance and direction
@@ -358,7 +363,16 @@ public interface Craft {
 
     public CraftProperties getCraftProperties();
 
-    // TODO: Add method to get alle entities within this moveboxe
+    public default Set<Entity> getEntitiesInMovebox() {
+        return this.getEntitiesInMovebox(Predicates.alwaysTrue());
+    }
+
+    public default Set<Entity> getEntitiesInMovebox(Predicate<Entity> testPredicate) {
+        // TODO: Use a different "inflated" hitbox that thus properly covers the craft's area
+        final BoundingBox bb = this.getHitBox().asBoundingBox();
+        Collection<Entity> collected = this.getWorld().getNearbyEntities(bb, testPredicate);
+        return collected.stream().collect(Collectors.toSet());
+    }
 
     public default boolean shouldAutoRelease(final long autoReleaseTimeout, final long maxTimeBetweenCruiseUpdates) {
         if (this.getLastCruiseUpdate() < System.currentTimeMillis() - autoReleaseTimeout) {

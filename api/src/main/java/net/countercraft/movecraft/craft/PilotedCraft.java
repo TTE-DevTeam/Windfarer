@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Set;
 import java.util.UUID;
 
 public interface PilotedCraft extends Craft {
@@ -40,5 +41,15 @@ public interface PilotedCraft extends Craft {
             }
         }
         return false;
+    }
+
+    @Override
+    default Set<Entity> getEntitiesInMovebox() {
+        final Set<Entity> result = Craft.super.getEntitiesInMovebox();
+        Entity pilot = this.getPilotEntity();
+        if (pilot != null) {
+            result.add(pilot);
+        }
+        return result;
     }
 }
