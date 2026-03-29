@@ -66,8 +66,8 @@ public class AsyncManager extends BukkitRunnable {
     private int maxInterval;
     private int currentTick = 1;
 
-    private final Map<AsyncTask, Craft> ownershipMap = new HashMap<>();
-    private final BlockingQueue<AsyncTask> finishedAlgorithms = new LinkedBlockingQueue<>();
+    private final Map<AbstractAsyncTask, Craft> ownershipMap = new HashMap<>();
+    private final BlockingQueue<AbstractAsyncTask> finishedAlgorithms = new LinkedBlockingQueue<>();
     private final Set<Craft> clearanceSet = new HashSet<>();
     private final Map<Craft, Integer> cooldownCache = new WeakHashMap<>();
 
@@ -94,7 +94,7 @@ public class AsyncManager extends BukkitRunnable {
         return this.tickFunctions;
     }
 
-    public void submitTask(AsyncTask task, Craft c) {
+    public void submitTask(AbstractAsyncTask task, Craft c) {
         if (c.isNotProcessing()) {
             c.setProcessing(true);
             ownershipMap.put(task, c);
@@ -102,7 +102,7 @@ public class AsyncManager extends BukkitRunnable {
         }
     }
 
-    public void submitCompletedTask(AsyncTask task) {
+    public void submitCompletedTask(AbstractAsyncTask task) {
         finishedAlgorithms.add(task);
     }
 
@@ -114,7 +114,7 @@ public class AsyncManager extends BukkitRunnable {
 
         for (int i = 0; i < runLength; i++) {
             boolean sentMapUpdate = false;
-            AsyncTask poll = finishedAlgorithms.poll();
+            AbstractAsyncTask poll = finishedAlgorithms.poll();
             Craft c = ownershipMap.get(poll);
 
             if (poll instanceof TranslationTask) {

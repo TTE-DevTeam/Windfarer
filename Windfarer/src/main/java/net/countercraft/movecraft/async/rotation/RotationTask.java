@@ -21,7 +21,7 @@ import net.countercraft.movecraft.CruiseDirection;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.TrackedLocation;
-import net.countercraft.movecraft.async.AsyncTask;
+import net.countercraft.movecraft.async.FuelAwareAsyncTask;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.*;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
@@ -49,7 +49,7 @@ import java.util.function.BiConsumer;
 
 import static net.countercraft.movecraft.util.MathUtils.withinWorldBorder;
 
-public class RotationTask extends AsyncTask {
+public class RotationTask extends FuelAwareAsyncTask {
     private final MovecraftLocation originPoint;
     private final MovecraftRotation rotation;
     private final World w;

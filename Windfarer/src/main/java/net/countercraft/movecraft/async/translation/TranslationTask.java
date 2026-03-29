@@ -3,7 +3,7 @@ package net.countercraft.movecraft.async.translation;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftChunk;
 import net.countercraft.movecraft.MovecraftLocation;
-import net.countercraft.movecraft.async.AsyncTask;
+import net.countercraft.movecraft.async.FuelAwareAsyncTask;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.*;
 import net.countercraft.movecraft.craft.type.CraftProperties;
@@ -46,7 +46,7 @@ import static net.countercraft.movecraft.util.MathUtils.withinWorldBorder;
 // TODO: Refactor this into it's own task for Sinking
 // TODO: Different fuel usage for harvest blocks
 // TODO: Ability to toggle harvesters on and off
-public class TranslationTask extends AsyncTask {
+public class TranslationTask extends FuelAwareAsyncTask {
     private World world;
     private int dx, dy, dz;
     private SetHitBox newHitBox;
