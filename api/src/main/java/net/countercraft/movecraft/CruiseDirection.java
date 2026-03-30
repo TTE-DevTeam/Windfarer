@@ -71,7 +71,8 @@ public class CruiseDirection extends Vector {
 
     /** Rise or dive (if angle is negative), angle in radians. Will default to UP (or DOWN) if risen too much. */
     // TODO @HalfQuark: Check this function again, it does not seem to work how we want it to (always results in a vector point somewhere downwards)
-    public void rise2D(double angle) {
+    public void rise2D(final double angleIn) {
+        final double angle = Math.abs(angleIn);
         // Project vector onto the 2d plane
         // X axis: Length of the vector
         // Y axis: Current Y value
@@ -98,7 +99,11 @@ public class CruiseDirection extends Vector {
         final double scaleXZ = newX / xLength;
 
         this.setX(this.getX() * scaleXZ);
-        this.setY(newY);
+        if (angleIn < 0) {
+            this.setY(-newY);
+        } else {
+            this.setY(newY);
+        }
         this.setZ(this.getZ() * scaleXZ);
 //
 //        Vector perpendicular = new Vector(this.getX(), this.getY(), this.getZ()).rotateAroundY(PI_HALF);
