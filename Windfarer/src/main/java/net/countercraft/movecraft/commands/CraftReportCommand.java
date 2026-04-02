@@ -85,7 +85,8 @@ public class CraftReportCommand {
 
     static {
         try {
-            ARGUMENT_FIELD = CommandContext.class.getField("arguments");
+            ARGUMENT_FIELD = CommandContext.class.getDeclaredField("arguments");
+            ARGUMENT_FIELD.setAccessible(true);
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
