@@ -26,6 +26,7 @@ import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
 import net.countercraft.movecraft.util.hitboxes.SetHitBox;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -596,7 +597,7 @@ public abstract class BaseCraft implements Craft {
     @Override
     @NotNull
     public Component getName() {
-        if (this.name == null || this.getNameRaw().isEmpty()) {
+        if (this.name == null || PlainTextComponentSerializer.plainText().serialize(this.name).isEmpty()) {
             this.name = Component.text(this.getCraftProperties().getName());
         }
         return name;
