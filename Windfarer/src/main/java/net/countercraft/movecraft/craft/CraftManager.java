@@ -33,6 +33,7 @@ import net.countercraft.movecraft.processing.WorldManager;
 import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.processing.functions.CraftSupplier;
 import net.countercraft.movecraft.processing.tasks.detection.DetectionTask;
+import net.countercraft.movecraft.util.TypeDependency;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -112,17 +113,36 @@ public class CraftManager implements Iterable<Craft>{
                     return path.getFileName().toString().endsWith(".crafttype");
                 }
         ).collect(Collectors.toSet());
-        for (Path path : files) {
-            File file = path.toFile();
+
+        // Before we load everything, we calculate our dependency tree
+
+//        for (Path path : files) {
+//            File file = path.toFile();
+//            final String name = file.getName().substring(0, file.getName().lastIndexOf('.')).toUpperCase();
+//            TypeSafeCraftType typeSafeCraftType = TypeSafeCraftType.load(file, name, this::getCraftTypeByName);
+//            if (this.craftTypeMap.put(name, typeSafeCraftType) != null) {
+//                Movecraft.getInstance().getLogger().warning("Overriding crafttype setting with name <" + name + ">! This means there are duplicates!");
+//            }
+//        }
+        // Dependency tree based loading
+        Queue<File> queue = TypeDependency.buildLoadingQueue(files);
+        Queue<TypeSafeCraftType> loadedTypes = new LinkedList<>();
+        while (!queue.isEmpty()) {
+            File file = queue.poll();
             final String name = file.getName().substring(0, file.getName().lastIndexOf('.')).toUpperCase();
+            Movecraft.getInstance().getLogger().info(String.format("Loading crafttype file <%s> (type name will be %s>)...", file.getName(), name));
             TypeSafeCraftType typeSafeCraftType = TypeSafeCraftType.load(file, name, this::getCraftTypeByName);
-            if (this.craftTypeMap.put(name, typeSafeCraftType) != null) {
+            final TypeSafeCraftType previous = this.craftTypeMap.put(name, typeSafeCraftType);
+            if (previous != null) {
                 Movecraft.getInstance().getLogger().warning("Overriding crafttype setting with name <" + name + ">! This means there are duplicates!");
+                loadedTypes.remove(previous);
             }
+            loadedTypes.add(typeSafeCraftType);
         }
-        Set<TypeSafeCraftType> loadedTypes = new HashSet<>(this.craftTypeMap.values());
-        TypeSafeCraftType.runTransformers(loadedTypes);
-        TypeSafeCraftType.runValidators(loadedTypes);
+
+        TypeSafeCraftType.runTransformers(new LinkedList<>(loadedTypes));
+        Set<TypeSafeCraftType> validateList = new HashSet<>(loadedTypes);
+        TypeSafeCraftType.runValidators(validateList);
         Set<String> toRemove = new HashSet<>();
         for (Map.Entry<String, TypeSafeCraftType> entry : this.craftTypeMap.entrySet()) {
             if (!loadedTypes.contains(entry.getValue())) {

@@ -68,13 +68,23 @@ public class TypeSafeCraftType extends TypedContainer<PropertyKey<?>> {
         }
     }
 
-    public static void runTransformers(Set<TypeSafeCraftType> types) {
+    public static void runTransformers(Queue<TypeSafeCraftType> types) {
         // Step 4: Apply transforms
-        for (TypeSafeCraftType type : types) {
+        Queue<TypeSafeCraftType> queueForRemoval = new LinkedList<>(types);
+        Set<PropertyKey> toDelete = new HashSet<>();
+
+        // Run all transformers
+        while (!types.isEmpty()) {
+            TypeSafeCraftType element = types.poll();
             for (int i = 0; i < TRANSFORM_REGISTRY.size(); i++) {
                 TypeSafeTransform transform = TRANSFORM_REGISTRY.get(i);
-                runTransformer(transform, type);
+                runTransformer(transform, element, toDelete);
             }
+        }
+        // Remove all properties that should be removed
+        while (!types.isEmpty()) {
+            TypeSafeCraftType element = types.poll();
+            toDelete.forEach(element::delete);
         }
     }
 
@@ -130,14 +140,12 @@ public class TypeSafeCraftType extends TypedContainer<PropertyKey<?>> {
     }
 
     // Run transformer, if anything was changed, merge
-    static void runTransformer(TypeSafeTransform transform, final TypeSafeCraftType typeSafeCraftType) {
+    static void runTransformer(TypeSafeTransform transform, final TypeSafeCraftType typeSafeCraftType, final Set<PropertyKey> toDelete) {
         Map<PropertyKey, Object> output = new HashMap<>();
-        Set<PropertyKey> toDelete = new HashSet<>();
         if (transform.transform(typeSafeCraftType, output::put, toDelete)) {
             output.entrySet().forEach(entry -> {
                 typeSafeCraftType.set(entry.getKey(), entry.getValue());
             });
-            toDelete.forEach(typeSafeCraftType::delete);
         }
     }
 
