@@ -2,6 +2,9 @@ package net.countercraft.movecraft.support.v1_21_11;
 
 import net.countercraft.movecraft.NMSHelper;
 import net.countercraft.movecraft.util.ReflectUtils;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.object.ObjectContents;
+import net.kyori.adventure.text.object.PlayerHeadObjectContents;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.FuelValues;
 import org.bukkit.World;
@@ -10,10 +13,13 @@ import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.block.CraftBlockEntityState;
 import org.bukkit.craftbukkit.block.CraftFurnace;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
+import java.util.UUID;
 
 public class INMSHelper extends NMSHelper {
 
@@ -71,5 +77,15 @@ public class INMSHelper extends NMSHelper {
             exception.printStackTrace();
         }
         furnaceBlockEntity.litTimeRemaining = burnTime;
+    }
+
+    @Override
+    public Component getEntityReferencingComponent(Entity entity, UUID fallback) {
+        final Component name = super.getEntityReferencingComponent(entity, fallback);
+        if (entity instanceof Player) {
+            return Component.object(ObjectContents.playerHead(entity.getUniqueId())).append(name);
+        } else {
+            return name;
+        }
     }
 }

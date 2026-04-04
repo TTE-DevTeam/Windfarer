@@ -7,6 +7,7 @@ import com.mojang.brigadier.context.ParsedArgument;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.command.brigadier.argument.ArgumentTypes;
+import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.commands.argument.type.CraftTypeArgumentType;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
@@ -188,8 +189,8 @@ public class CraftReportCommand {
                     name = name.color(NamedTextColor.BLUE);
                 line = line.append(name).append(Component.text(" "));
                 if (craft instanceof PilotedCraft pilotedCraft)
-                    // TODO: Use player object type next to name (https://minecraft.wiki/w/Text_component_format#Player_Object_Type)
-                    line = line.append(Component.text(pilotedCraft.getPilotEntity() == null ? pilotedCraft.getPilotUUID().toString() : pilotedCraft.getPilotEntity().getName()));
+                    // DONE: Use player object type next to name (https://minecraft.wiki/w/Text_component_format#Player_Object_Type)
+                    line = line.append(Movecraft.getInstance().getNMSHelper().getEntityReferencingComponent(pilotedCraft.getPilotEntity(), pilotedCraft.getPilotUUID()));
                 else
                     line = line.append(I18nSupport.getInternationalisedComponent("None"));
                 line = line.append(Component.text(" "));
