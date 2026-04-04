@@ -115,15 +115,6 @@ public class CraftManager implements Iterable<Craft>{
         ).collect(Collectors.toSet());
 
         // Before we load everything, we calculate our dependency tree
-
-//        for (Path path : files) {
-//            File file = path.toFile();
-//            final String name = file.getName().substring(0, file.getName().lastIndexOf('.')).toUpperCase();
-//            TypeSafeCraftType typeSafeCraftType = TypeSafeCraftType.load(file, name, this::getCraftTypeByName);
-//            if (this.craftTypeMap.put(name, typeSafeCraftType) != null) {
-//                Movecraft.getInstance().getLogger().warning("Overriding crafttype setting with name <" + name + ">! This means there are duplicates!");
-//            }
-//        }
         // Dependency tree based loading
         Queue<File> queue = TypeDependency.buildLoadingQueue(files);
         Queue<TypeSafeCraftType> loadedTypes = new LinkedList<>();
