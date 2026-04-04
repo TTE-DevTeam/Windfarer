@@ -210,7 +210,16 @@ public class CraftReportCommand {
             }
         }
 
-        if (!paginator.isInBounds(page)) {
+        if (paginator.getPageCount() == 0) {
+            context.getSource().getSender().sendMessage(Component.empty()
+                    .append(ChatUtils.commandPrefix())
+                    .append(I18nSupport.getInternationalisedComponent("Craftreport - no active crafts"))
+                    .append(Component.text(" \""))
+                    .append(Component.text("" + page))
+                    .append(Component.text("\"")));
+            return 1;
+        }
+        else if (!paginator.isInBounds(page)) {
             context.getSource().getSender().sendMessage(Component.empty()
                     .append(ChatUtils.commandPrefix())
                     .append(I18nSupport.getInternationalisedComponent("Paginator - Invalid page"))
