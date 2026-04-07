@@ -3,11 +3,11 @@ plugins {
     id("io.papermc.paperweight.userdev")
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 dependencies {
     api(project(":windfarer-api"))
-    paperweight.paperDevBundle("26.1-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("26.1.1.build.+")
 }
 
 description = "Windfarer-v26_1"
