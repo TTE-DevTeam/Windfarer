@@ -4,9 +4,11 @@ import net.countercraft.movecraft.CruiseDirection;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.craft.PlayerCraft;
+import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.SerializationUtil;
 import org.bukkit.GameMode;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -118,6 +120,9 @@ public class DirectControlController implements ConfigurationSerializable {
     }
 
     public boolean onPlayerInteract(final PlayerInteractEvent event, final Craft craft) {
+        if (!checkPilot(event.getPlayer(), craft)) {
+            return false;
+        }
         AbstractDirectControlSlot slot = this.getSlotForPilot(event.getPlayer());
         if (slot == null) {
             return false;
@@ -133,6 +138,9 @@ public class DirectControlController implements ConfigurationSerializable {
     }
 
     public void onPlayerDropItem(final PlayerDropItemEvent event, final Craft craft) {
+        if (!checkPilot(event.getPlayer(), craft)) {
+            return;
+        }
         AbstractDirectControlSlot slot = this.getSlotForPilot(event.getPlayer());
         if (slot == null) {
             return;
@@ -142,6 +150,9 @@ public class DirectControlController implements ConfigurationSerializable {
     }
 
     public void onPlayerSwapItem(final PlayerSwapHandItemsEvent event, final Craft craft) {
+        if (!checkPilot(event.getPlayer(), craft)) {
+            return;
+        }
         AbstractDirectControlSlot slot = this.getSlotForPilot(event.getPlayer());
         if (slot == null) {
             return;
@@ -153,7 +164,7 @@ public class DirectControlController implements ConfigurationSerializable {
     public boolean onPreCruise(final CruiseDirection cruiseDirection, final Craft craft, final Consumer<Integer> applyCooldown, final int currentCooldown) {
         if (craft instanceof PilotedCraft pilotedCraft) {
             final Player activePilot = this.getRelevantPilot(pilotedCraft);
-            if (activePilot == null) {
+            if (!checkPilot(activePilot, craft)) {
                 return false;
             }
             AbstractDirectControlSlot slot = this.getSlotForPilot(activePilot);
@@ -194,6 +205,17 @@ public class DirectControlController implements ConfigurationSerializable {
         result.put("slots", slotMap);
 
         return result;
+    }
+
+    protected boolean checkPilot(final Player pilot, final Craft craft) {
+        if (pilot == null) {
+            return false;
+        }
+        if (this.playerMustBeInMoveBox) {
+            return MathUtils.locationNearHitBox(craft.getHitBox(), pilot.getLocation(), 2);
+        } else {
+            return true;
+        }
     }
 
     public static DirectControlController clone(DirectControlController toClone) {

@@ -142,10 +142,6 @@ public final class InteractListener implements Listener {
                 return; // Player doesn't have permission to move this craft, so don't do anything
             }
 
-            // TODO: Move into DC controller
-            if (!MathUtils.locationNearHitBox(craft.getHitBox(), p.getLocation(), 2))
-                return; // Player is not near the craft, so don't do anything
-
             if (craft.getPilotLocked() && type.get(PropertyKeys.CAN_DIRECT_CONTROL)) {
                 final DirectControlController dcController = type.get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
                 if (dcController != null) {
@@ -185,12 +181,6 @@ public final class InteractListener implements Listener {
             return;
 
         TypeSafeCraftType type = craft.getCraftProperties();
-
-
-        // TODO: Move into DC controller
-        if (!MathUtils.locationNearHitBox(craft.getHitBox(), p.getLocation(), 2))
-            return; // Player is not near the craft, so don't do anything
-
         if (craft.getPilotLocked() && type.get(PropertyKeys.CAN_DIRECT_CONTROL)) {
             final DirectControlController dcController = type.get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
             if (dcController != null) {
@@ -207,12 +197,6 @@ public final class InteractListener implements Listener {
             return;
 
         TypeSafeCraftType type = craft.getCraftProperties();
-
-
-        // TODO: Move into DC controller
-        if (!MathUtils.locationNearHitBox(craft.getHitBox(), p.getLocation(), 2))
-            return; // Player is not near the craft, so don't do anything
-
         if (craft.getPilotLocked() && type.get(PropertyKeys.CAN_DIRECT_CONTROL)) {
             final DirectControlController dcController = type.get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
             if (dcController != null) {
