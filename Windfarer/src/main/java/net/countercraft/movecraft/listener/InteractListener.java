@@ -20,11 +20,11 @@ package net.countercraft.movecraft.listener;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.PlayerCraft;
+import net.countercraft.movecraft.craft.controller.directControl.ActivePilotHelper;
 import net.countercraft.movecraft.craft.controller.directControl.DirectControlController;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.localisation.I18nSupport;
-import net.countercraft.movecraft.util.MathUtils;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.type.Switch;
 import org.bukkit.entity.Player;
@@ -42,6 +42,7 @@ import java.util.UUID;
 import java.util.WeakHashMap;
 
 public final class InteractListener implements Listener {
+
     public static final Map<UUID, Long> INTERACTION_TIME_MAP = new WeakHashMap<>();
     public static final Map<UUID, Long> PLAYER_INTERACTION_TIME_MAP = new WeakHashMap<>();
 
@@ -53,13 +54,13 @@ public final class InteractListener implements Listener {
                 e.setCancelled(true);
 
                 Player p = e.getPlayer();
-                PlayerCraft craft = CraftManager.getInstance().getCraftByPlayer(p);
+                PlayerCraft craft = CraftManager.getInstance().getCraftByActivePilot(p);
                 if (craft == null)
                     return;
 
                 if (craft.getPilotLocked()) {
                     // Allow all players to leave direct control mode
-                    craft.setPilotLocked(false);
+                    ActivePilotHelper.removeActivePilot(craft);
                     p.sendMessage(I18nSupport.getInternationalisedString("Direct Control - Leaving"));
                 }
                 else if (!p.hasPermission(
@@ -70,10 +71,7 @@ public final class InteractListener implements Listener {
                 }
                 else {
                     // Enter direct control mode
-                    craft.setPilotLocked(true);
-                    craft.setPilotLockedX(p.getLocation().getBlockX() + 0.5);
-                    craft.setPilotLockedY(p.getLocation().getY());
-                    craft.setPilotLockedZ(p.getLocation().getBlockZ() + 0.5);
+                    ActivePilotHelper.setActivePilot(p, craft);
                     p.sendMessage(I18nSupport.getInternationalisedString("Direct Control - Entering"));
                 }
             }
@@ -100,7 +98,7 @@ public final class InteractListener implements Listener {
             e.setCancelled(true);
 
             Player p = e.getPlayer();
-            PlayerCraft craft = CraftManager.getInstance().getCraftByPlayer(p);
+            PlayerCraft craft = CraftManager.getInstance().getCraftByActivePilot(p);
             if (craft == null)
                 return;
 
@@ -176,7 +174,7 @@ public final class InteractListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPlayerDropItem(final PlayerDropItemEvent event) {
         Player p = event.getPlayer();
-        PlayerCraft craft = CraftManager.getInstance().getCraftByPlayer(p);
+        PlayerCraft craft = CraftManager.getInstance().getCraftByActivePilot(p);
         if (craft == null)
             return;
 
@@ -192,7 +190,7 @@ public final class InteractListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPlayerSwapItem(final PlayerSwapHandItemsEvent event) {
         Player p = event.getPlayer();
-        PlayerCraft craft = CraftManager.getInstance().getCraftByPlayer(p);
+        PlayerCraft craft = CraftManager.getInstance().getCraftByActivePilot(p);
         if (craft == null)
             return;
 

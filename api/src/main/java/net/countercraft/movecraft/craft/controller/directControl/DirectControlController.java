@@ -4,9 +4,13 @@ import net.countercraft.movecraft.CruiseDirection;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.craft.PlayerCraft;
+import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
+import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
+import net.countercraft.movecraft.util.Holder;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.SerializationUtil;
 import org.bukkit.GameMode;
+import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -19,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -163,7 +168,7 @@ public class DirectControlController implements ConfigurationSerializable {
 
     public boolean onPreCruise(final CruiseDirection cruiseDirection, final Craft craft, final Consumer<Integer> applyCooldown, final int currentCooldown) {
         if (craft instanceof PilotedCraft pilotedCraft) {
-            final Player activePilot = this.getRelevantPilot(pilotedCraft);
+            final Player activePilot = this.getActivePilot(pilotedCraft);
             if (!checkPilot(activePilot, craft)) {
                 return false;
             }
@@ -177,17 +182,8 @@ public class DirectControlController implements ConfigurationSerializable {
         return false;
     }
 
-    protected Player getRelevantPilot(final Craft craft) {
-        // TODO: Support someone else besides the pilot!
-        if (craft instanceof PilotedCraft pilotedCraft) {
-            if (pilotedCraft.getPilotEntity() instanceof Player) {
-                return (Player) pilotedCraft.getPilotEntity();
-            }
-        }
-        else if (craft instanceof PlayerCraft playerCraft) {
-            return playerCraft.getPilotPlayer();
-        }
-        return null;
+    protected Player getActivePilot(final Craft craft) {
+        return ActivePilotHelper.getActivePilot(craft);
     }
 
     @Override
