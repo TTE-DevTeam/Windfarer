@@ -200,6 +200,7 @@ public class Movecraft extends JavaPlugin {
             RotateCommand.register(commands);
             CruiseCommand.register(commands);
             CraftReportCommand.register(commands);
+            ToggleDirectControl.register(commands);
         });
 
         // Naming scheme: If it has parameters, append a double colon except if it is a subcraft
@@ -238,6 +239,7 @@ public class Movecraft extends JavaPlugin {
         MovecraftSignRegistry.INSTANCE.register("Teleport:", new TeleportSign());
         //getServer().getPluginManager().registerEvents(new ScuttleSign(), this);
         MovecraftSignRegistry.INSTANCE.register("Scuttle", new ScuttleSign());
+        MovecraftSignRegistry.INSTANCE.register("Helmsman", new HelmsManSign());
         getServer().getPluginManager().registerEvents(new CraftPilotListener(), this);
         getServer().getPluginManager().registerEvents(new CraftReleaseListener(), this);
         getServer().getPluginManager().registerEvents(new SignListener(), this);

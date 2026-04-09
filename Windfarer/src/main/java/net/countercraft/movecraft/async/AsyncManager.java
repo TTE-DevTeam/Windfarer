@@ -230,7 +230,7 @@ public class AsyncManager extends BukkitRunnable {
             // Direct control: Call controller and take over values if necessary
             if (craft instanceof PlayerCraft playerCraft) {
                 // TODO: Find a prettier way than ... this
-                if (!direction.isVertical() && playerCraft.getCraftProperties().get(PropertyKeys.CAN_DIRECT_CONTROL) && playerCraft.getPilotLocked()) {
+                if (!direction.isVertical() && playerCraft.getCraftProperties().get(PropertyKeys.CAN_DIRECT_CONTROL)) {
                     DirectControlController dcController = playerCraft.getCraftProperties().get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
                     if (dcController != null) {
                         AtomicInteger newTickCooldown = new AtomicInteger(tickCoolDown);

@@ -1,6 +1,5 @@
 package net.countercraft.movecraft.craft;
 
-import net.countercraft.movecraft.craft.controller.directControl.ActivePilotHelper;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -29,8 +28,6 @@ public class PlayerCraftImpl extends BaseCraft implements PlayerCraft {
         pilotLockedX = 0.0;
         pilotLockedY = 0.0;
         pilotLockedZ = 0.0;
-
-        ActivePilotHelper.setActivePilot(pilot, this, false);
     }
 
     @Override

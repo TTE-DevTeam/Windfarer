@@ -20,7 +20,7 @@ package net.countercraft.movecraft.listener;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.PlayerCraft;
-import net.countercraft.movecraft.craft.controller.directControl.ActivePilotHelper;
+import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.controller.directControl.DirectControlController;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
@@ -54,26 +54,11 @@ public final class InteractListener implements Listener {
                 e.setCancelled(true);
 
                 Player p = e.getPlayer();
-                PlayerCraft craft = CraftManager.getInstance().getCraftByActivePilot(p);
+                PlayerCraft craft = CraftManager.getInstance().getCraftByHelmsMan(p);
                 if (craft == null)
                     return;
 
-                if (craft.getPilotLocked()) {
-                    // Allow all players to leave direct control mode
-                    ActivePilotHelper.removeActivePilot(craft);
-                    p.sendMessage(I18nSupport.getInternationalisedString("Direct Control - Leaving"));
-                }
-                else if (!p.hasPermission(
-                        "movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".move")
-                        || !craft.getCraftProperties().get(PropertyKeys.CAN_DIRECT_CONTROL)) {
-                    // Deny players from entering direct control mode
-                    p.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
-                }
-                else {
-                    // Enter direct control mode
-                    ActivePilotHelper.setActivePilot(p, craft);
-                    p.sendMessage(I18nSupport.getInternationalisedString("Direct Control - Entering"));
-                }
+                p.performCommand("directcontrol toggle");
             }
             else if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
                 // Handle button left clicks
@@ -98,7 +83,7 @@ public final class InteractListener implements Listener {
             e.setCancelled(true);
 
             Player p = e.getPlayer();
-            PlayerCraft craft = CraftManager.getInstance().getCraftByActivePilot(p);
+            PlayerCraft craft = CraftManager.getInstance().getCraftByHelmsMan(p);
             if (craft == null)
                 return;
 
@@ -174,7 +159,7 @@ public final class InteractListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPlayerDropItem(final PlayerDropItemEvent event) {
         Player p = event.getPlayer();
-        PlayerCraft craft = CraftManager.getInstance().getCraftByActivePilot(p);
+        PlayerCraft craft = CraftManager.getInstance().getCraftByHelmsMan(p);
         if (craft == null)
             return;
 
@@ -190,7 +175,7 @@ public final class InteractListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPlayerSwapItem(final PlayerSwapHandItemsEvent event) {
         Player p = event.getPlayer();
-        PlayerCraft craft = CraftManager.getInstance().getCraftByActivePilot(p);
+        PlayerCraft craft = CraftManager.getInstance().getCraftByHelmsMan(p);
         if (craft == null)
             return;
 

@@ -20,7 +20,7 @@ package net.countercraft.movecraft.craft;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.async.FuelBurnRunnable;
-import net.countercraft.movecraft.craft.controller.directControl.ActivePilotHelper;
+import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.CraftType;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
@@ -220,7 +220,7 @@ public class CraftManager implements Iterable<Craft>{
             playerCrafts.remove(((PlayerCraft) craft).getPilotUUID());
 
         // TODO: Is this safe?
-        ActivePilotHelper.activePilotToCraftUUID.values().remove(craft);
+        HelmsManManager.activePilotToCraftUUID.values().remove(craft);
         crafts.add(new SinkingCraftImpl(craft));
     }
 
@@ -275,7 +275,7 @@ public class CraftManager implements Iterable<Craft>{
         }
         Movecraft.getInstance().getWreckManager().queueWreck(craft);
         // TODO: Is this safe?
-        ActivePilotHelper.activePilotToCraftUUID.values().remove(craft);
+        HelmsManManager.activePilotToCraftUUID.values().remove(craft);
         return true;
     }
 
@@ -389,11 +389,11 @@ public class CraftManager implements Iterable<Craft>{
         return playerCrafts.get(p.getUniqueId());
     }
 
-    public PlayerCraft getCraftByActivePilot(Player player) {
+    public PlayerCraft getCraftByHelmsMan(Player player) {
         if (player == null) {
             return null;
         }
-        return ActivePilotHelper.activePilotToCraftUUID.getOrDefault(player.getUniqueId(), null);
+        return HelmsManManager.activePilotToCraftUUID.getOrDefault(player.getUniqueId(), null);
     }
 
     @Contract("null -> null")
