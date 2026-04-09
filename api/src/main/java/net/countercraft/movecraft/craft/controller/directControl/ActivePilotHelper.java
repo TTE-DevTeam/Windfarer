@@ -15,6 +15,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 
+// TODO: Rework methods into toggleDC(), setHelmsMan(), getHelmsMan(), removeHelmsMan()
+// TODO: Rework into object that is stored in a datatag instead
+// TODO: Add craft properties that toggle this feature
 public class ActivePilotHelper {
 
     private static final CraftDataTagKey<Holder<UUID>> CURRENT_PILOT = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey("movecraft", "direct_control/active_pilot"), c -> new Holder<>());
@@ -29,6 +32,7 @@ public class ActivePilotHelper {
     public static void setActivePilot(Player pilot, PlayerCraft craft, boolean updateDC) {
         // TODO: Throw event
         // TODO: Check permissions
+        // TODO: Add checks if we can override + parameter
         activePilotToCraftUUID.put(pilot.getUniqueId(), craft);
 
         if (updateDC) {
