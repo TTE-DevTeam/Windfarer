@@ -5,7 +5,7 @@ plugins {
     id("io.papermc.hangar-publish-plugin") version "0.1.3"
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 dependencies {
     runtimeOnly(project(":windfarer-v1_20_6"))
