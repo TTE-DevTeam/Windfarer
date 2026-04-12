@@ -7,8 +7,8 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 dependencies {
     api(project(":windfarer-api"))
-    paperweight.paperDevBundle("26.1.1.build.+")
+    paperweight.paperDevBundle("26.1.2.build.+")
 }
 
-description = "Windfarer-v26_1"
+description = "Windfarer-v26_1_2"
 paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.MOJANG_PRODUCTION
