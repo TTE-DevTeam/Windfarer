@@ -1,7 +1,6 @@
-package net.countercraft.movecraft.support.v1_21_11;
+package net.countercraft.movecraft.support.v26_1_2;
 
 import net.countercraft.movecraft.SmoothTeleport;
-import net.minecraft.server.commands.TeleportCommand;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
