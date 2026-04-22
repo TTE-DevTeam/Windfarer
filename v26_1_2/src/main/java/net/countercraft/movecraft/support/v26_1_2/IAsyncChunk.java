@@ -56,6 +56,6 @@ public class IAsyncChunk extends AsyncChunk<CraftChunk> {
     @Override
     @NotNull
     public BlockData getData(@NotNull MovecraftLocation location){
-        return CraftBlockData.fromData(handle.getBlockState(new BlockPos(location.getX(), location.getY(), location.getZ())));
+        return CraftBlockData.createData(handle.getBlockState(new BlockPos(location.getX(), location.getY(), location.getZ())));
     }
 }
