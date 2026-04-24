@@ -101,7 +101,7 @@ public class HelmsManManager {
     }
 
     public static boolean setActivePilot(Player pilot, PlayerCraft craft) {
-        return get(craft).setHelmsMan(pilot);
+        return get(craft).setHelmsMan(pilot.getUniqueId());
     }
 
     public static void removeActivePilot(PlayerCraft craft) {
