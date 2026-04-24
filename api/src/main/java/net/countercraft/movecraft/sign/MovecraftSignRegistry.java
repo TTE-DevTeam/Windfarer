@@ -29,6 +29,7 @@ public class MovecraftSignRegistry extends SimpleRegistry<String, AbstractMovecr
 
     public @NotNull AbstractMovecraftSign register(@NotNull String key, @NotNull AbstractMovecraftSign value, boolean override, String... aliases) throws IllegalArgumentException {
         AbstractMovecraftSign result = this.register(key, value, override);
+        result.setId(key);
         for (String alias : aliases) {
             this.register(alias, result, override);
         }
