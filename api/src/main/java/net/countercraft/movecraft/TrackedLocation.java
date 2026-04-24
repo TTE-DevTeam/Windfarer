@@ -87,4 +87,12 @@ public class TrackedLocation {
         return this.craft.get();
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof TrackedLocation) {
+            TrackedLocation location = (TrackedLocation) obj;
+            return this.vector.equals(location.vector) && (location.craft.get() == this.craft.get());
+        }
+        return false;
+    }
 }
