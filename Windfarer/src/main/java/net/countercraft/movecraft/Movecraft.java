@@ -209,38 +209,27 @@ public class Movecraft extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BlockListener(), this);
         getServer().getPluginManager().registerEvents(new PlayerListener(), this);
         getServer().getPluginManager().registerEvents(new ChunkManager(), this);
-        //getServer().getPluginManager().registerEvents(new AscendSign(), this);
+
+        // TODO: CHange all thease names to constants in the relevant classes!
         MovecraftSignRegistry.INSTANCE.register("Ascend:", new AscendSign("Ascend:"));
-        //getServer().getPluginManager().registerEvents(new CruiseSign(), this);
         MovecraftSignRegistry.INSTANCE.register("Cruise:", new CruiseSign("Cruise:"));
-        //getServer().getPluginManager().registerEvents(new DescendSign(), this);
         MovecraftSignRegistry.INSTANCE.register("Descend:", new DescendSign("Descend:"));
-        //getServer().getPluginManager().registerEvents(new HelmSign(), this);
         MovecraftSignRegistry.INSTANCE.register("[Helm]", new HelmSign());
         MovecraftSignRegistry.INSTANCE.register(HelmSign.PRETTY_HEADER, new HelmSign());
-        //getServer().getPluginManager().registerEvents(new MoveSign(), this);
         MovecraftSignRegistry.INSTANCE.register("Move:", new MoveSign());
-        //getServer().getPluginManager().registerEvents(new NameSign(), this);
         MovecraftSignRegistry.INSTANCE.register("Name:", new NameSign());
-        //getServer().getPluginManager().registerEvents(new PilotSign(), this);
         MovecraftSignRegistry.INSTANCE.register("Pilot:", new PilotSign());
-        //getServer().getPluginManager().registerEvents(new RelativeMoveSign(), this);
         MovecraftSignRegistry.INSTANCE.register("RMove:", new RelativeMoveSign());
-        //getServer().getPluginManager().registerEvents(new ReleaseSign(), this);
         MovecraftSignRegistry.INSTANCE.register("Release", new ReleaseSign());
-        //getServer().getPluginManager().registerEvents(new RemoteSign(), this);
         MovecraftSignRegistry.INSTANCE.register("Remote Sign", new RemoteSign(), "Remote");
-        //getServer().getPluginManager().registerEvents(new SpeedSign(), this);
         MovecraftSignRegistry.INSTANCE.register("Speed:", new SpeedSign());
         MovecraftSignRegistry.INSTANCE.register("Status:", new StatusSign());
         MovecraftSignRegistry.INSTANCE.register("Contacts:", new ContactsSign());
-        //getServer().getPluginManager().registerEvents(new SubcraftRotateSign(), this);
         MovecraftSignRegistry.INSTANCE.register("Subcraft Rotate", new SubcraftRotateSign(CraftManager.getInstance()::getCraftTypeByName, Movecraft::getInstance), "SC Rotate");
-        //getServer().getPluginManager().registerEvents(new TeleportSign(), this);
         MovecraftSignRegistry.INSTANCE.register("Teleport:", new TeleportSign());
-        //getServer().getPluginManager().registerEvents(new ScuttleSign(), this);
         MovecraftSignRegistry.INSTANCE.register("Scuttle", new ScuttleSign());
         MovecraftSignRegistry.INSTANCE.register("Helmsman", new HelmsManSign());
+
         getServer().getPluginManager().registerEvents(new CraftPilotListener(), this);
         getServer().getPluginManager().registerEvents(new CraftReleaseListener(), this);
         getServer().getPluginManager().registerEvents(new SignListener(), this);
