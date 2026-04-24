@@ -528,22 +528,38 @@ public class SignListener implements Listener {
     }
 
     void executeForAllCraftSigns(final @NotNull Craft craft, BiConsumer<AbstractCraftSign, SignWrapper> functionToRun) {
+        executeForAllCraftSigns(craft, functionToRun, false);
+    }
+
+    void executeForAllCraftSigns(final @NotNull Craft craft, BiConsumer<AbstractCraftSign, SignWrapper> functionToRun, boolean useCache) {
+        final Set<MovecraftLocation> locationsToCheck = new HashSet<>();
+        if (useCache) {
+            final CraftSignManager manager = CraftSignManager.of(craft);
+            if (manager != null) {
+                for (@NotNull AbstractMovecraftSign signHandler : MovecraftSignRegistry.INSTANCE.getAllValues()) {
+                    if (signHandler instanceof AbstractCraftSign acs) {
+                        locationsToCheck.addAll(manager.getSignsOfClass(acs));
+                    }
+                }
+            }
+        }
+        else {
+            locationsToCheck.addAll(craft.getHitBox().asSet());
+        }
         final World world = craft.getWorld();
-        craft.getHitBox().forEach(
-                (mloc) -> {
-                    Block block = mloc.toBukkit(world).getBlock();
-                    if (Tag.ALL_SIGNS.isTagged(block.getType())) {
-                        BlockState state = block.getState();
-                        if (state instanceof Sign sign) {
-                            for (SignWrapper wrapper : this.getSignWrappers(sign)) {
-                                AbstractCraftSign acs = MovecraftSignRegistry.INSTANCE.getCraftSign(wrapper.line(0));
-                                if (acs != null) {
-                                    functionToRun.accept(acs, wrapper);
-                                }
-                            }
+        locationsToCheck.forEach((mloc) -> {
+            Block block = mloc.toBukkit(world).getBlock();
+            if (Tag.ALL_SIGNS.isTagged(block.getType())) {
+                BlockState state = block.getState();
+                if (state instanceof Sign sign) {
+                    for (SignWrapper wrapper : this.getSignWrappers(sign)) {
+                        AbstractCraftSign acs = MovecraftSignRegistry.INSTANCE.getCraftSign(wrapper.line(0));
+                        if (acs != null) {
+                            functionToRun.accept(acs, wrapper);
                         }
                     }
                 }
-        );
+            }
+        });
     }
 }
