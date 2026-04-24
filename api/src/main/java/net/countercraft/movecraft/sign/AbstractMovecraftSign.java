@@ -36,6 +36,8 @@ public abstract class AbstractMovecraftSign {
         return SIGNS.containsKey(ident);
     }
 
+    private String id;
+
     // Special case for pilot signs, they are registered via the crafttypes name
     // Use the methods in MovecraftSignRegistry instead
     @Deprecated(forRemoval = true)
@@ -193,5 +195,18 @@ public abstract class AbstractMovecraftSign {
 
     public void sendUpdatePacket(@Nullable Craft craft, SignListener.SignWrapper sign, AbstractInformationSign.REFRESH_CAUSE refreshCause) {
         sendUpdatePacketRaw(sign);
+    }
+
+    public void setId(final String value) {
+        if (this.id == null && value != null) {
+            this.id = value;
+        }
+    }
+
+    public String getId() {
+        if (this.id == null) {
+            throw new IllegalArgumentException("Sign handler has null Id! Has it been registered?");
+        }
+        return this.id;
     }
 }
