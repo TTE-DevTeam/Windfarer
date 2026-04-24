@@ -1,5 +1,6 @@
 package net.countercraft.movecraft.craft;
 
+import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -28,6 +29,9 @@ public class PlayerCraftImpl extends BaseCraft implements PlayerCraft {
         pilotLockedX = 0.0;
         pilotLockedY = 0.0;
         pilotLockedZ = 0.0;
+
+        // Initialize the helmsman
+        HelmsManManager.getHelmsMan(this);
     }
 
     @Override
