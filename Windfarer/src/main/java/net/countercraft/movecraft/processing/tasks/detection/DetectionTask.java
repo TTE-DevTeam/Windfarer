@@ -2,6 +2,7 @@ package net.countercraft.movecraft.processing.tasks.detection;
 
 import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.Craft;
@@ -11,6 +12,7 @@ import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
 import net.countercraft.movecraft.events.CraftDetectEvent;
+import net.countercraft.movecraft.events.CraftGatherAdditionalDetectionStepsEvent;
 import net.countercraft.movecraft.events.CraftPilotEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.processing.MovecraftWorld;
@@ -307,7 +309,9 @@ public class DetectionTask implements Supplier<Effect> {
         }).andThen(
                 // Apply water effect
                 water(craft) //TODO: Remove
-        ).andThen(
+        )
+        .andThen(buildAdditionalStepEffects(craft))
+        .andThen(
                 // Fire off pilot event
                 () -> Bukkit.getServer().getPluginManager().callEvent(
                         new CraftPilotEvent(craft, CraftPilotEvent.Reason.PLAYER))
@@ -417,4 +421,33 @@ public class DetectionTask implements Supplier<Effect> {
             }
         }
     }
+
+    protected Effect buildAdditionalStepEffects(final Craft craft) {
+        Effect result;
+        final Effect startStepsMessage = ((Effect) () -> {
+            Movecraft.getInstance().getLogger().info(String.format(
+                    "Starting additional detection steps for craft <%s>",
+                    craft.getUUID().toString()
+            ));
+        });
+        result = startStepsMessage;
+
+        // DONE: Add API to add additional tasks or effects to run during detection
+        final Set<Supplier<Effect>> stepList = Sets.newConcurrentHashSet();
+        Bukkit.getPluginManager().callEvent(new CraftGatherAdditionalDetectionStepsEvent(craft, stepList));
+        for (Supplier<Effect> step : stepList) {
+            result = result.andThen(step.get());
+        }
+
+        final Effect endStepsMessage = ((Effect) () -> {
+            Movecraft.getInstance().getLogger().info(String.format(
+                    "Finished additional detection steps for craft <%s>",
+                    craft.getUUID().toString()
+            ));
+        });
+        result = result.andThen(endStepsMessage);
+
+        return result;
+    }
+
 }
