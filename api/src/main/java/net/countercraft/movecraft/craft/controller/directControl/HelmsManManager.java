@@ -30,10 +30,9 @@ public class HelmsManManager {
             this.parent = playerCraft;
             if (playerCraft.getPilotPlayer() != null) {
                 // Result does not matter
-                this.setHelmsMan(playerCraft.getPilotPlayer());
+                this.setHelmsMan(playerCraft.getPilotPlayer().getUniqueId());
             } else {
-                this.currentHelmsMan = playerCraft.getPilotUUID();
-                activePilotToCraftUUID.put(this.currentHelmsMan, this.parent);
+                this.setHelmsMan(playerCraft.getPilotUUID());
             }
         } else {
             throw new IllegalArgumentException("Provided craft must be a playercraft!");
@@ -71,19 +70,19 @@ public class HelmsManManager {
         craft.setPilotLockedZ(pilot.getLocation().getBlockZ() + 0.5);
     }
 
-    protected boolean setHelmsMan(Player newHelmsMan) {
+    protected boolean setHelmsMan(final UUID newHelmsMan) {
         if (newHelmsMan == null) {
             return false;
         }
-        if (newHelmsMan.getUniqueId().equals(this.currentHelmsMan)) {
+        if (newHelmsMan.equals(this.currentHelmsMan)) {
             return false;
         }
-        if (this.currentHelmsMan == null || newHelmsMan.getUniqueId().equals(this.parent.getPilotUUID())) {
+        if (this.currentHelmsMan == null || newHelmsMan.equals(this.parent.getPilotUUID())) {
             // TODO: Throw event
             // TODO: Check permissions
             // TODO: Add checks if we can override + parameter
             activePilotToCraftUUID.remove(this.currentHelmsMan);
-            this.currentHelmsMan = newHelmsMan.getUniqueId();
+            this.currentHelmsMan = newHelmsMan;
             activePilotToCraftUUID.put(this.currentHelmsMan, this.parent);
             return true;
         }
