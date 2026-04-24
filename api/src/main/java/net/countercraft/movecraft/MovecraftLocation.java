@@ -49,6 +49,10 @@ final public class MovecraftLocation implements Comparable<MovecraftLocation>{
         this.z = z;
     }
 
+    public MovecraftLocation(@NotNull Location location) {
+        this(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+    }
+
     public static MovecraftLocation zero() {
         return new MovecraftLocation(0,0,0);
     }
