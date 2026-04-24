@@ -184,6 +184,7 @@ public class Movecraft extends JavaPlugin {
         wreckManager = new WreckManager(WorldManager.INSTANCE);
 
         getServer().getPluginManager().registerEvents(new InteractListener(), this);
+        getServer().getPluginManager().registerEvents(new DirectControlInteractListener(), this);
 
         getCommand("movecraft").setExecutor(new MovecraftCommand());
         getCommand("release").setExecutor(new ReleaseCommand());

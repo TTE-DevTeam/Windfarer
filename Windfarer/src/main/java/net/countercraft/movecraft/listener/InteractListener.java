@@ -18,10 +18,9 @@
 package net.countercraft.movecraft.listener;
 
 import net.countercraft.movecraft.config.Settings;
+import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.PlayerCraft;
-import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
-import net.countercraft.movecraft.craft.controller.directControl.DirectControlController;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.localisation.I18nSupport;
@@ -32,9 +31,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -87,53 +84,13 @@ public final class InteractListener implements Listener {
             if (craft == null)
                 return;
 
-            TypeSafeCraftType type = craft.getCraftProperties();
-            int currentGear = craft.getCurrentGear();
-            int tickCooldown = type.get(
-                    PropertyKeys.TICK_COOLDOWN, craft.getWorld());
-            if (type.get(PropertyKeys.GEAR_SHIFT_AFFECT_DIRECT_MOVEMENT)
-                    && type.get(PropertyKeys.GEAR_SHIFT_AFFECT_TICK_COOLDOWN))
-                tickCooldown *= currentGear; // Account for gear shifts
-            Long lastTimePlayer = PLAYER_INTERACTION_TIME_MAP.get(p.getUniqueId());
-            Long lastTimeCraft = INTERACTION_TIME_MAP.get(craft.getUUID());
-            if (lastTimeCraft != null || lastTimePlayer != null) {
-                Long lastTime = null;
-                if (lastTimeCraft == null) {
-                    lastTime = lastTimePlayer;
-                }
-                else if (lastTimePlayer == null) {
-                    lastTime = lastTimeCraft;
-                }
-                else {
-                    lastTime = Math.min(INTERACTION_TIME_MAP.get(craft.getUUID()), PLAYER_INTERACTION_TIME_MAP.get(p.getUniqueId()));
-                }
-                if (lastTime != null) {
-                    long ticksElapsed = (System.currentTimeMillis() - lastTime) / 50;
-
-                    // if the craft should go slower underwater, make time pass more slowly there
-                    if (craft.getCraftProperties().get(PropertyKeys.HALF_SPEED_UNDERWATER)
-                            && craft.getHitBox().getMinY() < craft.getWorld().getSeaLevel())
-                        ticksElapsed /= 2;
-
-                    if (ticksElapsed < tickCooldown)
-                        return; // Not enough time has passed, so don't do anything
-                }
+            if (!isCraftReadyForInteraction(craft, p)) {
+                return;
             }
 
             if (!p.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".move")) {
                 p.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
                 return; // Player doesn't have permission to move this craft, so don't do anything
-            }
-
-            if (craft.getPilotLocked() && type.get(PropertyKeys.CAN_DIRECT_CONTROL)) {
-                final DirectControlController dcController = type.get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
-                if (dcController != null) {
-                    if (dcController.onPlayerInteract(e, craft)) {
-                        INTERACTION_TIME_MAP.put(craft.getUUID(), System.currentTimeMillis());
-                        PLAYER_INTERACTION_TIME_MAP.put(p.getUniqueId(), System.currentTimeMillis());
-                    }
-                }
-                return;
             }
 
             double rotation = p.getLocation().getYaw() * Math.PI / 180.0;
@@ -150,42 +107,50 @@ public final class InteractListener implements Listener {
             }
 
             craft.translate(craft.getWorld(), dx, dy, dz);
-            INTERACTION_TIME_MAP.put(craft.getUUID(), System.currentTimeMillis());
-            PLAYER_INTERACTION_TIME_MAP.put(p.getUniqueId(), System.currentTimeMillis());
+            storeInteraction(craft, p);
             craft.setLastCruiseUpdate(System.currentTimeMillis());
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void onPlayerDropItem(final PlayerDropItemEvent event) {
-        Player p = event.getPlayer();
-        PlayerCraft craft = CraftManager.getInstance().getCraftByHelmsMan(p);
-        if (craft == null)
-            return;
-
-        TypeSafeCraftType type = craft.getCraftProperties();
-        if (craft.getPilotLocked() && type.get(PropertyKeys.CAN_DIRECT_CONTROL)) {
-            final DirectControlController dcController = type.get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
-            if (dcController != null) {
-                dcController.onPlayerDropItem(event, craft);
-            }
-        }
+    public static void storeInteraction(final Craft craft, final Player player) {
+        INTERACTION_TIME_MAP.put(craft.getUUID(), System.currentTimeMillis());
+        PLAYER_INTERACTION_TIME_MAP.put(player.getUniqueId(), System.currentTimeMillis());
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void onPlayerSwapItem(final PlayerSwapHandItemsEvent event) {
-        Player p = event.getPlayer();
-        PlayerCraft craft = CraftManager.getInstance().getCraftByHelmsMan(p);
-        if (craft == null)
-            return;
-
+    public static boolean isCraftReadyForInteraction(final Craft craft, final Player player) {
         TypeSafeCraftType type = craft.getCraftProperties();
-        if (craft.getPilotLocked() && type.get(PropertyKeys.CAN_DIRECT_CONTROL)) {
-            final DirectControlController dcController = type.get(PropertyKeys.DIRECT_CONTROL_CONTROLLER);
-            if (dcController != null) {
-                dcController.onPlayerSwapItem(event, craft);
+        int currentGear = craft.getCurrentGear();
+        int tickCooldown = type.get(
+                PropertyKeys.TICK_COOLDOWN, craft.getWorld());
+        if (type.get(PropertyKeys.GEAR_SHIFT_AFFECT_DIRECT_MOVEMENT)
+                && type.get(PropertyKeys.GEAR_SHIFT_AFFECT_TICK_COOLDOWN))
+            tickCooldown *= currentGear; // Account for gear shifts
+        Long lastTimePlayer = PLAYER_INTERACTION_TIME_MAP.get(player.getUniqueId());
+        Long lastTimeCraft = INTERACTION_TIME_MAP.get(craft.getUUID());
+        if (lastTimeCraft != null || lastTimePlayer != null) {
+            Long lastTime = null;
+            if (lastTimeCraft == null) {
+                lastTime = lastTimePlayer;
+            }
+            else if (lastTimePlayer == null) {
+                lastTime = lastTimeCraft;
+            }
+            else {
+                lastTime = Math.min(INTERACTION_TIME_MAP.get(craft.getUUID()), PLAYER_INTERACTION_TIME_MAP.get(player.getUniqueId()));
+            }
+            if (lastTime != null) {
+                long ticksElapsed = (System.currentTimeMillis() - lastTime) / 50;
+
+                // if the craft should go slower underwater, make time pass more slowly there
+                if (craft.getCraftProperties().get(PropertyKeys.HALF_SPEED_UNDERWATER)
+                        && craft.getHitBox().getMinY() < craft.getWorld().getSeaLevel())
+                    ticksElapsed /= 2;
+
+                if (ticksElapsed < tickCooldown)
+                    return false; // Not enough time has passed, so don't do anything
             }
         }
+        return true;
     }
 
 }
