@@ -99,24 +99,28 @@ public abstract class AbstractToggleSign extends AbstractCraftSign {
         sign.line(0, buildHeader(willBeOn));
         sign.block().update(true);
         //craft.resetSigns(sign.block());
-        for (final MovecraftLocation mLoc : craft.getHitBox()) {
-            final Block b = mLoc.toBukkit(craft.getWorld()).getBlock();
-            if (!(b.getState() instanceof Sign)) {
-                continue;
-            }
-            final Sign s = (Sign) b.getState();
-            boolean update = false;
-            SignListener.SignWrapper[] wrappers = SignListener.INSTANCE.getSignWrappers(s);
-            for (SignListener.SignWrapper wrapperTmp : wrappers) {
-                if (wrapperTmp.areSignsEqual(sign)) {
+        // TODO: Refactor
+        final CraftSignManager craftSignManager = CraftSignManager.of(craft);
+        if (craftSignManager != null) {
+            for (final MovecraftLocation mLoc : craftSignManager.getSignsOfClass(AbstractToggleSign.class)) {
+                final Block b = mLoc.toBukkit(craft.getWorld()).getBlock();
+                if (!(b.getState() instanceof Sign)) {
                     continue;
                 }
-                if (this.doReset(sign, wrapperTmp, craft)) {
-                    update = true;
+                final Sign s = (Sign) b.getState();
+                boolean update = false;
+                SignListener.SignWrapper[] wrappers = SignListener.INSTANCE.getSignWrappers(s);
+                for (SignListener.SignWrapper wrapperTmp : wrappers) {
+                    if (wrapperTmp.areSignsEqual(sign)) {
+                        continue;
+                    }
+                    if (this.doReset(sign, wrapperTmp, craft)) {
+                        update = true;
+                    }
                 }
+                if (update)
+                    s.update();
             }
-            if (update)
-                s.update();
         }
 
         this.onAfterToggle(craft, sign, player, willBeOn);
