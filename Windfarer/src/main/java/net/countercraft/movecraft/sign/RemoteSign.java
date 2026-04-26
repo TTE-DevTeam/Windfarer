@@ -40,7 +40,11 @@ public class RemoteSign extends AbstractCraftSign {
         Map<AbstractMovecraftSign, LinkedList<SignListener.SignWrapper>> foundTargetSigns = new HashMap<>();
         boolean firstError = true;
         final String targetIdent = sign.getRaw(1);
-        for (MovecraftLocation tloc : craft.getHitBox()) {
+        final CraftSignManager signManager = CraftSignManager.of(craft);
+        if (signManager == null) {
+            return false;
+        }
+        for (MovecraftLocation tloc : signManager.getSignsOfClass(AbstractMovecraftSign.class)) {
             BlockState tstate = craft.getWorld().getBlockAt(tloc.getX(), tloc.getY(), tloc.getZ()).getState();
             if (!Tag.ALL_SIGNS.isTagged(tstate.getType())) {
                 continue;
