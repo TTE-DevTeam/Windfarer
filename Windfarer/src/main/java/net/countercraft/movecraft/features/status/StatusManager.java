@@ -65,7 +65,7 @@ public class StatusManager extends BukkitRunnable implements Listener {
             Counter<NamespacedKey> materials = new Counter<>();
             int nonNegligibleBlocks = 0;
             int nonNegligibleSolidBlocks = 0;
-            
+
             for (MovecraftLocation l : craft.getHitBox()) {
                 BlockData data = craft.getMovecraftWorld().getData(l);
                 Material type = data.getMaterial();

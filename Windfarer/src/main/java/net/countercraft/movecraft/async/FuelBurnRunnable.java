@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+// TODO: Migrate to processing system and run async if possible!
 public class FuelBurnRunnable implements Runnable {
     // FuelBurnRate: How much fuel gets burnt per tick?
     // "BurningFuel": How many ticks of fuel does the craft still have aboard?
