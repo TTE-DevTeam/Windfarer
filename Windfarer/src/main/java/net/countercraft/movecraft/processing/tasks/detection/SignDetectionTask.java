@@ -45,7 +45,7 @@ public class SignDetectionTask implements Supplier<Effect> {
                     for (SignListener.SignWrapper wrapper : SignListener.INSTANCE.getSignWrappers(sign)) {
                         AbstractMovecraftSign acs = MovecraftSignRegistry.INSTANCE.get(wrapper.getRaw(0));
                         if (acs != null) {
-                            signManager.addSign(acs, movecraftLocation);
+                            signManager.addSign(acs.getClass(), movecraftLocation);
                         }
                     }
                 }

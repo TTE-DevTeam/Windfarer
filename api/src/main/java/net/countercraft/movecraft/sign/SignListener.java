@@ -350,7 +350,7 @@ public class SignListener implements Listener {
                     }
                 }
             }
-            // Not a signhandler sing but it has content, so send an update anyway
+            // Not a signhandler sign, but it has content, so send an update anyway
             else if (ams != null) {
                 for(SignWrapper wrapperTmp : entry.getValue()){
                     wrapperTmp.copyContent(backingForEvent::line, (i) -> i < backingForEvent.lines().size());
@@ -538,7 +538,7 @@ public class SignListener implements Listener {
             if (manager != null) {
                 for (@NotNull AbstractMovecraftSign signHandler : MovecraftSignRegistry.INSTANCE.getAllValues()) {
                     if (signHandler instanceof AbstractCraftSign acs) {
-                        locationsToCheck.addAll(manager.getSignsOfClass(acs));
+                        locationsToCheck.addAll(manager.getSignsOfClass(acs.getClass()));
                     }
                 }
             }
