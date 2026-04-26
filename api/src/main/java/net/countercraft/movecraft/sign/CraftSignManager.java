@@ -32,11 +32,23 @@ public class CraftSignManager {
     }
 
     public Set<MovecraftLocation> getSignsOfClass(Class<? extends AbstractMovecraftSign> signHandler) {
+        final Set<Class<? extends AbstractMovecraftSign>> keySet = new HashSet<>();
+        for (Class<? extends AbstractMovecraftSign> clazz : signLocationCache.keySet()) {
+            if (clazz == signHandler || signHandler.isAssignableFrom(clazz)) {
+                keySet.add(clazz);
+            }
+        }
+
         Set<MovecraftLocation> result = new HashSet<>();
-        WeakReference<Set<TrackedLocation>> value = this.signLocationCache.getOrDefault(signHandler, null);
-        if (value != null && value.get() != null) {
-            final Set<TrackedLocation> set = value.get();
-            set.forEach(tl -> result.add(tl.getAbsoluteLocation()));
+        if (keySet.isEmpty()) {
+            return result;
+        }
+        for (Class<? extends AbstractMovecraftSign> clazz : keySet) {
+            WeakReference<Set<TrackedLocation>> value = this.signLocationCache.getOrDefault(clazz, null);
+            if (value != null && value.get() != null) {
+                final Set<TrackedLocation> set = value.get();
+                set.forEach(tl -> result.add(tl.getAbsoluteLocation()));
+            }
         }
         return result;
     }
