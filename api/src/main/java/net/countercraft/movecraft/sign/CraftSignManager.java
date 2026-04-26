@@ -6,11 +6,6 @@ import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Tag;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.Sign;
 
 import java.lang.ref.WeakReference;
 import java.util.HashSet;
