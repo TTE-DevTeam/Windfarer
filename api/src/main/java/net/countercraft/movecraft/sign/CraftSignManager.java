@@ -6,8 +6,10 @@ import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import org.bukkit.NamespacedKey;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.WeakReference;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -84,6 +86,20 @@ public class CraftSignManager {
         SignListener.INSTANCE.executeForAllCraftSigns(craft, (handler, sign) -> {
             addSign(handler.getClass(), new MovecraftLocation(sign.block().getLocation()));
         });
+    }
+
+    public Set<MovecraftLocation> getAllSigns() {
+        Set<MovecraftLocation> result = new HashSet<>();
+        for (@NotNull AbstractMovecraftSign signHandler : MovecraftSignRegistry.INSTANCE.getAllValues()) {
+            if (signHandler instanceof AbstractCraftSign acs) {
+                result.addAll(this.getSignsOfClass(acs.getClass()));
+            }
+        }
+        return result;
+    }
+
+    public Set<Class<? extends AbstractMovecraftSign>> getSignTypes() {
+        return new HashSet<>(this.signLocationCache.keySet());
     }
 
 }
