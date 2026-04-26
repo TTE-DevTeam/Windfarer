@@ -300,7 +300,8 @@ public class SignListener implements Listener {
         // Remember the locations for the event!
         Map<SignWrapper, List<MovecraftLocation>> wrapperToLocs = new HashMap<>();
 
-        for (MovecraftLocation location : craft.getHitBox()) {
+        // TODO: Rework to use the cache and make this entire ordeal more efficient...
+        for (MovecraftLocation location : this.getSignLocationsOn(craft, true)) {
             Block block = location.toBukkit(craft.getWorld()).getBlock();
             if(!Tag.ALL_SIGNS.isTagged(block.getType())){
                 continue;
@@ -511,7 +512,7 @@ public class SignListener implements Listener {
             return;
         }
 
-        executeForAllCraftSigns(craft, (acs, wrapper) -> acs.onCraftStatusUpdate(craft, wrapper));
+        executeForAllCraftSigns(craft, (acs, wrapper) -> acs.onCraftStatusUpdate(craft, wrapper), true);
     }
 
     @EventHandler
@@ -524,7 +525,7 @@ public class SignListener implements Listener {
 
         executeForAllCraftSigns(craft, (acs, wrapper) -> {
             acs.onCraftStopCruising(craft, wrapper, event.getReason());
-        });
+        }, true);
     }
 
     void executeForAllCraftSigns(final @NotNull Craft craft, BiConsumer<AbstractCraftSign, SignWrapper> functionToRun) {
@@ -532,20 +533,8 @@ public class SignListener implements Listener {
     }
 
     void executeForAllCraftSigns(final @NotNull Craft craft, BiConsumer<AbstractCraftSign, SignWrapper> functionToRun, boolean useCache) {
-        final Set<MovecraftLocation> locationsToCheck = new HashSet<>();
-        if (useCache) {
-            final CraftSignManager manager = CraftSignManager.of(craft);
-            if (manager != null) {
-                for (@NotNull AbstractMovecraftSign signHandler : MovecraftSignRegistry.INSTANCE.getAllValues()) {
-                    if (signHandler instanceof AbstractCraftSign acs) {
-                        locationsToCheck.addAll(manager.getSignsOfClass(acs.getClass()));
-                    }
-                }
-            }
-        }
-        else {
-            locationsToCheck.addAll(craft.getHitBox().asSet());
-        }
+        final Set<MovecraftLocation> locationsToCheck = this.getSignLocationsOn(craft, useCache);
+
         final World world = craft.getWorld();
         locationsToCheck.forEach((mloc) -> {
             Block block = mloc.toBukkit(world).getBlock();
@@ -561,5 +550,19 @@ public class SignListener implements Listener {
                 }
             }
         });
+    }
+
+    protected Set<MovecraftLocation> getSignLocationsOn(final Craft craft, final boolean useCache) {
+        final Set<MovecraftLocation> result = new HashSet<>();
+        if (useCache) {
+            final CraftSignManager manager = CraftSignManager.of(craft);
+            if (manager != null) {
+                result.addAll(manager.getAllSigns());
+            }
+        }
+        else {
+            result.addAll(craft.getHitBox().asSet());
+        }
+        return result;
     }
 }
