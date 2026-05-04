@@ -151,6 +151,9 @@ public class CommandDirectControlSlot extends AbstractDirectControlSlot {
                 sender = Bukkit.getConsoleSender();
             } else {
                 sender = executor;
+                if (executor instanceof Player player) {
+                    return player.performCommand(preparedCommand);
+                }
             }
 
             return Bukkit.dispatchCommand(sender, preparedCommand);
