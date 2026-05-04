@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
 public class DirectControlInteractListener implements Listener {
 
     // Normal priority so it runs AFTER normal interaction controls
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = false)
     public void onPlayerInteract(@NotNull PlayerInteractEvent event) {
         final Player player = event.getPlayer();
         final PlayerCraft craft = CraftManager.getInstance().getCraftByHelmsMan(player);
