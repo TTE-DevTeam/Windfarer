@@ -258,9 +258,6 @@ public class AsyncManager extends BukkitRunnable {
                 final int gearshift = craft.getCurrentGear();
                 cruiseVector.multiply(gearshift);
             }
-            if (craft.getHitBox().getMinY() <= w.getSeaLevel() && cruiseVector.getY() < 1.0d) {
-                cruiseVector.setY(-1);
-            }
             if (craft.getCraftProperties().get(PropertyKeys.CRUISE_ON_PILOT)) {
                 cruiseVector.setY(craft.getCraftProperties().get(PropertyKeys.CRUISE_ON_PILOT_VERT_MOVE));
             }
