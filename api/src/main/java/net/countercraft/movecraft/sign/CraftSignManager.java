@@ -9,7 +9,6 @@ import org.bukkit.NamespacedKey;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.WeakReference;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -54,7 +53,7 @@ public class CraftSignManager {
     }
 
     protected NamespacedKey getKey(Class<? extends AbstractMovecraftSign> signHandler) {
-        return new NamespacedKey("windfarer", "craft-sign/" + signHandler.getName());
+        return new NamespacedKey("windfarer", "craft-sign/" + signHandler.getName().toLowerCase());
     }
 
     public void addSign(Class<? extends AbstractMovecraftSign> signHandler, MovecraftLocation sign) {
