@@ -1,22 +1,21 @@
 package net.countercraft.movecraft.events;
 
-import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.processing.effects.Effect;
+import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
-import org.jetbrains.annotations.NotNull;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
-public class CraftGatherAdditionalDetectionStepsEvent extends CraftEvent {
+public class CraftGatherAdditionalDetectionStepsEvent extends Event {
 
     private static final HandlerList HANDLERS = new HandlerList();
-    private final Set<Supplier<Effect>> additionalSteps;
+    private final Set<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> additionalSteps;
 
-    public CraftGatherAdditionalDetectionStepsEvent(@NotNull Craft craft, final Set<Supplier<Effect>> additionalSteps ) {
-        super(craft);
+    public CraftGatherAdditionalDetectionStepsEvent(final Set<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> additionalSteps ) {
+        super();
         this.additionalSteps = additionalSteps;
     }
 
@@ -30,7 +29,7 @@ public class CraftGatherAdditionalDetectionStepsEvent extends CraftEvent {
         return HANDLERS;
     }
 
-    public boolean addStep(final Supplier<Effect> step) {
+    public boolean addStep(final BiFunction<Supplier<Effect>, Craft, Supplier<Effect>> step) {
         return this.additionalSteps.add(step);
     }
 

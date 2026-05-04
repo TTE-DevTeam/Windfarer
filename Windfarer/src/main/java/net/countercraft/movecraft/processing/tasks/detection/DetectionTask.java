@@ -2,7 +2,6 @@ package net.countercraft.movecraft.processing.tasks.detection;
 
 import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.Craft;
@@ -41,7 +40,6 @@ import org.bukkit.*;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,6 +60,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -99,6 +98,13 @@ public class DetectionTask implements Supplier<Effect> {
             new WaterContactValidator()
     );
 
+    private static final Set<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> additionalStepsBuilder = createAdditionalStepConstructors();
+
+    private static Set<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> createAdditionalStepConstructors() {
+        Set<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> additionalSteps = new HashSet<>();
+        Bukkit.getPluginManager().callEvent(new CraftGatherAdditionalDetectionStepsEvent(additionalSteps));
+        return additionalSteps;
+    }
 
 
     private final MovecraftLocation startLocation;
@@ -433,10 +439,12 @@ public class DetectionTask implements Supplier<Effect> {
         result = startStepsMessage;
 
         // DONE: Add API to add additional tasks or effects to run during detection
-        final Set<Supplier<Effect>> stepList = Sets.newConcurrentHashSet();
-        Bukkit.getPluginManager().callEvent(new CraftGatherAdditionalDetectionStepsEvent(craft, stepList));
-        for (Supplier<Effect> step : stepList) {
-            result = result.andThen(step.get());
+        final Set<Supplier<Effect>> stepList = new HashSet<>();
+        for (BiFunction<Supplier<Effect>, Craft, Supplier<Effect>> constructor : additionalStepsBuilder) {
+            final Supplier<Effect> actualSupplier = constructor.apply(this, craft);
+            if (actualSupplier != null) {
+                stepList.add(actualSupplier);
+            }
         }
 
         final Effect endStepsMessage = ((Effect) () -> {

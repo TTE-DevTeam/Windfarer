@@ -11,7 +11,7 @@ public class CraftDetectionStepListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onDetectAddSteps(final CraftGatherAdditionalDetectionStepsEvent event) {
         // Sign locations
-        event.addStep(new SignDetectionTask(event.getCraft()));
+        event.addStep((task, craft) -> new SignDetectionTask(craft));
     }
 
 }
