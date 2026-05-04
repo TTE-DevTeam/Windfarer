@@ -209,6 +209,7 @@ public class Movecraft extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BlockListener(), this);
         getServer().getPluginManager().registerEvents(new PlayerListener(), this);
         getServer().getPluginManager().registerEvents(new ChunkManager(), this);
+        getServer().getPluginManager().registerEvents(new CraftDetectionStepListener(), this);
 
         // TODO: CHange all thease names to constants in the relevant classes!
         MovecraftSignRegistry.INSTANCE.register("Ascend:", new AscendSign("Ascend:"));
