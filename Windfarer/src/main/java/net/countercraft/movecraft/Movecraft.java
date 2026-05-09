@@ -36,6 +36,7 @@ import net.countercraft.movecraft.features.contacts.ContactsCommand;
 import net.countercraft.movecraft.features.contacts.ContactsManager;
 import net.countercraft.movecraft.features.contacts.ContactsSign;
 import net.countercraft.movecraft.features.contacts.IgnoreContactCommand;
+import net.countercraft.movecraft.features.directControl.slot.BlockInteractDirectControlSlot;
 import net.countercraft.movecraft.features.directControl.slot.CommandDirectControlSlot;
 import net.countercraft.movecraft.features.directControl.slot.DefaultDirectControlSlot;
 import net.countercraft.movecraft.features.fading.WreckManager;
@@ -94,6 +95,7 @@ public class Movecraft extends JavaPlugin {
         ConfigurationSerialization.registerClass(DirectControlController.class, "Movecraft_DirectControlController");
         ConfigurationSerialization.registerClass(DefaultDirectControlSlot.class, "Movecraft_DefaultDirectControlSlot");
         ConfigurationSerialization.registerClass(CommandDirectControlSlot.class, "Movecraft_CommandDirectControlSlot");
+        ConfigurationSerialization.registerClass(BlockInteractDirectControlSlot.class, "Movecraft_BlockInteractionDirectControlSlot");
 
         // Read in config
         Settings.LOCALE = getConfig().getString("Locale");
