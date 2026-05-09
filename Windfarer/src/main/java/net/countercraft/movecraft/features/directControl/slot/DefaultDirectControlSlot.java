@@ -7,6 +7,7 @@ import net.countercraft.movecraft.craft.controller.directControl.AbstractDirectC
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.util.SerializationUtil;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.Action;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.NumberConversions;
 import org.jetbrains.annotations.NotNull;
@@ -50,13 +51,13 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
     }
 
     @Override
-    public boolean onLeftClick(ItemStack itemStack, Player interactor, Craft craft) {
+    public boolean onLeftClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
         // Ignored, used to exit DC, handled on a higher level
         return false;
     }
 
     @Override
-    public boolean onRightClick(ItemStack itemStack, Player interactor, Craft craft) {
+    public boolean onRightClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
         if (!this.clickToAscendOrDescend) {
             return false;
         }

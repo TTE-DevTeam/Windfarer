@@ -125,9 +125,9 @@ public class DirectControlController implements ConfigurationSerializable {
         }
 
         if (event.getAction().isLeftClick()) {
-            return slot.onLeftClick(event.getItem(), event.getPlayer(), craft);
+            return slot.onLeftClick(event.getItem(), event.getPlayer(), craft, event.getAction());
         } else if (event.getAction().isRightClick()) {
-            return slot.onRightClick(event.getItem(), event.getPlayer(), craft);
+            return slot.onRightClick(event.getItem(), event.getPlayer(), craft, event.getAction());
         } else {
             return false;
         }

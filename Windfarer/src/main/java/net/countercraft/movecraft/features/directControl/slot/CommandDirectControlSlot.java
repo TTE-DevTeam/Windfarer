@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.Action;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,12 +51,12 @@ public class CommandDirectControlSlot extends AbstractDirectControlSlot {
     }
 
     @Override
-    public boolean onLeftClick(ItemStack itemStack, Player interactor, Craft craft) {
+    public boolean onLeftClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
         return runCommand(this.cmdLeftClick, interactor, craft);
     }
 
     @Override
-    public boolean onRightClick(ItemStack itemStack, Player interactor, Craft craft) {
+    public boolean onRightClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
         return runCommand(this.cmdRightClick, interactor, craft);
     }
 
