@@ -131,9 +131,12 @@ public class CraftSignManager {
                 }
                 final Sign s = (Sign) b.getState();
                 boolean update = false;
-                SignListener.SignWrapper[] wrappers = SignListener.INSTANCE.getSignWrappers(s);
+                SignListener.SignWrapper[] wrappers = SignListener.INSTANCE.getSignWrappers(s, true);
                 for (SignListener.SignWrapper wrapperTmp : wrappers) {
                     final AbstractCraftSign signHandler = MovecraftSignRegistry.INSTANCE.getCraftSign(wrapperTmp.line(0));
+                    if (signHandler == null)
+                        continue;
+
                     if (signHandler.getClass().isAssignableFrom(signClass)) {
                         final T typed = (T) signHandler;
                         update = functionToRun.apply(typed, wrapperTmp, craft) || update;
