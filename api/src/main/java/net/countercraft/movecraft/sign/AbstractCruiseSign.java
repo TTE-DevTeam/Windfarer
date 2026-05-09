@@ -2,8 +2,11 @@ package net.countercraft.movecraft.sign;
 
 import net.countercraft.movecraft.CruiseDirection;
 import net.countercraft.movecraft.craft.Craft;
+import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
+import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 /*
  * Base class for all cruise signs
@@ -57,4 +60,12 @@ public abstract class AbstractCruiseSign extends AbstractToggleSign {
     // TODO: Rework cruise direction to vectors => Vector defines the skip distance and the direction
     // Returns the direction in which the craft should cruise
     protected abstract CruiseDirection getCruiseDirection(SignListener.SignWrapper sign);
+
+    @Override
+    protected boolean canPlayerUseSignOn(Player player, @Nullable Craft craft) {
+        if (super.canPlayerUseSignOn(player, craft) || HelmsManManager.getHelmsMan(craft) == player) {
+            return craft.getCraftProperties().get(PropertyKeys.CAN_CRUISE);
+        }
+        return false;
+    }
 }

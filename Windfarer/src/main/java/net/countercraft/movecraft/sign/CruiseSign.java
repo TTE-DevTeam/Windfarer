@@ -3,6 +3,7 @@ package net.countercraft.movecraft.sign;
 import net.countercraft.movecraft.CruiseDirection;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
+import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -70,11 +71,4 @@ public class CruiseSign extends AbstractCruiseSign {
 
     }
 
-    @Override
-    protected boolean canPlayerUseSignOn(Player player, @Nullable Craft craft) {
-        if (super.canPlayerUseSignOn(player, craft)) {
-            return craft.getCraftProperties().get(PropertyKeys.CAN_CRUISE);
-        }
-        return false;
-    }
 }

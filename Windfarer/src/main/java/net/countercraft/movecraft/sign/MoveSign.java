@@ -1,6 +1,7 @@
 package net.countercraft.movecraft.sign;
 
 import net.countercraft.movecraft.craft.Craft;
+import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import org.bukkit.entity.Player;
@@ -46,7 +47,7 @@ public class MoveSign extends AbstractCraftSign {
 
     @Override
     protected boolean canPlayerUseSignOn(Player player, Craft craft) {
-        if (!super.canPlayerUseSignOn(player, craft)) {
+        if (!(super.canPlayerUseSignOn(player, craft) || HelmsManManager.getHelmsMan(craft) == player)) {
             return false;
         }
         if (!player.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".move")) {

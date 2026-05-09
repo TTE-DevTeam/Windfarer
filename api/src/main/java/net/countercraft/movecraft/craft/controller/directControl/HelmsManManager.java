@@ -112,6 +112,14 @@ public class HelmsManManager {
         return get(craft).getHelmsMan();
     }
 
+    public static Player getHelmsMan(Craft craft) {
+        if (craft instanceof PlayerCraft playerCraft) {
+            return getHelmsMan(playerCraft);
+        }
+        return null;
+    }
+
+
     public static void toggleDirectControl(PlayerCraft craft, Player player) {
         get(craft).toggleDirectControl(player);
     }

@@ -3,6 +3,7 @@ package net.countercraft.movecraft.sign;
 import net.countercraft.movecraft.CruiseDirection;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
+import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -41,13 +42,5 @@ public class DescendSign extends AbstractCruiseSign {
         if (!craft.getCraftProperties().get(PropertyKeys.CAN_MOVE_ENTITIES)) {
             CraftManager.getInstance().addReleaseTask(craft);
         }
-    }
-
-    @Override
-    protected boolean canPlayerUseSignOn(Player player, @Nullable Craft craft) {
-        if (super.canPlayerUseSignOn(player, craft)) {
-            return craft.getCraftProperties().get(PropertyKeys.CAN_CRUISE);
-        }
-        return false;
     }
 }
