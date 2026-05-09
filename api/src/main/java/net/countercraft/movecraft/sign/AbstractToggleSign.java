@@ -1,6 +1,5 @@
 package net.countercraft.movecraft.sign;
 
-import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.craft.PlayerCraft;
@@ -9,8 +8,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.block.Block;
-import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
@@ -67,7 +64,7 @@ public abstract class AbstractToggleSign extends AbstractCraftSign {
 
     // If the suffix matches the suffixOn field it will returnt true
     // calls getSplitHeader() to retrieve the raw header string
-    protected boolean isOnOrOff(SignListener.SignWrapper sign) {
+    public boolean isOnOrOff(SignListener.SignWrapper sign) {
         String[] headerSplit = getSplitHeader(sign);
         if (headerSplit == null || headerSplit.length != 2) {
             return false;
@@ -99,29 +96,36 @@ public abstract class AbstractToggleSign extends AbstractCraftSign {
         sign.line(0, buildHeader(willBeOn));
         sign.block().update(true);
         //craft.resetSigns(sign.block());
-        // TODO: Refactor
-        final CraftSignManager craftSignManager = CraftSignManager.of(craft);
-        if (craftSignManager != null) {
-            for (final MovecraftLocation mLoc : craftSignManager.getSignsOfClass(AbstractToggleSign.class)) {
-                final Block b = mLoc.toBukkit(craft.getWorld()).getBlock();
-                if (!(b.getState() instanceof Sign)) {
-                    continue;
-                }
-                final Sign s = (Sign) b.getState();
-                boolean update = false;
-                SignListener.SignWrapper[] wrappers = SignListener.INSTANCE.getSignWrappers(s);
-                for (SignListener.SignWrapper wrapperTmp : wrappers) {
-                    if (wrapperTmp.areSignsEqual(sign)) {
-                        continue;
-                    }
-                    if (this.doReset(sign, wrapperTmp, craft)) {
-                        update = true;
-                    }
-                }
-                if (update)
-                    s.update();
+
+        CraftSignManager.executeForSignsOfType(AbstractToggleSign.class, craft, (handler, signWrapper, craftInner) -> {
+            if (signWrapper.areSignsEqual(sign)) {
+                return false;
             }
-        }
+            return handler.doReset(sign, signWrapper, craftInner);
+        });
+
+//        final CraftSignManager craftSignManager = CraftSignManager.of(craft);
+//        if (craftSignManager != null) {
+//            for (final MovecraftLocation mLoc : craftSignManager.getSignsOfClass(AbstractToggleSign.class)) {
+//                final Block b = mLoc.toBukkit(craft.getWorld()).getBlock();
+//                if (!(b.getState() instanceof Sign)) {
+//                    continue;
+//                }
+//                final Sign s = (Sign) b.getState();
+//                boolean update = false;
+//                SignListener.SignWrapper[] wrappers = SignListener.INSTANCE.getSignWrappers(s);
+//                for (SignListener.SignWrapper wrapperTmp : wrappers) {
+//                    if (wrapperTmp.areSignsEqual(sign)) {
+//                        continue;
+//                    }
+//                    if (this.doReset(sign, wrapperTmp, craft)) {
+//                        update = true;
+//                    }
+//                }
+//                if (update)
+//                    s.update();
+//            }
+//        }
 
         this.onAfterToggle(craft, sign, player, willBeOn);
 
@@ -129,8 +133,11 @@ public abstract class AbstractToggleSign extends AbstractCraftSign {
     }
 
     public boolean doReset(SignListener.SignWrapper original, SignListener.SignWrapper other, Craft craft) {
+        return doReset(original, other, craft, this.isOnOrOff(original));
+    }
+
+    public boolean doReset(SignListener.SignWrapper original, SignListener.SignWrapper other, Craft craft, boolean onOrOff) {
         AbstractMovecraftSign otherHandler = MovecraftSignRegistry.INSTANCE.getCraftSign(other.line(0));
-        boolean originalIsOn = this.isOnOrOff(original);
         if (otherHandler != this) {
             if (otherHandler instanceof AbstractToggleSign ats && ats.canBeResettedBy(this)) {
                 other.line(0, ats.buildHeaderOff());
@@ -139,7 +146,7 @@ public abstract class AbstractToggleSign extends AbstractCraftSign {
             return false;
         }
         if (this.shouldShareSameToggleState(original, other, craft)) {
-            other.line(0, this.buildHeader(originalIsOn));
+            other.line(0, this.buildHeader(onOrOff));
         } else {
             other.line(0, this.buildHeaderOff());
         }

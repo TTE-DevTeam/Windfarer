@@ -10,6 +10,9 @@ import net.countercraft.movecraft.craft.PlayerCraft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
+import net.countercraft.movecraft.sign.AbstractToggleSign;
+import net.countercraft.movecraft.sign.CraftSignManager;
+import net.countercraft.movecraft.sign.CruiseSign;
 import net.countercraft.movecraft.util.ChatUtils;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -147,6 +150,7 @@ public class CruiseCommand {
                 }
                 craft.setCruising(direction != CRUISE_DIRECTION.OFF, CraftStopCruiseEvent.Reason.COMMAND);
             }
+            // TODO: Toggle sign updates via SignManager
         } else {
             executor.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("You must be piloting a craft"));
         }

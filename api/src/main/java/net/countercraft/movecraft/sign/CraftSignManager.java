@@ -5,7 +5,11 @@ import net.countercraft.movecraft.TrackedLocation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
+import net.countercraft.movecraft.util.functions.TriFunction;
+import org.apache.logging.log4j.util.TriConsumer;
 import org.bukkit.NamespacedKey;
+import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.WeakReference;
@@ -111,6 +115,31 @@ public class CraftSignManager {
 
     public Set<Class<? extends AbstractMovecraftSign>> getSignTypes() {
         return new HashSet<>(this.signLocationCache.keySet());
+    }
+
+
+    public static <T extends AbstractCraftSign> void executeForSignsOfType(final Class<T> signClass, Craft craft, final TriFunction<T, SignListener.SignWrapper, Craft, Boolean> functionToRun) {
+        final CraftSignManager craftSignManager = CraftSignManager.of(craft);
+        if (craftSignManager != null) {
+            for (final MovecraftLocation mLoc : craftSignManager.getSignsOfClass(signClass)) {
+                final Block b = mLoc.toBukkit(craft.getWorld()).getBlock();
+                if (!(b.getState() instanceof Sign)) {
+                    continue;
+                }
+                final Sign s = (Sign) b.getState();
+                boolean update = false;
+                SignListener.SignWrapper[] wrappers = SignListener.INSTANCE.getSignWrappers(s);
+                for (SignListener.SignWrapper wrapperTmp : wrappers) {
+                    final AbstractCraftSign signHandler = MovecraftSignRegistry.INSTANCE.getCraftSign(wrapperTmp.line(0));
+                    if (signHandler.getClass().isAssignableFrom(signClass)) {
+                        final T typed = (T) signHandler;
+                        update = functionToRun.apply(typed, wrapperTmp, craft) || update;
+                    }
+                }
+                if (update)
+                    s.update();
+            }
+        }
     }
 
 }
