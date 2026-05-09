@@ -442,7 +442,7 @@ public class DetectionTask implements Supplier<Effect> {
         for (BiFunction<Supplier<Effect>, Craft, Supplier<Effect>> constructor : additionalStepsBuilder) {
             final Supplier<Effect> actualSupplier = constructor.apply(this, craft);
             if (actualSupplier != null) {
-                result = result.andThen(() -> {actualSupplier.get();});
+                result = result.andThen(() -> {actualSupplier.get().run();});
             }
         }
 

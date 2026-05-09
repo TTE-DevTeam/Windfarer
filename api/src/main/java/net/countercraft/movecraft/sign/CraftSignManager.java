@@ -6,7 +6,6 @@ import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import net.countercraft.movecraft.util.functions.TriFunction;
-import org.apache.logging.log4j.util.TriConsumer;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -64,6 +63,7 @@ public class CraftSignManager {
         final Craft craft = this.owningCraft.get();
         if (craft != null) {
             Set<TrackedLocation> trackedLocations = craft.getTrackedLocations().computeIfAbsent(getKey(signHandler), k -> new HashSet<>());
+            this.signLocationCache.put(signHandler, new WeakReference<>(trackedLocations));
             trackedLocations.add(new TrackedLocation(craft, sign));
         }
     }
@@ -75,6 +75,9 @@ public class CraftSignManager {
             if (trackedLocations != null) {
                 TrackedLocation tl = new TrackedLocation(craft, sign);
                 trackedLocations.remove(tl);
+            }
+            if (trackedLocations.isEmpty()) {
+                this.signLocationCache.remove(signHandler);
             }
         }
     }
