@@ -5,16 +5,16 @@ import net.countercraft.movecraft.processing.effects.Effect;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
-import java.util.Set;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 public class CraftGatherAdditionalDetectionStepsEvent extends Event {
 
     private static final HandlerList HANDLERS = new HandlerList();
-    private final Set<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> additionalSteps;
+    private final List<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> additionalSteps;
 
-    public CraftGatherAdditionalDetectionStepsEvent(final Set<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> additionalSteps ) {
+    public CraftGatherAdditionalDetectionStepsEvent(final List<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> additionalSteps ) {
         super();
         this.additionalSteps = additionalSteps;
     }

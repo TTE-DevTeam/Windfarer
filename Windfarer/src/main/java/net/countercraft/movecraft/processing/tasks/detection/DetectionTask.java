@@ -98,10 +98,10 @@ public class DetectionTask implements Supplier<Effect> {
             new WaterContactValidator()
     );
 
-    private static final Set<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> additionalStepsBuilder = createAdditionalStepConstructors();
+    private static final List<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> additionalStepsBuilder = createAdditionalStepConstructors();
 
-    private static Set<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> createAdditionalStepConstructors() {
-        Set<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> additionalSteps = new HashSet<>();
+    private static List<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> createAdditionalStepConstructors() {
+        ArrayList<BiFunction<Supplier<Effect>, Craft, Supplier<Effect>>> additionalSteps = new ArrayList<>();
         Bukkit.getPluginManager().callEvent(new CraftGatherAdditionalDetectionStepsEvent(additionalSteps));
         return additionalSteps;
     }
