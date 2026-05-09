@@ -2,11 +2,18 @@ package net.countercraft.movecraft.support.v1_21_5;
 
 import net.countercraft.movecraft.NMSHelper;
 import net.countercraft.movecraft.util.ReflectUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.ButtonBlock;
+import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.FuelValues;
+import net.minecraft.world.level.block.state.BlockState;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Furnace;
 import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.craftbukkit.block.CraftBlock;
 import org.bukkit.craftbukkit.block.CraftBlockEntityState;
 import org.bukkit.craftbukkit.block.CraftFurnace;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -71,5 +78,22 @@ public class INMSHelper extends NMSHelper {
             exception.printStackTrace();
         }
         furnaceBlockEntity.litTimeRemaining = burnTime;
+    }
+
+    @Override
+    public boolean tryInteractLever(Location bukkitLoc) {
+        final CraftBlock craftBlock = (CraftBlock) bukkitLoc.getBlock();
+        final BlockState blockState = craftBlock.getNMS();
+        final Block block = blockState.getBlock();
+
+        if (block instanceof LeverBlock leverBlock) {
+            leverBlock.pull(blockState, craftBlock.getCraftWorld().getHandle(), new BlockPos(bukkitLoc.getBlockX(), bukkitLoc.getBlockY(), bukkitLoc.getBlockZ()), null);
+            return true;
+        } else
+        if (block instanceof ButtonBlock buttonBlock) {
+            buttonBlock.press(blockState, craftBlock.getCraftWorld().getHandle(), new BlockPos(bukkitLoc.getBlockX(), bukkitLoc.getBlockY(), bukkitLoc.getBlockZ()), null);
+            return true;
+        }
+        return false;
     }
 }

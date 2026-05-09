@@ -1,6 +1,7 @@
 package net.countercraft.movecraft;
 
 import net.kyori.adventure.text.Component;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Furnace;
 import org.bukkit.entity.Entity;
@@ -18,4 +19,5 @@ public abstract class NMSHelper {
         return Component.text(entity == null ? fallback.toString() : entity.getName());
     }
 
+    public abstract boolean tryInteractLever(Location bukkitLoc);
 }
