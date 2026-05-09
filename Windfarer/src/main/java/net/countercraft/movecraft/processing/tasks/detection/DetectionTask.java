@@ -439,11 +439,10 @@ public class DetectionTask implements Supplier<Effect> {
         result = startStepsMessage;
 
         // DONE: Add API to add additional tasks or effects to run during detection
-        final Set<Supplier<Effect>> stepList = new HashSet<>();
         for (BiFunction<Supplier<Effect>, Craft, Supplier<Effect>> constructor : additionalStepsBuilder) {
             final Supplier<Effect> actualSupplier = constructor.apply(this, craft);
             if (actualSupplier != null) {
-                stepList.add(actualSupplier);
+                result = result.andThen(() -> {actualSupplier.get();});
             }
         }
 
