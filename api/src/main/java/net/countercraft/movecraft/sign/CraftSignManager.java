@@ -25,12 +25,31 @@ public class CraftSignManager {
     private final Map<Class<? extends AbstractMovecraftSign>, WeakReference<Set<TrackedLocation>>> signLocationCache = new ConcurrentHashMap<>();
 
     public CraftSignManager(Craft owningCraft) {
+        this(owningCraft, true);
+    }
+
+    public CraftSignManager(Craft owningCraft, boolean init) {
         this.owningCraft = new WeakReference<>(owningCraft);
-        this.init(owningCraft);
+        if (init) {
+            this.init(owningCraft);
+        }
     }
 
     public static CraftSignManager of(final Craft craft) {
-        return craft.getDataTag(SIGN_MANAGER_CRAFT_DATA_TAG_KEY);
+        return of(craft, true);
+    }
+    public static CraftSignManager of(final Craft craft, boolean runInit) {
+        if (runInit) {
+            return craft.getDataTag(SIGN_MANAGER_CRAFT_DATA_TAG_KEY);
+        } else {
+            if (craft.hasDataTag(SIGN_MANAGER_CRAFT_DATA_TAG_KEY)) {
+                return craft.getDataTag(SIGN_MANAGER_CRAFT_DATA_TAG_KEY);
+            } else {
+                CraftSignManager result = new CraftSignManager(craft, false);
+                craft.setDataTag(SIGN_MANAGER_CRAFT_DATA_TAG_KEY, result);
+                return result;
+            }
+        }
     }
 
     public Set<MovecraftLocation> getSignsOfClass(Class<? extends AbstractMovecraftSign> signHandler) {
