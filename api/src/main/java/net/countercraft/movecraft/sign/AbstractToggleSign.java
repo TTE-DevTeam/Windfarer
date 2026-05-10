@@ -98,10 +98,8 @@ public abstract class AbstractToggleSign extends AbstractCraftSign {
         //craft.resetSigns(sign.block());
 
         CraftSignManager.executeForSignsOfType(AbstractToggleSign.class, craft, (handler, signWrapper, craftInner) -> {
-            if (signWrapper.areSignsEqual(sign)) {
-                return false;
-            }
-            return handler.doReset(sign, signWrapper, craftInner);
+            // Use THIS handler, not the handler of that other sign! Otherwise the reset logic wont behave correctly
+            return this.doReset(sign, signWrapper, craftInner, willBeOn);
         });
 
 //        final CraftSignManager craftSignManager = CraftSignManager.of(craft);
