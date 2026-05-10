@@ -296,8 +296,8 @@ public class DetectionTask implements Supplier<Effect> {
         craft.setOrigBlockCount(craft.getHitBox().size());
 
         detectSigns(craft);
-        Set<Effect> additionalEffects = Collections.synchronizedSet(new HashSet<>());
-        runAdditionalsteps(craft, additionalEffects);
+        Set<Effect> additionalEffects = new HashSet<>();
+        runAdditionalSteps(craft, additionalEffects);
 
         final CraftDetectEvent event = new CraftDetectEvent(craft, startLocation);
 
@@ -346,7 +346,7 @@ public class DetectionTask implements Supplier<Effect> {
         );
     }
 
-    protected void runAdditionalsteps(final Craft craft, Set<Effect> additionalEffects) {
+    protected void runAdditionalSteps(final Craft craft, Set<Effect> additionalEffects) {
         Movecraft.getInstance().getLogger().info(String.format("Starting %d additional detection steps...", additionalStepsBuilder.size()));
         final long startTime = System.currentTimeMillis();
         // TODO: Perhaps run these async?
