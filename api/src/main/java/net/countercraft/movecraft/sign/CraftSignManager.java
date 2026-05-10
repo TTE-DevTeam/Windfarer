@@ -156,7 +156,7 @@ public class CraftSignManager {
                     if (signHandler == null)
                         continue;
 
-                    if (signHandler.getClass().isAssignableFrom(signClass)) {
+                    if (signClass.isInstance(signHandler)) {
                         final T typed = (T) signHandler;
                         update = functionToRun.apply(typed, wrapperTmp, craft) || update;
                     }
