@@ -29,6 +29,7 @@ public class CraftPilotListener implements Listener {
         final Craft craft = event.getCraft();
 
         // Now, find all signs on the craft...
+        // TODO: Use SignManager
         for (MovecraftLocation mLoc : craft.getHitBox()) {
             Block block = mLoc.toBukkit(craft.getWorld()).getBlock();
             // Only interested in signs, if no sign => continue
