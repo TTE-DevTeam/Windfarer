@@ -29,6 +29,10 @@ import net.countercraft.movecraft.processing.tasks.detection.validators.NameSign
 import net.countercraft.movecraft.processing.tasks.detection.validators.PilotSignValidator;
 import net.countercraft.movecraft.processing.tasks.detection.validators.SizeValidator;
 import net.countercraft.movecraft.processing.tasks.detection.validators.WaterContactValidator;
+import net.countercraft.movecraft.sign.AbstractMovecraftSign;
+import net.countercraft.movecraft.sign.CraftSignManager;
+import net.countercraft.movecraft.sign.MovecraftSignRegistry;
+import net.countercraft.movecraft.sign.SignListener;
 import net.countercraft.movecraft.util.*;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
@@ -38,6 +42,8 @@ import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
@@ -289,6 +295,10 @@ public class DetectionTask implements Supplier<Effect> {
         craft.setFluidLocations(new BitmapHitBox(fluid));
         craft.setOrigBlockCount(craft.getHitBox().size());
 
+        detectSigns(craft);
+        Set<Effect> additionalEffects = Collections.synchronizedSet(new HashSet<>());
+        runAdditionalsteps(craft, additionalEffects);
+
         final CraftDetectEvent event = new CraftDetectEvent(craft, startLocation);
 
         WorldManager.INSTANCE.executeMain(() -> Bukkit.getPluginManager().callEvent(event));
@@ -316,7 +326,7 @@ public class DetectionTask implements Supplier<Effect> {
                 // Apply water effect
                 water(craft) //TODO: Remove
         )
-        .andThen(buildAdditionalStepEffects(craft))
+        .andThen(buildAdditionalStepEffects(additionalEffects, craft))
         .andThen(
                 // Fire off pilot event
                 () -> Bukkit.getServer().getPluginManager().callEvent(
@@ -334,6 +344,52 @@ public class DetectionTask implements Supplier<Effect> {
                 // Add craft to CraftManager
                 () -> CraftManager.getInstance().add(craft)
         );
+    }
+
+    protected void runAdditionalsteps(final Craft craft, Set<Effect> additionalEffects) {
+        Movecraft.getInstance().getLogger().info(String.format("Starting %d additional detection steps...", additionalStepsBuilder.size()));
+        final long startTime = System.currentTimeMillis();
+        for (BiFunction<Supplier<Effect>, Craft, Supplier<Effect>> entry : additionalStepsBuilder) {
+            final Supplier<Effect> task = entry.apply(this, craft);
+            additionalEffects.add(task.get());
+        }
+        Movecraft.getInstance().getLogger().info(String.format("Finished %d additional detection steps! Time taken: %dms", additionalStepsBuilder.size(), System.currentTimeMillis() - startTime));
+    }
+
+    /*
+     * Detects all signs in the hitboxes and registers them to the SignManager
+     */
+    protected void detectSigns(final Craft craft) {
+        final CraftSignManager signManager = CraftSignManager.of(craft, false);
+        Movecraft.getInstance().getLogger().info("Starting detection of signs aboard craft...");
+        final long startTime = System.currentTimeMillis();
+        Set<MovecraftLocation> signs = BlockCollectionUtil.getLocations(
+                craft,
+                (loc, world, craftTmp) -> {
+                    final Material type = world.getMaterial(loc);
+                    if (!Tag.ALL_SIGNS.isTagged(type))
+                        return Result.fail();
+
+                    final BlockState blockState = world.getState(loc);
+                    if (blockState instanceof Sign) {
+                        return Result.succeed();
+                    } else {
+                        return Result.fail();
+                    }
+                },
+                (loc, world, craftTmp) -> {
+                    final BlockState blockState = world.getState(loc);
+                    if (blockState instanceof Sign sign) {
+                        for (SignListener.SignWrapper wrapper : SignListener.INSTANCE.getSignWrappers(sign)) {
+                            AbstractMovecraftSign acs = MovecraftSignRegistry.INSTANCE.get(wrapper.getRaw(0));
+                            if (acs != null) {
+                                signManager.addSign(acs.getClass(), loc);
+                            }
+                        }
+                    }
+                }
+        );
+        Movecraft.getInstance().getLogger().info(String.format("Detected %d signs aboard craft! Time taken: %dms", signs.size(), System.currentTimeMillis() - startTime));
     }
 
     private void frontier() {
@@ -428,27 +484,26 @@ public class DetectionTask implements Supplier<Effect> {
         }
     }
 
-    protected Effect buildAdditionalStepEffects(final Craft craft) {
+    protected Effect buildAdditionalStepEffects(final Set<Effect> effects, final Craft craft) {
         Effect result;
         final Effect startStepsMessage = ((Effect) () -> {
             Movecraft.getInstance().getLogger().info(String.format(
-                    "Starting additional detection steps for craft <%s>",
+                    "Starting %d additional Effects from additional detection steps for craft <%s>",
+                    effects.size(),
                     craft.getUUID().toString()
             ));
         });
         result = startStepsMessage;
 
         // DONE: Add API to add additional tasks or effects to run during detection
-        for (BiFunction<Supplier<Effect>, Craft, Supplier<Effect>> constructor : additionalStepsBuilder) {
-            final Supplier<Effect> actualSupplier = constructor.apply(this, craft);
-            if (actualSupplier != null) {
-                result = result.andThen(() -> {actualSupplier.get().run();});
-            }
+        for (Effect effect : effects) {
+            result = result.andThen(effect);
         }
 
         final Effect endStepsMessage = ((Effect) () -> {
             Movecraft.getInstance().getLogger().info(String.format(
-                    "Finished additional detection steps for craft <%s>",
+                    "Finished %d additional Effects from additional detection for craft <%s>",
+                    effects.size(),
                     craft.getUUID().toString()
             ));
         });
