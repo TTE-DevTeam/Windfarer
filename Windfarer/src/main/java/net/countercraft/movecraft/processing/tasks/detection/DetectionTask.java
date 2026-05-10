@@ -349,9 +349,13 @@ public class DetectionTask implements Supplier<Effect> {
     protected void runAdditionalsteps(final Craft craft, Set<Effect> additionalEffects) {
         Movecraft.getInstance().getLogger().info(String.format("Starting %d additional detection steps...", additionalStepsBuilder.size()));
         final long startTime = System.currentTimeMillis();
+        // TODO: Perhaps run these async?
         for (BiFunction<Supplier<Effect>, Craft, Supplier<Effect>> entry : additionalStepsBuilder) {
             final Supplier<Effect> task = entry.apply(this, craft);
-            additionalEffects.add(task.get());
+            final Effect effect = task.get();
+            if (effect != null) {
+                additionalEffects.add(effect);
+            }
         }
         Movecraft.getInstance().getLogger().info(String.format("Finished %d additional detection steps! Time taken: %dms", additionalStepsBuilder.size(), System.currentTimeMillis() - startTime));
     }
