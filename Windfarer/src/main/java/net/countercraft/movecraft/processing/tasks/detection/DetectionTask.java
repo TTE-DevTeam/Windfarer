@@ -266,10 +266,10 @@ public class DetectionTask implements Supplier<Effect> {
                 (a, b, c, d) -> Result.fail()
         ).validate(visitedMaterials, type, movecraftWorld, pilot) : result;
         if (!result.isSucess()) {
-            String message = result.getMessage();
+            Component message = result.getMessageComponent();
             if (this.alwaysRunAfter != null)
                 this.alwaysRunAfter.apply(null);
-            return () -> audience.sendMessage(Component.text(message));
+            return () -> audience.sendMessage(message);
         }
 
         var hitbox = new BitmapHitBox(legal);
@@ -284,10 +284,10 @@ public class DetectionTask implements Supplier<Effect> {
         }
 
         if (!result.isSucess()) {
-            String message = result.getMessage();
+            Component message = result.getMessageComponent();
             if (this.alwaysRunAfter != null)
                 this.alwaysRunAfter.apply(craft);
-            return () -> audience.sendMessage(Component.text(message));
+            return () -> audience.sendMessage(message);
         }
 
         craft.setAudience(audience);
@@ -482,7 +482,7 @@ public class DetectionTask implements Supplier<Effect> {
                     }
                 } else {
                     illegal.add(probe);
-                    audience.sendMessage(Component.text(result.getMessage()));
+                    audience.sendMessage(result.getMessageComponent());
                 }
             }
         }

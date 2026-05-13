@@ -78,7 +78,7 @@ public class TranslationTask implements Supplier<Effect> {
     public Effect get() {
         var preTranslationResult = preTranslationValidators.stream().reduce(MonadicPredicate::and).orElseThrow().validate(craft);
         if(!preTranslationResult.isSucess()){
-            return () -> craft.getAudience().sendMessage(Component.text(preTranslationResult.getMessage()));
+            return () -> craft.getAudience().sendMessage(preTranslationResult.getMessageComponent());
         }
         var preTranslateEvent = WorldManager.INSTANCE.executeMain(()->{
             var event = new CraftPreTranslateEvent(craft, translation.getX(), translation.getY(), translation.getZ(), craft.getWorld());
@@ -147,7 +147,7 @@ public class TranslationTask implements Supplier<Effect> {
         }
         var translationResult = translationValidators.stream().reduce(TetradicPredicate::and).orElseThrow().validate(translation, destinationWorld, destinationLocations, craft.getCraftProperties());
         if(!translationResult.isSucess()){
-            return () -> craft.getAudience().sendMessage(Component.text(translationResult.getMessage()));
+            return () -> craft.getAudience().sendMessage(translationResult.getMessageComponent());
         }
 
 

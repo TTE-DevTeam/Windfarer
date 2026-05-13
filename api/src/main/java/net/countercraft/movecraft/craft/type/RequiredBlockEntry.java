@@ -1,10 +1,16 @@
 package net.countercraft.movecraft.craft.type;
 
 import io.papermc.paper.registry.RegistryKey;
+import net.countercraft.movecraft.NMSHelper;
 import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
 import net.countercraft.movecraft.util.Pair;
 import net.countercraft.movecraft.util.SerializationUtil;
 import net.countercraft.movecraft.util.Tags;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.event.HoverEventSource;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
@@ -32,7 +38,7 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
     private final double min;
     private final boolean numericMin;
     /* Displayname for use in "too much flyblock" messages instead of the long list*/
-    private final String displayName;
+    private final Component displayName;
 
     public RequiredBlockEntry(EnumSet<Material> materials, @NotNull Pair<Boolean, ? extends Number> min, @NotNull Pair<Boolean, ? extends Number> max, @NotNull String name) {
         this(materials, min, max, name, "");
@@ -45,7 +51,7 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
         this.max = max.getRight().doubleValue();
         this.numericMax = max.getLeft();
         this.name = name;
-        this.displayName = displayName;
+        this.displayName = MiniMessage.miniMessage().deserialize(displayName);
     }
 
     public RequiredBlockEntry(BlockSetProperty blocks, @NotNull Pair<Boolean, ? extends Number> min, @NotNull Pair<Boolean, ? extends Number> max, @NotNull String name, final String displayName) {
@@ -55,7 +61,7 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
         this.max = max.getRight().doubleValue();
         this.numericMax = max.getLeft();
         this.name = name;
-        this.displayName = displayName;
+        this.displayName = MiniMessage.miniMessage().deserialize(displayName);
     }
 
     public RequiredBlockEntry(RequiredBlockEntry requiredBlockEntry) {
@@ -65,7 +71,8 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
         this.max = requiredBlockEntry.max;
         this.numericMax = requiredBlockEntry.numericMax;
         this.name = String.valueOf(requiredBlockEntry.name);
-        this.displayName = String.valueOf(requiredBlockEntry.displayName);
+        // TODO: Find proper copy constructor!
+        this.displayName = requiredBlockEntry.displayName;
     }
 
     /**
@@ -106,6 +113,15 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
             names.add(key.value().toLowerCase().replace("_", " "));
         }
         return String.join(", ", names);
+    }
+
+    public Component getChatDisplay() {
+        if (NMSHelper.getInstance() != null) {
+            final HoverEventSource hoverEvent = HoverEvent.showText(NMSHelper.getInstance().getBlockListComponent(this.getBlocks()));
+            return Component.empty().append(this.displayName).hoverEvent(hoverEvent);
+        } else {
+            return this.displayName;
+        }
     }
 
     /**
@@ -284,6 +300,6 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
     }
 
     public String getDisplayName() {
-        return this.displayName;
+        return PlainTextComponentSerializer.plainText().serialize(this.displayName);
     }
 }

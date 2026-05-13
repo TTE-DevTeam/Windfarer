@@ -6,6 +6,7 @@ import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.functions.DetectionPredicate;
 import net.countercraft.movecraft.processing.functions.Result;
+import net.kyori.adventure.text.Component;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -20,7 +21,7 @@ import java.util.Map;
 public abstract class AbstractBlockConstraintValidator implements DetectionPredicate<Map<NamespacedKey, Deque<MovecraftLocation>>> {
 
     protected abstract Collection<RequiredBlockEntry> getRelevantConstraintSet(final TypeSafeCraftType type);
-    protected abstract String getFailMessage(RequiredBlockEntry.DetectionResult result, @NotNull String errorMessage, RequiredBlockEntry failedCondition);
+    protected abstract Component getFailMessage(RequiredBlockEntry.DetectionResult result, @NotNull String errorMessage, RequiredBlockEntry failedCondition);
 
     @Override
     @Contract(pure = true)
@@ -40,7 +41,7 @@ public abstract class AbstractBlockConstraintValidator implements DetectionPredi
             if (result.getLeft() == RequiredBlockEntry.DetectionResult.SUCCESS)
                 continue;
 
-            String failMessage = getFailMessage(result.getLeft(), result.getRight(), entry);
+            Component failMessage = getFailMessage(result.getLeft(), result.getRight(), entry);
             return Result.failWithMessage(failMessage);
         }
         return Result.succeed();

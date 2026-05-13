@@ -4,6 +4,8 @@ import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.localisation.I18nSupport;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -15,19 +17,20 @@ public class FlyBlockValidator extends AbstractBlockConstraintValidator {
     }
 
     @Override
-    protected String getFailMessage(RequiredBlockEntry.DetectionResult result, @NotNull String errorMessage, RequiredBlockEntry failedCondition) {
-        String failMessage = "";
+    protected Component getFailMessage(RequiredBlockEntry.DetectionResult result, @NotNull String errorMessage, RequiredBlockEntry failedCondition) {
+        Component failMessage = Component.empty();
+        // TODO: Switch to purely components!
         switch (result) {
             case NOT_ENOUGH:
-                failMessage += I18nSupport.getInternationalisedString("Detection - Not enough flyblock");
+                failMessage = failMessage.append(Component.text(I18nSupport.getInternationalisedString("Detection - Not enough flyblock")));
                 break;
             case TOO_MUCH:
-                failMessage += I18nSupport.getInternationalisedString("Detection - Too much flyblock");
+                failMessage = failMessage.append(Component.text(I18nSupport.getInternationalisedString("Detection - Too much flyblock")));
                 break;
             default:
                 break;
         }
-        failMessage += ": [" + failedCondition.materialsToString() + "] " + errorMessage;
+        failMessage = failMessage.append(Component.text(": [")).append(failedCondition.getChatDisplay()).append(Component.text("] ")).append(Component.text(errorMessage).color(TextColor.color(1.0F, 0.0F, 0.0F)));
         return failMessage;
     }
 

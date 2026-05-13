@@ -4,6 +4,7 @@ import net.countercraft.movecraft.NMSHelper;
 import net.countercraft.movecraft.util.ReflectUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.object.ObjectContents;
+import net.kyori.adventure.text.object.SpriteObjectContents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ButtonBlock;
@@ -12,6 +13,7 @@ import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.FuelValues;
 import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Furnace;
 import org.bukkit.craftbukkit.CraftWorld;
@@ -25,6 +27,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
+import java.util.Set;
 import java.util.UUID;
 
 public class INMSHelper extends NMSHelper {
@@ -110,5 +113,26 @@ public class INMSHelper extends NMSHelper {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public Component getBlockListComponent(Set<NamespacedKey> blockIds) {
+        Component result = Component.empty();
+        int counter = 0;
+        boolean isFirst = true;
+        for (NamespacedKey key : blockIds) {
+            counter++;
+            result = result.append(Component.object(ObjectContents.sprite(SpriteObjectContents.DEFAULT_ATLAS, key)));
+            if (isFirst) {
+                isFirst = false;
+            } else {
+                result = result.append(Component.text(", "));
+            }
+            if (counter >= 31) {
+                result = result.append(Component.newline());
+                counter = 0;
+            }
+        }
+        return result;
     }
 }
