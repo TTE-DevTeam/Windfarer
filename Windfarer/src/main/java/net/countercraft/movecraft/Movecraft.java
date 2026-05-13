@@ -106,6 +106,10 @@ public class Movecraft extends JavaPlugin {
         Settings.ReleaseOnDeath = getConfig().getBoolean("ReleaseOnDeath", false);
         Settings.ManOverboardCooldown = getConfig().getInt("ManoverboardCooldown", 30);
 
+        Settings.displayBlockLists = getConfig().getBoolean("DisplayBlockLists", false);
+        Settings.displayBlockListsAtlasName = getConfig().getString("DisplayBlockListsAtlasName", "minecraft:blocks");
+        Settings.displayBlockListsAtlasPrefix = getConfig().getString("DisplayBlockListsAtlasPrefix", "block/");
+
         String[] localisations = {"en", "cz", "nl", "fr"};
         for (String s : localisations) {
             if (!new File(getDataFolder()

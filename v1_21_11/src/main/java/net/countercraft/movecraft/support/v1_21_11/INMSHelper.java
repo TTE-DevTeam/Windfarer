@@ -1,6 +1,7 @@
 package net.countercraft.movecraft.support.v1_21_11;
 
 import net.countercraft.movecraft.NMSHelper;
+import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.util.ReflectUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.object.ObjectContents;
@@ -13,8 +14,10 @@ import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.FuelValues;
 import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.block.BlockType;
 import org.bukkit.block.Furnace;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.block.CraftBlock;
@@ -118,20 +121,19 @@ public class INMSHelper extends NMSHelper {
     @Override
     public Component getBlockListComponent(Set<NamespacedKey> blockIds) {
         Component result = Component.empty();
-        int counter = 0;
+        if (!Settings.displayBlockLists || Settings.displayBlockListsAtlasName == null || Settings.displayBlockListsAtlasName.isEmpty()) {
+            return result;
+        }
+        final NamespacedKey atlasKey = NamespacedKey.fromString(Settings.displayBlockListsAtlasName);
         boolean isFirst = true;
         for (NamespacedKey key : blockIds) {
-            counter++;
-            result = result.append(Component.object(ObjectContents.sprite(SpriteObjectContents.DEFAULT_ATLAS, key)));
+            Component sprite = Component.object(ObjectContents.sprite(atlasKey, new NamespacedKey(key.getNamespace(), Settings.displayBlockListsAtlasPrefix + key.getKey())));
             if (isFirst) {
                 isFirst = false;
             } else {
-                result = result.append(Component.text(", "));
+                result = result.append(Component.text(","));
             }
-            if (counter >= 31) {
-                result = result.append(Component.newline());
-                counter = 0;
-            }
+            result = result.append(sprite);
         }
         return result;
     }

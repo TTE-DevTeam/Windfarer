@@ -50,4 +50,7 @@ public class Settings {
     public static boolean CraftsUseNetherPortals = false;
     public static HashSet<String> ForbiddenRemoteSigns;
     public static boolean ReleaseOnDeath = false;
+    public static boolean displayBlockLists = false;
+    public static String displayBlockListsAtlasName = "minecraft:blocks";
+    public static String displayBlockListsAtlasPrefix = "block/";
 }
