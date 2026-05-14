@@ -37,6 +37,7 @@ import net.countercraft.movecraft.processing.tasks.detection.DetectionTask;
 import net.countercraft.movecraft.util.TypeDependency;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -210,11 +211,27 @@ public class CraftManager implements Iterable<Craft>{
     }
 
     public void sink(@NotNull Craft craft) {
-        CraftSinkEvent event = new CraftSinkEvent(craft);
+        sink(craft, CraftSinkEvent.SIMPLE_SINK_REASONS.UNKNOWN);
+    }
+    public void sink(@NotNull Craft craft, CraftSinkEvent.SinkReason sinkReason) {
+        CraftSinkEvent event = new CraftSinkEvent(craft, sinkReason);
         Bukkit.getServer().getPluginManager().callEvent(event);
         if (event.isCancelled())
             return;
 
+        final MovecraftLocation craftPos = craft.getHitBox().getMidPoint();
+        Movecraft.getInstance().getLogger().info(
+                String.format(
+                        "Sunk craft <%s> (%s) at <%d %d %d> in <%s> - reason: <%s>",
+                        craft.getUUID().toString(),
+                        PlainTextComponentSerializer.plainText().serialize(craft.getName()),
+                        craftPos.getX(),
+                        craftPos.getY(),
+                        craftPos.getZ(),
+                        craft.getWorld().getName(),
+                        event.getReason().getName()
+                )
+        );
         crafts.remove(craft);
         if (craft instanceof PlayerCraft)
             playerCrafts.remove(((PlayerCraft) craft).getPilotUUID());
