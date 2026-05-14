@@ -13,6 +13,7 @@ import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import net.countercraft.movecraft.craft.type.CraftProperties;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
+import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.events.FuelBurnEvent;
 import net.countercraft.movecraft.processing.MovecraftWorld;
@@ -250,7 +251,7 @@ public class FuelBurnRunnable implements Runnable {
                     Movecraft.getInstance().getLogger().info("Scuttling craft <" + craft.getUUID().toString() +"> at <" + craft.getHitBox().getMidPoint().toString() + "> as it ran out of fuel!");
                 }
                 craft.setCruising(false, CraftStopCruiseEvent.Reason.CRAFT_SUNK);
-                CraftManager.getInstance().sink(craft);
+                CraftManager.getInstance().sink(craft, CraftSinkEvent.SIMPLE_SINK_REASONS.OUT_OF_FUEL);
             }
         }
         craft.setDataTag(IS_FUELED, hasFuel);

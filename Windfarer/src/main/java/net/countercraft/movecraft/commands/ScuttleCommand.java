@@ -4,6 +4,7 @@ import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SinkingCraft;
 import net.countercraft.movecraft.events.CraftScuttleEvent;
+import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import org.bukkit.Bukkit;
@@ -66,7 +67,7 @@ public class ScuttleCommand implements CommandExecutor {
             return true;
 
         craft.setCruising(false, CraftStopCruiseEvent.Reason.CRAFT_SUNK);
-        CraftManager.getInstance().sink(craft);
+        CraftManager.getInstance().sink(craft, CraftSinkEvent.SIMPLE_SINK_REASONS.SCUTTLE);
         commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX
                 + I18nSupport.getInternationalisedString("Scuttle - Scuttle Activated"));
         return true;

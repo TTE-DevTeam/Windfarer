@@ -26,6 +26,7 @@ import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.*;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.events.CraftRotateEvent;
+import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.events.CraftTeleportEntityEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
@@ -115,7 +116,7 @@ public class RotationTask extends FuelAwareAsyncTask {
             failed = true;
             if (craft.getCraftProperties().get(PropertyKeys.SINK_WHEN_OUT_OF_FUEL)) {
                 craft.setCruising(false, CraftStopCruiseEvent.Reason.CRAFT_SUNK);
-                CraftManager.getInstance().sink(craft);
+                CraftManager.getInstance().sink(craft, CraftSinkEvent.SIMPLE_SINK_REASONS.OUT_OF_FUEL);
             }
             return;
         }

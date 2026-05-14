@@ -26,6 +26,7 @@ import net.countercraft.movecraft.craft.PlayerCraft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
+import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.NamespacedIDUtil;
@@ -141,7 +142,7 @@ public class PlayerListener implements Listener {
         if (craft == null)
             return;
 
-        CraftManager.getInstance().sink(craft);
+        CraftManager.getInstance().sink(craft, CraftSinkEvent.SIMPLE_SINK_REASONS.OWNER_DEATH);
     }
 
     @EventHandler

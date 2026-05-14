@@ -10,6 +10,7 @@ import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
+import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.features.status.events.CraftStatusUpdateEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
@@ -139,9 +140,15 @@ public class StatusManager extends BukkitRunnable implements Listener {
 
         // now see if any of the resulting percentages are below the threshold specified in sinkPercent
         double sinkPercent = craft.getCraftProperties().get(PropertyKeys.SINK_PERCENT) / 100.0;
+        CraftSinkEvent.SinkReason sinkReason = null;
         for (RequiredBlockEntry entry : flyBlocks.getKeySet()) {
-            if(!entry.check(flyBlocks.get(entry), nonNegligibleBlocks, sinkPercent))
+            if(!entry.check(flyBlocks.get(entry), nonNegligibleBlocks, sinkPercent)) {
                 sinking = true;
+                sinkReason = new CraftSinkEvent.SinkReasonConstraint(entry);
+            }
+            if (sinkReason != null) {
+                break;
+            }
         }
         // If the craft has MOveblocks defined, then validate them, if there are any aboard
         if (craft.getCraftProperties().get(PropertyKeys.MOVE_BLOCKS).size() > 0) {
@@ -152,22 +159,28 @@ public class StatusManager extends BukkitRunnable implements Listener {
         }
 
         // And check the OverallSinkPercent
-        if (craft.getCraftProperties().get(PropertyKeys.OVERALL_SINK_PERCENT) != 0.0) {
-            double percent;
-            if (craft.getCraftProperties().get(PropertyKeys.BLOCKED_BY_WATER)) {
-                percent = (double) nonNegligibleBlocks
-                        / (double) craft.getOrigBlockCount();
+        if (!sinking) {
+            if (craft.getCraftProperties().get(PropertyKeys.OVERALL_SINK_PERCENT) != 0.0) {
+                double percent;
+                if (craft.getCraftProperties().get(PropertyKeys.BLOCKED_BY_WATER)) {
+                    percent = (double) nonNegligibleBlocks
+                            / (double) craft.getOrigBlockCount();
+                }
+                else {
+                    percent = (double) nonNegligibleSolidBlocks
+                            / (double) craft.getOrigBlockCount();
+                }
+                if (percent * 100.0 < craft.getCraftProperties().get(PropertyKeys.OVERALL_SINK_PERCENT)) {
+                    sinking = true;
+                    sinkReason = CraftSinkEvent.SIMPLE_SINK_REASONS.DISPLACEMENT_LOSS;
+                }
             }
-            else {
-                percent = (double) nonNegligibleSolidBlocks
-                        / (double) craft.getOrigBlockCount();
-            }
-            if (percent * 100.0 < craft.getCraftProperties().get(PropertyKeys.OVERALL_SINK_PERCENT))
-                sinking = true;
         }
 
-        if (nonNegligibleBlocks == 0)
+        if (nonNegligibleBlocks == 0 && !sinking) {
             sinking = true;
+            sinkReason = CraftSinkEvent.SIMPLE_SINK_REASONS.DISPLACEMENT_LOSS;
+        }
 
         // If the craft is disabled, play a sound and disable it.
         if (disabled != craft.getDisabled()) {
@@ -187,7 +200,7 @@ public class StatusManager extends BukkitRunnable implements Listener {
         if (sinking) {
             craft.getAudience().sendMessage(I18nSupport.getInternationalisedComponent("Player - Craft is sinking"));
             craft.setCruising(false, CraftStopCruiseEvent.Reason.CRAFT_SUNK);
-            CraftManager.getInstance().sink(craft);
+            CraftManager.getInstance().sink(craft, sinkReason == null ? CraftSinkEvent.SIMPLE_SINK_REASONS.UNKNOWN : sinkReason);
         }
     }
 }

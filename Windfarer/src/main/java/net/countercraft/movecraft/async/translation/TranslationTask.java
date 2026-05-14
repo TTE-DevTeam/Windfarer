@@ -139,7 +139,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
             fail(I18nSupport.getInternationalisedString("Translation - Failed Craft out of fuel"));
             if (craft.getCraftProperties().get(PropertyKeys.SINK_WHEN_OUT_OF_FUEL)) {
                 craft.setCruising(false, CraftStopCruiseEvent.Reason.CRAFT_SUNK);
-                CraftManager.getInstance().sink(craft);
+                CraftManager.getInstance().sink(craft, CraftSinkEvent.SIMPLE_SINK_REASONS.OUT_OF_FUEL);
             }
             return;
         }
