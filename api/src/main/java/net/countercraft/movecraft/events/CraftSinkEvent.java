@@ -41,7 +41,7 @@ public class CraftSinkEvent extends CraftEvent implements Cancellable {
 
         @Override
         public String getName() {
-            return "CONSTRAINT";
+            return String.format("CONSTRAINT (%s)", brokenConstraint().getDisplayName());
         }
 
     }

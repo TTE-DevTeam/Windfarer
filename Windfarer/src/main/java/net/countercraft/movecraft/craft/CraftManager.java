@@ -222,7 +222,7 @@ public class CraftManager implements Iterable<Craft>{
         final MovecraftLocation craftPos = craft.getHitBox().getMidPoint();
         Movecraft.getInstance().getLogger().info(
                 String.format(
-                        "Sunk craft <%s> (%s) at <%d %d %d> in <%s> - reason: <%s>",
+                        "Sunk craft %s (%s) at [%d %d %d] in %s - reason: %s",
                         craft.getUUID().toString(),
                         PlainTextComponentSerializer.plainText().serialize(craft.getName()),
                         craftPos.getX(),
