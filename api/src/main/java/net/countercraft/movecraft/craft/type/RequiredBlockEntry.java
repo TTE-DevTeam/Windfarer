@@ -39,6 +39,7 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
     private final boolean numericMin;
     /* Displayname for use in "too much flyblock" messages instead of the long list*/
     private final Component displayName;
+    private final String displayNameRaw;
 
     public RequiredBlockEntry(EnumSet<Material> materials, @NotNull Pair<Boolean, ? extends Number> min, @NotNull Pair<Boolean, ? extends Number> max, @NotNull String name) {
         this(materials, min, max, name, "");
@@ -51,7 +52,8 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
         this.max = max.getRight().doubleValue();
         this.numericMax = max.getLeft();
         this.name = name;
-        this.displayName = MiniMessage.miniMessage().deserialize(displayName);
+        this.displayNameRaw = displayName;
+        this.displayName = this.computeDisplayName();
     }
 
     public RequiredBlockEntry(BlockSetProperty blocks, @NotNull Pair<Boolean, ? extends Number> min, @NotNull Pair<Boolean, ? extends Number> max, @NotNull String name, final String displayName) {
@@ -61,7 +63,18 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
         this.max = max.getRight().doubleValue();
         this.numericMax = max.getLeft();
         this.name = name;
-        this.displayName = MiniMessage.miniMessage().deserialize(displayName);
+        this.displayNameRaw = displayName;
+        this.displayName = this.computeDisplayName();
+    }
+
+    protected Component computeDisplayName() {
+        final Component displayName = MiniMessage.miniMessage().deserialize(this.displayNameRaw);
+        if (NMSHelper.getInstance() != null) {
+            final HoverEventSource hoverEvent = HoverEvent.showText(NMSHelper.getInstance().getBlockListComponent(this.getBlocks()));
+            return Component.empty().append(displayName).hoverEvent(hoverEvent);
+        } else {
+            return displayName;
+        }
     }
 
     public RequiredBlockEntry(RequiredBlockEntry requiredBlockEntry) {
@@ -72,7 +85,8 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
         this.numericMax = requiredBlockEntry.numericMax;
         this.name = String.valueOf(requiredBlockEntry.name);
         // TODO: Find proper copy constructor!
-        this.displayName = requiredBlockEntry.displayName;
+        this.displayNameRaw = requiredBlockEntry.displayNameRaw;
+        this.displayName = this.computeDisplayName();
     }
 
     /**
@@ -113,15 +127,6 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
             names.add(key.value().toLowerCase().replace("_", " "));
         }
         return String.join(", ", names);
-    }
-
-    public Component getChatDisplay() {
-        if (NMSHelper.getInstance() != null) {
-            final HoverEventSource hoverEvent = HoverEvent.showText(NMSHelper.getInstance().getBlockListComponent(this.getBlocks()));
-            return Component.empty().append(this.displayName).hoverEvent(hoverEvent);
-        } else {
-            return this.displayName;
-        }
     }
 
     /**
@@ -219,7 +224,7 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
     @Override
     public @NotNull Map<String, Object> serialize() {
         return Map.of(
-                "displayName", this.displayName,
+                "displayName", this.displayNameRaw,
                 "min", this.numericMin ? TypeData.NUMERIC_PREFIX : "" + this.min,
                 "max", this.numericMax ? TypeData.NUMERIC_PREFIX : "" + this.max,
                 "blocks", this.materials
@@ -301,5 +306,9 @@ public class RequiredBlockEntry implements ConfigurationSerializable {
 
     public String getDisplayName() {
         return PlainTextComponentSerializer.plainText().serialize(this.displayName);
+    }
+
+    public Component getDisplayNameComponent() {
+        return this.displayName;
     }
 }

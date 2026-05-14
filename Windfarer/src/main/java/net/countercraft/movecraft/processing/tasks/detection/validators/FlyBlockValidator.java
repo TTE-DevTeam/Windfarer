@@ -30,7 +30,7 @@ public class FlyBlockValidator extends AbstractBlockConstraintValidator {
             default:
                 break;
         }
-        failMessage = failMessage.append(Component.text(": [")).append(failedCondition.getChatDisplay()).append(Component.text("] ")).append(Component.text(errorMessage).color(TextColor.color(1.0F, 0.0F, 0.0F)));
+        failMessage = failMessage.append(Component.text(": [")).append(failedCondition.getDisplayNameComponent()).append(Component.text("] ")).append(Component.text(errorMessage).color(TextColor.color(1.0F, 0.0F, 0.0F)));
         return failMessage;
     }
 
