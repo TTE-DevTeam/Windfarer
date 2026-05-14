@@ -192,6 +192,8 @@ public class TranslationTask extends FuelAwareAsyncTask {
                 }
             }
 
+            // TODO: Fire CraftObstructedEvent and listen to the result of that
+
             if (blockObstructed) {
                 if (!(craft instanceof SinkingCraft)
                         && craft.getCraftProperties().get(PropertyKeys.COLLISION_EXPLOSION) <= 0F) {
@@ -312,6 +314,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
         // Update the reference location for trackedlocations
         craft.setDataTag(Craft.CRAFT_ORIGIN, craft.getCraftOrigin().translate(dx, dy, dz));
 
+        // TODO: What the heck? This seems very specific, review if needed!
         if (!collisionBox.isEmpty() && craft.getCraftProperties().get(PropertyKeys.CRUISE_ON_PILOT)) {
             CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.EMPTY, false);
             for (MovecraftLocation location : oldHitBox) {

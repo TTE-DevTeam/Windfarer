@@ -133,7 +133,6 @@ public class RotationTask extends FuelAwareAsyncTask {
             MovecraftLocation newLocation = MathUtils.rotateVec(rotation,originalLocation.subtract(originPoint)).add(originPoint);
             newHitBox.add(newLocation);
 
-            Material oldMaterial = originalLocation.toBukkit(w).getBlock().getType();
             if (!withinWorldBorder(craft.getWorld(), newLocation)) {
                 failMessage = I18nSupport.getInternationalisedString("Rotation - Failed Craft cannot pass world border") + String.format(" @ %d,%d,%d", newLocation.getX(), newLocation.getY(), newLocation.getZ());
                 failed = true;
@@ -146,16 +145,11 @@ public class RotationTask extends FuelAwareAsyncTask {
             if (newMaterial.isAir() || (newMaterial == Material.PISTON_HEAD) || craft.getCraftProperties().get(PropertyKeys.PASSTHROUGH_BLOCKS).contains(newID))
                 continue;
 
+            // TODO: Fire CraftObstructedEvent and listen to the result of that
             if (!oldHitBox.contains(newLocation)) {
                 failed = true;
                 failMessage = String.format(I18nSupport.getInternationalisedString("Rotation - Craft is obstructed") + " @ %d,%d,%d", newLocation.getX(), newLocation.getY(), newLocation.getZ());
                 break;
-            }
-        }
-
-        if (!oldFluidList.isEmpty()) {
-            for (MovecraftLocation fluidLoc : oldFluidList) {
-                newFluidList.add(MathUtils.rotateVec(rotation, fluidLoc.subtract(originPoint)).add(originPoint));
             }
         }
 
@@ -165,6 +159,13 @@ public class RotationTask extends FuelAwareAsyncTask {
             }
             return;
         }
+
+        if (!oldFluidList.isEmpty()) {
+            for (MovecraftLocation fluidLoc : oldFluidList) {
+                newFluidList.add(MathUtils.rotateVec(rotation, fluidLoc.subtract(originPoint)).add(originPoint));
+            }
+        }
+
         //call event
         CraftRotateEvent event = new CraftRotateEvent(craft, rotation, originPoint, oldHitBox, newHitBox);
         Bukkit.getServer().getPluginManager().callEvent(event);
