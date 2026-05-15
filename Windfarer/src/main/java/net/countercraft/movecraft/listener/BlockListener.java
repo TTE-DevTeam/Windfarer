@@ -113,7 +113,8 @@ public class BlockListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onRedstoneEvent(@NotNull BlockRedstoneEvent e) {
         Block block = e.getBlock();
-        if (block.getType() != Material.STICKY_PISTON || block.getType() != Material.PISTON || block.getType() != Material.DISPENSER)
+        // Only react if we are sticky piston, normal piston or dispenser
+        if (!(block.getType() == Material.STICKY_PISTON || block.getType() == Material.PISTON || block.getType() == Material.DISPENSER))
             return;
 
         Location location = block.getLocation();
