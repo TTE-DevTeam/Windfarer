@@ -33,6 +33,7 @@ public class CraftReportCommand {
         commands.register(
                 Commands.literal("craftreport")
                         .requires(source -> {
+                            // TODO: Add explicit support for consolesender!
                             if (!(source.getExecutor() instanceof Entity)) {
                                 return false;
                             }
