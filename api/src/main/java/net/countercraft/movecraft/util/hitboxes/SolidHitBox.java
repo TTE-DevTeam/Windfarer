@@ -12,27 +12,13 @@ final public class SolidHitBox implements HitBox{
 
 
     public SolidHitBox(MovecraftLocation startBound, MovecraftLocation endBound){
-        if(startBound.getX() < endBound.getX()){
-            minX = startBound.getX();
-            maxX = endBound.getX();
-        } else {
-            maxX = startBound.getX();
-            minX = endBound.getX();
-        }
-        if(startBound.getY() < endBound.getY()){
-            minY = startBound.getY();
-            maxY = endBound.getY();
-        } else {
-            maxY = startBound.getY();
-            minY = endBound.getY();
-        }
-        if(startBound.getZ() < endBound.getZ()){
-            minZ = startBound.getZ();
-            maxZ = endBound.getZ();
-        } else {
-            maxZ = startBound.getZ();
-            minZ = endBound.getZ();
-        }
+        minX = Math.min(startBound.getX(), endBound.getX());
+        minY = Math.min(startBound.getY(), endBound.getY());
+        minZ = Math.min(startBound.getZ(), endBound.getZ());
+
+        maxX = Math.max(startBound.getX(), endBound.getX());
+        maxY = Math.max(startBound.getY(), endBound.getY());
+        maxZ = Math.max(startBound.getZ(), endBound.getZ());
     }
 
     @Override
