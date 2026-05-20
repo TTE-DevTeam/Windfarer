@@ -2,6 +2,8 @@ package net.countercraft.movecraft.util.hitboxes;
 
 import com.google.common.collect.Iterators;
 import net.countercraft.movecraft.MovecraftLocation;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
@@ -18,9 +20,19 @@ public class HitBoxSlicer implements Iterable<Iterable<MovecraftLocation>> {
     @NotNull
     @Override
     public Iterator<Iterable<MovecraftLocation>> iterator() {
+        // TODO: Support different slice dimensions!
+        // Converts max and min bounds to chunk coordinates
+        // IMPORTANT: we must bitshift for correct conversion! It is faster and also what vanilla uses internally!
+        final int chunkMinX = hitbox.getMinX() >> 4;
+        final int chunkMaxX = hitbox.getMaxX() >> 4;
+        final int chunkMinZ = hitbox.getMinZ() >> 4;
+        final int chunkMaxZ = hitbox.getMaxZ() >> 4;
+
         var chunkIterator = new SolidHitBox(
-                new MovecraftLocation(hitbox.getMinX(), 0, hitbox.getMinZ()).scalarDivide(16),
-                new MovecraftLocation(hitbox.getMaxX(), 0, hitbox.getMaxZ()).scalarDivide(16));
+                new MovecraftLocation(chunkMinX, 0, chunkMinZ),
+                new MovecraftLocation(chunkMaxX, 0, chunkMaxZ)
+        );
+
         var minY = hitbox.getMinY();
         var maxY = hitbox.getMaxY();
 
@@ -33,7 +45,9 @@ public class HitBoxSlicer implements Iterable<Iterable<MovecraftLocation>> {
 
         public Slice(HitBox basis, MovecraftLocation start, int minY, int maxY){
             bounds = new SolidHitBox(
+                    // Shift up to minY
                     start.hadamardProduct(1,0,1).translate(0,minY,0),
+                    // Shift to other end of the chunk at top-y
                     start.translate(15, maxY, 15));
             oracle = basis;
         }
