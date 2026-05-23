@@ -12,8 +12,11 @@ import net.countercraft.movecraft.util.SerializationUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.FaceAttachable;
+import org.bukkit.block.data.type.Switch;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.ItemStack;
@@ -90,9 +93,18 @@ public class BlockInteractDirectControlSlot extends AbstractDirectControlSlot {
             }
 
             // Validate base block
-            if (blockData instanceof Directional directional) {
+            if (blockData instanceof Switch switchBLock) {
                 if (this.checkBaseBlocks) {
-                    if (!this.baseBlocks.contains(NamespacedIDUtil.getBlockID(bukkitLoc.add(directional.getFacing().getOppositeFace().getDirection()).getBlock()))) {
+                    BlockFace facing = switchBLock.getFacing();
+                    final FaceAttachable.AttachedFace attachedFace = switchBLock.getAttachedFace();
+                    Location baseLocation = bukkitLoc.clone();
+                    switch (attachedFace) {
+                        case FLOOR -> facing = BlockFace.DOWN;
+                        case CEILING -> facing = BlockFace.UP;
+                        default -> facing = facing.getOppositeFace();
+                    }
+                    baseLocation = baseLocation.add(facing.getDirection());
+                    if (!this.baseBlocks.contains(NamespacedIDUtil.getBlockID(baseLocation.getBlock()))) {
                         continue;
                     }
                 }
