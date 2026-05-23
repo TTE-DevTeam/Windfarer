@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Map;
 import java.util.function.Consumer;
 
+// TODO: Add list of commands to run upon entering and leaving DirectControl
 public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
 
     private final boolean modifyBearing;
