@@ -63,7 +63,7 @@ public class BlockInteractDirectControlSlot extends AbstractDirectControlSlot {
     }
 
     protected boolean onInteraction(Craft craft, Action action) {
-        if (!(action == Action.LEFT_CLICK_BLOCK || action == Action.RIGHT_CLICK_BLOCK)) {
+        if (!(action.isLeftClick() || action.isRightClick())) {
             return false;
         }
 
