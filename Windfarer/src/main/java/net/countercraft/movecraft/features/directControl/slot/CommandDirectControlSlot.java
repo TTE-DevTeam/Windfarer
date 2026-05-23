@@ -14,7 +14,6 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -27,6 +26,7 @@ public class CommandDirectControlSlot extends AbstractDirectControlSlot {
     private Optional<SlotCommand> cmdSwapHand;
 
     public CommandDirectControlSlot(final Map<String, Object> yamlData) {
+        super(yamlData);
         this.cmdLeftClick = Optional.ofNullable(SlotCommand.parse(yamlData.getOrDefault("on_left_click", null)));
         this.cmdRightClick = Optional.ofNullable(SlotCommand.parse(yamlData.getOrDefault("on_right_click", null)));
         this.cmdDropItem = Optional.ofNullable(SlotCommand.parse(yamlData.getOrDefault("on_drop_item", null)));
@@ -34,7 +34,7 @@ public class CommandDirectControlSlot extends AbstractDirectControlSlot {
     }
 
     public CommandDirectControlSlot(CommandDirectControlSlot toCopy) {
-        super();
+        super(toCopy.cooldown);
 
         this.cmdLeftClick = Optional.ofNullable(SlotCommand.copy(toCopy.cmdLeftClick.get()));
         this.cmdRightClick = Optional.ofNullable(SlotCommand.copy(toCopy.cmdRightClick.get()));
@@ -51,28 +51,28 @@ public class CommandDirectControlSlot extends AbstractDirectControlSlot {
     }
 
     @Override
-    public boolean onLeftClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
+    protected boolean doOnLeftClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
         return runCommand(this.cmdLeftClick, interactor, craft);
     }
 
     @Override
-    public boolean onRightClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
+    protected boolean doOnRightClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
         return runCommand(this.cmdRightClick, interactor, craft);
     }
 
     @Override
-    public boolean onItemDrop(ItemStack itemStack, Player interactor, Craft craft) {
+    protected boolean doOnItemDrop(ItemStack itemStack, Player interactor, Craft craft) {
         return runCommand(this.cmdDropItem, interactor, craft);
     }
 
     @Override
-    public boolean onSwapHand(ItemStack itemStackMainHand, ItemStack itemStackOffHand, Player interactor, Craft craft) {
+    protected boolean doOnSwapHand(ItemStack itemStackMainHand, ItemStack itemStackOffHand, Player interactor, Craft craft) {
         return runCommand(this.cmdSwapHand, interactor, craft);
     }
 
     // Not supported
     @Override
-    public boolean onPreCruise(Player activePilot, Craft craft, int tickCooldown, Consumer<Integer> modifyTickCooldown, CruiseDirection cruiseDirection) {
+    protected boolean doOnPreCruise(Player activePilot, Craft craft, int tickCooldown, Consumer<Integer> modifyTickCooldown, CruiseDirection cruiseDirection) {
         return false;
     }
 
@@ -83,7 +83,7 @@ public class CommandDirectControlSlot extends AbstractDirectControlSlot {
 
     @Override
     public @NotNull Map<String, Object> serialize() {
-        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> result = super.serialize();
 
         this.cmdLeftClick.ifPresent(slot -> result.put("on_left_click", slot));
         this.cmdRightClick.ifPresent(slot -> result.put("on_right_click", slot));

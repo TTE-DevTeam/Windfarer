@@ -6,8 +6,6 @@ import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.controller.directControl.AbstractDirectControlSlot;
-import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
-import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import net.countercraft.movecraft.util.Counter;
 import net.countercraft.movecraft.util.NamespacedIDUtil;
 import net.countercraft.movecraft.util.SerializationUtil;
@@ -22,7 +20,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.NumberConversions;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -31,47 +28,36 @@ import java.util.function.Consumer;
 
 public class BlockInteractDirectControlSlot extends AbstractDirectControlSlot {
 
-    private static final CraftDataTagKey<Long> EARLIEST_POSSIBLE_NEXT_INTERACTION = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey("windfarer", "direct_control/nearest_possible_next_interaction"), c -> System.currentTimeMillis());
-
     private final Set<NamespacedKey> interactableBlocks;
     private final Set<NamespacedKey> baseBlocks;
     private final boolean checkBaseBlocks;
-    private final long cooldown;
     private final int maxLimit;
 
     public BlockInteractDirectControlSlot(final Map<String, Object> yamlData) {
+        super(yamlData);
         this.interactableBlocks = SerializationUtil.deserializeNamespacedKeySet(yamlData.get("interactable_blocks"), Set.of(Material.LEVER.getKey()), RegistryKey.BLOCK);
         this.baseBlocks = SerializationUtil.deserializeNamespacedKeySet(yamlData.get("base_blocks"), Set.of(), RegistryKey.BLOCK);
         this.checkBaseBlocks = SerializationUtil.deserializeBoolean("check_base_block", yamlData, true);
-        this.cooldown = NumberConversions.toLong(yamlData.getOrDefault("cooldown", 200L));
         this.maxLimit = NumberConversions.toInt(yamlData.getOrDefault("limit", -1));
     }
 
     public BlockInteractDirectControlSlot(BlockInteractDirectControlSlot toCopy) {
-        super();
+        super(toCopy.cooldown);
 
         this.interactableBlocks = new HashSet<>(toCopy.interactableBlocks);
         this.baseBlocks = new HashSet<>(toCopy.baseBlocks);
         this.checkBaseBlocks = toCopy.checkBaseBlocks;
-        this.cooldown = toCopy.cooldown;
         this.maxLimit = toCopy.maxLimit;
     }
 
     @Override
-    public boolean onLeftClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
+    protected boolean doOnLeftClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
         return onInteraction(craft, action);
     }
 
     protected boolean onInteraction(Craft craft, Action action) {
         if (!(action.isLeftClick() || action.isRightClick())) {
             return false;
-        }
-
-        // Check interaction time
-        if (craft.hasDataTag(EARLIEST_POSSIBLE_NEXT_INTERACTION)) {
-            if (craft.getDataTag(EARLIEST_POSSIBLE_NEXT_INTERACTION) >= System.currentTimeMillis()) {
-                return false;
-            }
         }
 
         final Counter<NamespacedKey> blockCounter = craft.getDataTag(Craft.BLOCKS);
@@ -125,22 +111,22 @@ public class BlockInteractDirectControlSlot extends AbstractDirectControlSlot {
     }
 
     @Override
-    public boolean onRightClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
+    protected boolean doOnRightClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
         return onInteraction(craft, action);
     }
 
     @Override
-    public boolean onItemDrop(ItemStack itemStack, Player interactor, Craft craft) {
+    protected boolean doOnItemDrop(ItemStack itemStack, Player interactor, Craft craft) {
         return false;
     }
 
     @Override
-    public boolean onSwapHand(ItemStack itemStackMainHand, ItemStack itemStackOffHand, Player interactor, Craft craft) {
+    public boolean doOnSwapHand(ItemStack itemStackMainHand, ItemStack itemStackOffHand, Player interactor, Craft craft) {
         return false;
     }
 
     @Override
-    public boolean onPreCruise(Player activePilot, Craft craft, int tickCooldown, Consumer<Integer> modifyTickCooldown, CruiseDirection cruiseDirection) {
+    protected boolean doOnPreCruise(Player activePilot, Craft craft, int tickCooldown, Consumer<Integer> modifyTickCooldown, CruiseDirection cruiseDirection) {
         return false;
     }
 
@@ -151,12 +137,11 @@ public class BlockInteractDirectControlSlot extends AbstractDirectControlSlot {
 
     @Override
     public @NotNull Map<String, Object> serialize() {
-        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> result = super.serialize();
 
         result.put("interactable_blocks", this.interactableBlocks);
         result.put("base_blocks", this.baseBlocks);
         result.put("check_base_block", this.checkBaseBlocks);
-        result.put("cooldown", this.cooldown);
         result.put("limit", this.maxLimit);
 
         return result;

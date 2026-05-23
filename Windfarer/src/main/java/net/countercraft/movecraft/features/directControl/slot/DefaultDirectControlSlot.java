@@ -12,7 +12,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.NumberConversions;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -29,6 +28,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
     private final double riseDiveAngle;
 
     private DefaultDirectControlSlot(final DefaultDirectControlSlot other) {
+        super(other.cooldown);
         this.modifyBearing = other.modifyBearing;
         this.shiftToDive = other.shiftToDive;
         this.shiftToRise = other.shiftToRise;
@@ -40,6 +40,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
     }
 
     public DefaultDirectControlSlot(Map<String, Object> args) {
+        super(args);
         this.modifyBearing = SerializationUtil.deserializeBoolean("modify_bearing", args, false);
         this.shiftToDive = SerializationUtil.deserializeBoolean("shift_to_dive", args, false);
         this.shiftToRise = SerializationUtil.deserializeBoolean("shift_to_rise", args, false);
@@ -51,13 +52,13 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
     }
 
     @Override
-    public boolean onLeftClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
+    protected boolean doOnLeftClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
         // Ignored, used to exit DC, handled on a higher level
         return false;
     }
 
     @Override
-    public boolean onRightClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
+    protected boolean doOnRightClick(ItemStack itemStack, Player interactor, Craft craft, Action action) {
         if (!this.clickToAscendOrDescend) {
             return false;
         }
@@ -79,19 +80,19 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
     }
 
     @Override
-    public boolean onItemDrop(ItemStack itemStack, Player interactor, Craft craft) {
+    protected boolean doOnItemDrop(ItemStack itemStack, Player interactor, Craft craft) {
         // Ignored
         return false;
     }
 
     @Override
-    public boolean onSwapHand(ItemStack itemStackMainHand, ItemStack itemStackOffHand, Player interactor, Craft craft) {
+    protected boolean doOnSwapHand(ItemStack itemStackMainHand, ItemStack itemStackOffHand, Player interactor, Craft craft) {
         // Ignored
         return false;
     }
 
     @Override
-    public boolean onPreCruise(Player activePilot, Craft craft, int tickCooldown, Consumer<Integer> modifyTickCooldown, CruiseDirection cruiseDirection) {
+    protected boolean doOnPreCruise(Player activePilot, Craft craft, int tickCooldown, Consumer<Integer> modifyTickCooldown, CruiseDirection cruiseDirection) {
         // If configured, bank or dive/rise when shift is pressed
         boolean modHorizontal = false;
         boolean modVertical = false;
@@ -140,7 +141,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
 
     @Override
     public @NotNull Map<String, Object> serialize() {
-        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> result = super.serialize();
 
         result.put("modify_bearing", this.modifyBearing);
         result.put("shift_to_dive", this.shiftToDive);
