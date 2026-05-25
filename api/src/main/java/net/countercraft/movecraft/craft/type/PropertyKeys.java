@@ -30,6 +30,8 @@ public class PropertyKeys {
             register(PropertyKeyTypes.blockSetPropertyKey(key("general/block/allowed")).immutable());
     public static final PropertyKey<PerWorldData<Double>> SPEED =
             register(PropertyKeyTypes.doublePropertyKey(key("movement/speed/speed")).perWorld().immutable());
+    public static final PropertyKey<PerWorldData<Boolean>> REQUIRE_PERM_FOR_ASSEMBLY =
+            register(PropertyKeyTypes.boolPropertyKey(key("require_permission_for_piloting"), true).perWorld().immutable());
     // endregion required base settings
 
     // region block constraints

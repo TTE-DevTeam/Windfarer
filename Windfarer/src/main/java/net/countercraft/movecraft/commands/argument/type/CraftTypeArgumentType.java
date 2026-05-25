@@ -9,6 +9,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.papermc.paper.command.brigadier.argument.CustomArgumentType;
 import net.countercraft.movecraft.craft.CraftManager;
+import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import org.bukkit.permissions.Permissible;
 
@@ -36,7 +37,7 @@ public class CraftTypeArgumentType implements CustomArgumentType.Converted<TypeS
         S s = context.getSource();
         Predicate<TypeSafeCraftType> checkFunction;
         if (s instanceof Permissible permissible) {
-            checkFunction = (craftType) -> permissible.hasPermission("movecraft." + craftType.getName().toLowerCase() + ".pilot");
+            checkFunction = (craftType) -> !craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, "") || permissible.hasPermission("movecraft." + craftType.getName().toLowerCase() + ".pilot");
         } else {
             checkFunction = Predicates.alwaysTrue();
         }

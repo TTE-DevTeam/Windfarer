@@ -42,6 +42,7 @@ public class PilotCommand {
                         })
                         .then(Commands.argument("type", new CraftTypeArgumentType())
                                 .executes(context -> {
+                                    // TODO: Reinforce logic and check against the permissiosn here aswell!
                                     TypeSafeCraftType type = context.getArgument("type", TypeSafeCraftType.class);
                                     process(context.getSource().getExecutor(), type);
                                     return com.mojang.brigadier.Command.SINGLE_SUCCESS;

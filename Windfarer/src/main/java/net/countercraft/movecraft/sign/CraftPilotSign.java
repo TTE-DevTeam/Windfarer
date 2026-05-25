@@ -43,7 +43,7 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
         if (craftType != this.craftType) {
             return false;
         }
-        if (!player.hasPermission("movecraft." + header + ".pilot")) {
+        if (craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, player.getWorld()) && !player.hasPermission("movecraft." + header + ".pilot")) {
             player.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
             return false;
         } else {

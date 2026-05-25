@@ -4,6 +4,7 @@ import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.craft.*;
+import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.events.CraftPilotEvent;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
@@ -103,7 +104,7 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
     @Override
     protected boolean canPlayerUseSignForCraftType(Action clickType, SignListener.SignWrapper sign, Player player, TypeSafeCraftType subcraftType) {
         final String craftTypeStr = subcraftType.getName().toLowerCase();
-        if (!player.hasPermission("movecraft." + craftTypeStr + ".rotate")) {
+        if (subcraftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, player.getWorld()) && !player.hasPermission("movecraft." + craftTypeStr + ".rotate")) {
             player.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
             return false;
         }
