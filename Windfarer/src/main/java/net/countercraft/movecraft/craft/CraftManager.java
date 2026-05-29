@@ -214,10 +214,13 @@ public class CraftManager implements Iterable<Craft>{
         sink(craft, CraftSinkEvent.SIMPLE_SINK_REASONS.UNKNOWN);
     }
     public void sink(@NotNull Craft craft, CraftSinkEvent.SinkReason sinkReason) {
+        this.trySink(craft, sinkReason);
+    }
+    public boolean trySink(@NotNull Craft craft, CraftSinkEvent.SinkReason sinkReason) {
         CraftSinkEvent event = new CraftSinkEvent(craft, sinkReason);
         Bukkit.getServer().getPluginManager().callEvent(event);
         if (event.isCancelled())
-            return;
+            return false;
 
         final MovecraftLocation craftPos = craft.getHitBox().getMidPoint();
         Movecraft.getInstance().getLogger().info(
@@ -238,7 +241,7 @@ public class CraftManager implements Iterable<Craft>{
 
         // TODO: Is this safe?
         HelmsManManager.activePilotToCraftUUID.values().remove(craft);
-        crafts.add(new SinkingCraftImpl(craft));
+        return crafts.add(new SinkingCraftImpl(craft));
     }
 
     public void release(@NotNull Craft craft, @NotNull CraftReleaseEvent.Reason reason, boolean force) {
