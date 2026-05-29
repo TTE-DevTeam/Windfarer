@@ -3,10 +3,8 @@ package net.countercraft.movecraft.sign;
 import net.countercraft.movecraft.CruiseDirection;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
-import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
-import org.bukkit.entity.Player;
-import org.jetbrains.annotations.Nullable;
+import org.bukkit.entity.Entity;
 
 public class AscendSign extends AbstractCruiseSign {
 
@@ -15,7 +13,7 @@ public class AscendSign extends AbstractCruiseSign {
     }
 
     @Override
-    protected void setCraftCruising(Player player, CruiseDirection direction, Craft craft) {
+    protected void setCraftCruising(Entity interactor, CruiseDirection direction, Craft craft) {
         craft.setCruiseDirection(direction);
         craft.setLastCruiseUpdate(System.currentTimeMillis());
         craft.setCruising(true);
@@ -27,17 +25,17 @@ public class AscendSign extends AbstractCruiseSign {
     }
 
     @Override
-    protected void onCraftIsBusy(Player player, Craft craft) {
+    protected void onCraftIsBusy(Entity interactor, Craft craft) {
         // Ignore
     }
 
     @Override
-    protected void onCraftNotFound(Player player, SignListener.SignWrapper sign) {
+    protected void onCraftNotFound(Entity interactor, SignListener.SignWrapper sign) {
 
     }
 
     @Override
-    protected void onAfterStoppingCruise(Craft craft, SignListener.SignWrapper signWrapper, Player player) {
+    protected void onAfterStoppingCruise(Craft craft, SignListener.SignWrapper signWrapper, Entity interactor) {
         if (!craft.getCraftProperties().get(PropertyKeys.CAN_MOVE_ENTITIES)) {
             CraftManager.getInstance().addReleaseTask(craft);
         }

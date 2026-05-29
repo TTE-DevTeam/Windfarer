@@ -7,6 +7,7 @@ import net.countercraft.movecraft.localisation.I18nSupport;
 import net.kyori.adventure.text.Component;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.jetbrains.annotations.Nullable;
@@ -18,15 +19,17 @@ public class SpeedSign extends AbstractInformationSign {
     }
 
     @Override
-    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Player player, Craft craft) {
+    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Entity interactor, Craft craft) {
         if (clickType != Action.RIGHT_CLICK_BLOCK)
             return false;
 
         final int gearShifts = craft.getCraftProperties().get(PropertyKeys.GEAR_SHIFTS);
         int currentGear = craft.getCurrentGear();
         if (gearShifts == 1) {
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
-                    new TextComponent(I18nSupport.getInternationalisedString("Gearshift - Disabled for craft type")));
+            if (interactor instanceof Player player) {
+                player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
+                        new TextComponent(I18nSupport.getInternationalisedString("Gearshift - Disabled for craft type")));
+            }
             return false;
         }
 
@@ -41,9 +44,12 @@ public class SpeedSign extends AbstractInformationSign {
         }
         if (currentGear > gearShifts)
             currentGear = gearShifts;
-        player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
-                new TextComponent(I18nSupport.getInternationalisedString("Gearshift - Gear changed")
-                        + " " + currentGear + " / " + gearShifts));
+
+        if (interactor instanceof Player player) {
+            player.spigot().sendMessage(ChatMessageType.ACTION_BAR,
+                    new TextComponent(I18nSupport.getInternationalisedString("Gearshift - Gear changed")
+                            + " " + currentGear + " / " + gearShifts));
+        }
         craft.setCurrentGear(currentGear);
 
         return true;
@@ -91,7 +97,7 @@ public class SpeedSign extends AbstractInformationSign {
     }
 
     @Override
-    protected void onCraftIsBusy(Player player, Craft craft) {
+    protected void onCraftIsBusy(Entity interactor, Craft craft) {
         return;
     }
 

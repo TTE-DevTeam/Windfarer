@@ -6,13 +6,11 @@ import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.events.CraftDetectEvent;
 import net.countercraft.movecraft.util.ChatUtils;
 import net.kyori.adventure.text.Component;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 public class NameSign extends AbstractCraftSign {
 
@@ -23,31 +21,31 @@ public class NameSign extends AbstractCraftSign {
     }
 
     @Override
-    protected boolean canPlayerUseSign(Action clickType, SignListener.SignWrapper sign, Player player) {
-        return !Settings.RequireNamePerm || super.canPlayerUseSign(clickType, sign, player);
+    protected boolean canPlayerUseSign(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
+        return !Settings.RequireNamePerm || super.canPlayerUseSign(clickType, sign, interactor);
     }
 
     @Override
-    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Player player) {
+    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
         return true;
     }
 
     @Override
-    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Player player) {
+    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Entity interactor) {
         return true;
     }
 
     @Override
-    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Player player, @Nullable Craft craft) {
+    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Entity interactor, @Nullable Craft craft) {
         return true;
     }
 
     @Override
-    protected void onCraftIsBusy(Player player, Craft craft) {
+    protected void onCraftIsBusy(Entity interactor, Craft craft) {
     }
 
     @Override
-    protected void onCraftNotFound(Player player, SignListener.SignWrapper sign) {
+    protected void onCraftNotFound(Entity interactor, SignListener.SignWrapper sign) {
     }
 
     @Override

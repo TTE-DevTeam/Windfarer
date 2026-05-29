@@ -3,15 +3,11 @@ package net.countercraft.movecraft.sign;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.events.CraftDetectEvent;
-import net.countercraft.movecraft.events.SignTranslateEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.Sign;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
 import org.jetbrains.annotations.Nullable;
@@ -44,7 +40,7 @@ public abstract class AbstractInformationSign extends AbstractCraftSign {
     }
 
     @Override
-    protected boolean canPlayerUseSignOn(Player player, Craft craft) {
+    protected boolean canPlayerUseSignOn(Entity interactor, Craft craft) {
         // Permcheck related, no perms required, return true
         return true;
     }
@@ -69,17 +65,17 @@ public abstract class AbstractInformationSign extends AbstractCraftSign {
     }
 
     @Override
-    protected void onCraftNotFound(Player player, SignListener.SignWrapper sign) {
+    protected void onCraftNotFound(Entity interactor, SignListener.SignWrapper sign) {
         // Nothing to do
     }
 
     @Override
-    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Player player) {
+    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
         return true;
     }
 
     @Override
-    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Player player) {
+    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Entity interactor) {
         if (this.refreshSign(craft, sign, false, REFRESH_CAUSE.SIGN_CLICK)) {
             this.sendUpdatePacket(craft, sign, REFRESH_CAUSE.SIGN_CLICK);
         }

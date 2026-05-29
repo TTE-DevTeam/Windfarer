@@ -8,6 +8,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.jetbrains.annotations.NotNull;
@@ -64,10 +65,12 @@ public class ContactsSign extends AbstractInformationSign {
     }
 
     @Override
-    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Player player) {
-        player.performCommand("contacts");
+    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Entity interactor) {
+        if (interactor instanceof Player player) {
+            player.performCommand("contacts");
+        }
 
-        return super.internalProcessSignWithCraft(clickType, sign, craft, player);
+        return super.internalProcessSignWithCraft(clickType, sign, craft, interactor);
     }
 
     @Override
@@ -107,7 +110,7 @@ public class ContactsSign extends AbstractInformationSign {
     }
 
     @Override
-    protected void onCraftIsBusy(Player player, Craft craft) {
+    protected void onCraftIsBusy(Entity interactor, Craft craft) {
 
     }
 }

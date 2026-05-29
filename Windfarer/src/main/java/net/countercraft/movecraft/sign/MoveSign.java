@@ -4,7 +4,7 @@ import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.localisation.I18nSupport;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
 
@@ -15,17 +15,17 @@ public class MoveSign extends AbstractCraftSign {
     }
 
     @Override
-    protected void onCraftIsBusy(Player player, Craft craft) {
-        player.sendMessage(I18nSupport.getInternationalisedString("Detection - Parent Craft is busy"));
+    protected void onCraftIsBusy(Entity interactor, Craft craft) {
+        interactor.sendMessage(I18nSupport.getInternationalisedString("Detection - Parent Craft is busy"));
     }
 
     @Override
-    protected void onCraftNotFound(Player player, SignListener.SignWrapper sign) {
+    protected void onCraftNotFound(Entity interactor, SignListener.SignWrapper sign) {
 
     }
 
     @Override
-    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Player player) {
+    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
         String[] numbers = sign.getRaw(1).split(",");
         if (numbers.length != 3) {
             return false;
@@ -46,12 +46,12 @@ public class MoveSign extends AbstractCraftSign {
     }
 
     @Override
-    protected boolean canPlayerUseSignOn(Player player, Craft craft) {
-        if (!(super.canPlayerUseSignOn(player, craft) || HelmsManManager.getHelmsMan(craft) == player)) {
+    protected boolean canPlayerUseSignOn(Entity interactor, Craft craft) {
+        if (!(super.canPlayerUseSignOn(interactor, craft) || HelmsManManager.getHelmsMan(craft) == interactor)) {
             return false;
         }
-        if (!player.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".move")) {
-            player.sendMessage(
+        if (!interactor.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".move")) {
+            interactor.sendMessage(
                     I18nSupport.getInternationalisedString("Insufficient Permissions"));
             return false;
         }
@@ -59,7 +59,7 @@ public class MoveSign extends AbstractCraftSign {
     }
 
     @Override
-    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Player player) {
+    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Entity interactor) {
         if (!craft.getCraftProperties().get(PropertyKeys.CAN_STATIC_MOVE)) {
             return false;
         }

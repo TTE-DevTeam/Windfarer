@@ -1,9 +1,11 @@
 package net.countercraft.movecraft.sign;
 
 import net.countercraft.movecraft.craft.Craft;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
+
+import javax.annotation.Nullable;
 
 // TODO: Replace PilotSignValidator with this?
 public class PilotSign extends AbstractMovecraftSign {
@@ -14,12 +16,12 @@ public class PilotSign extends AbstractMovecraftSign {
 
     // Pilot signs are pretty much always valid
     @Override
-    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Player player) {
+    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
         return true;
     }
 
     @Override
-    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Player player, @javax.annotation.Nullable Craft craft) {
+    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Entity interactor, @Nullable Craft craft) {
         // Nothing to do here
         return true;
     }

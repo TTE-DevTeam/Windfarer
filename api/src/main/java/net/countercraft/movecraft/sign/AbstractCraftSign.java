@@ -8,7 +8,7 @@ import net.countercraft.movecraft.events.CraftDetectEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.events.SignTranslateEvent;
 import net.kyori.adventure.text.Component;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 
 import javax.annotation.Nullable;
@@ -52,57 +52,57 @@ public abstract class AbstractCraftSign extends AbstractMovecraftSign {
     // If no craft is found, onCraftNotFound() is called
     // Return true to cancel the event
     @Override
-    public boolean processSignClick(Action clickType, SignListener.SignWrapper sign, Player player) {
-        if (!this.isSignValid(clickType, sign, player)) {
+    public boolean processSignClick(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
+        if (!this.isSignValid(clickType, sign, interactor)) {
             return false;
         }
-        if (!this.canPlayerUseSign(clickType, sign, player)) {
+        if (!this.canPlayerUseSign(clickType, sign, interactor)) {
             return false;
         }
         Craft craft = this.getCraft(sign);
         if (craft == null) {
-            this.onCraftNotFound(player, sign);
+            this.onCraftNotFound(interactor, sign);
             return false;
         }
 
         if (craft instanceof PlayerCraft pc) {
             if (!pc.isNotProcessing() && !this.ignoreCraftIsBusy) {
-                this.onCraftIsBusy(player, craft);
+                this.onCraftIsBusy(interactor, craft);
                 return false;
             }
         }
 
-        return internalProcessSign(clickType, sign, player, craft);
+        return internalProcessSign(clickType, sign, interactor, craft);
     }
 
     // Implementation of the standard method.
     // The craft instance is required here and it's existance is being confirmed in processSignClick() in beforehand
     // After that, canPlayerUseSignOn() is being called. If that is successful, the result of internalProcessSignWithCraft() is returned
     @Override
-    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Player player, @Nullable Craft craft) {
+    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Entity interactor, @Nullable Craft craft) {
         if (craft == null) {
             throw new IllegalStateException("Somehow craft is not set here. It should always be present here!");
         }
-        if (this.canPlayerUseSignOn(player, craft)) {
-            return this.internalProcessSignWithCraft(clickType, sign, craft, player);
+        if (this.canPlayerUseSignOn(interactor, craft)) {
+            return this.internalProcessSignWithCraft(clickType, sign, craft, interactor);
         }
         return false;
     }
 
     // Called when the craft is a player craft and is processing and ignoreCraftIsBusy is set to false
-    protected abstract void onCraftIsBusy(Player player, Craft craft);
+    protected abstract void onCraftIsBusy(Entity interactor, Craft craft);
 
     // Validation method, intended to indicate if a player is allowed to execute a sign action on a mounted craft
     // By default, this returns wether or not the player is the pilot of the craft
-    protected boolean canPlayerUseSignOn(Player player, @Nullable Craft craft) {
+    protected boolean canPlayerUseSignOn(Entity interactor, @Nullable Craft craft) {
         if (craft instanceof PilotedCraft pc) {
-            return pc.getPilotUUID().equals(player.getUniqueId());
+            return pc.getPilotUUID().equals(interactor.getUniqueId());
         }
         return true;
     }
 
     // Called when there is no craft instance for this sign
-    protected abstract void onCraftNotFound(Player player, SignListener.SignWrapper sign);
+    protected abstract void onCraftNotFound(Entity interactor, SignListener.SignWrapper sign);
 
     // By default we don't react to CraftDetectEvent here
     public void onCraftDetect(CraftDetectEvent event, SignListener.SignWrapper sign) {
@@ -122,7 +122,7 @@ public abstract class AbstractCraftSign extends AbstractMovecraftSign {
 
     // Gets called by internalProcessSign if a craft is found
     // Always override this as the validation has been made already when this is being called
-    protected abstract boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Player player);
+    protected abstract boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Entity interactor);
 
     public void onCraftStatusUpdate(final Craft craft, final SignListener.SignWrapper sign) {
         // Do nothing by default

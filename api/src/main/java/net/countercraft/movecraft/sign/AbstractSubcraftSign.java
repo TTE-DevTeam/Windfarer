@@ -8,7 +8,7 @@ import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.plugin.Plugin;
@@ -41,34 +41,34 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
     }
 
     @Override
-    public boolean processSignClick(Action clickType, SignListener.SignWrapper sign, Player player) {
-        if (!this.isSignValid(clickType, sign, player)) {
+    public boolean processSignClick(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
+        if (!this.isSignValid(clickType, sign, interactor)) {
             return false;
         }
-        if (!this.canPlayerUseSign(clickType, sign, player)) {
+        if (!this.canPlayerUseSign(clickType, sign, interactor)) {
             return false;
         }
         Craft craft = this.getCraft(sign);
 
         if (craft instanceof PlayerCraft pc) {
             if (!pc.isNotProcessing() && !this.ignoreCraftIsBusy) {
-                this.onCraftIsBusy(player, craft);
+                this.onCraftIsBusy(interactor, craft);
                 return false;
             }
         }
 
-        return internalProcessSign(clickType, sign, player, craft);
+        return internalProcessSign(clickType, sign, interactor, craft);
     }
 
     @Override
-    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Player player, Craft craft) {
+    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Entity interactor, Craft craft) {
         if (craft != null) {
             // TODO: Add property to crafts that they can use subcrafts?
-            if (!this.canPlayerUseSignOn(player, craft)) {
+            if (!this.canPlayerUseSignOn(interactor, craft)) {
                 return false;
             }
         }
-        return this.internalProcessSignWithCraft(clickType, sign, craft, player);
+        return this.internalProcessSignWithCraft(clickType, sign, craft, interactor);
     }
 
     @Override
@@ -84,7 +84,7 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
     }
 
     @Override
-    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Player player) {
+    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
         String[] headerSplit = sign.getRaw(0).split(" ");
         if (headerSplit.length != 2) {
             return false;
@@ -98,8 +98,8 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
     }
 
     @Override
-    protected boolean canPlayerUseSign(Action clickType, SignListener.SignWrapper sign, Player player) {
-        if (!super.canPlayerUseSign(clickType, sign, player)) {
+    protected boolean canPlayerUseSign(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
+        if (!super.canPlayerUseSign(clickType, sign, interactor)) {
             return false;
         }
         TypeSafeCraftType craftType = this.getCraftType(sign);
@@ -109,13 +109,13 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
                 return false;
             }
 
-            return player.hasPermission("movecraft." + craftType.getName().toLowerCase() + ".pilot") && this.canPlayerUseSignForCraftType(clickType, sign, player, craftType);
+            return interactor.hasPermission("movecraft." + craftType.getName().toLowerCase() + ".pilot") && this.canPlayerUseSignForCraftType(clickType, sign, interactor, craftType);
         }
         return false;
     }
 
     @Override
-    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, @Nullable Craft craft, Player player) {
+    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, @Nullable Craft craft, Entity interactor) {
         TypeSafeCraftType subcraftType = this.getCraftType(sign);
 
         final Location signLoc = sign.block().getLocation();
@@ -133,7 +133,7 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
         }
 
         if (!IN_USE.add(startPoint)) {
-            this.onActionAlreadyInProgress(player);
+            this.onActionAlreadyInProgress(interactor);
             return true;
         }
 
@@ -141,7 +141,7 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
 
         final World world = sign.block().getWorld();
 
-        this.runDetectTask(clickType, subcraftType, craft, world, player, startPoint);
+        this.runDetectTask(clickType, subcraftType, craft, world, interactor, startPoint);
 
         // TODO: Change this, it is ugly, should be done by the detect task itself
         new BukkitRunnable() {
@@ -185,17 +185,17 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
         return resultSuper;
     }
 
-    protected abstract void runDetectTask(Action clickType, TypeSafeCraftType subcraftType, Craft parentCraft, World world, Player player, MovecraftLocation startPoint);
+    protected abstract void runDetectTask(Action clickType, TypeSafeCraftType subcraftType, Craft parentCraft, World world, Entity interactor, MovecraftLocation startPoint);
     protected abstract boolean isActionAllowed(final String action);
-    protected abstract void onActionAlreadyInProgress(Player player);
+    protected abstract void onActionAlreadyInProgress(Entity interactor);
     protected abstract Component getDefaultTextFor(int line);
-    protected abstract boolean canPlayerUseSignForCraftType(Action clickType, SignListener.SignWrapper sign, Player player, TypeSafeCraftType subCraftType);
+    protected abstract boolean canPlayerUseSignForCraftType(Action clickType, SignListener.SignWrapper sign, Entity interactor, TypeSafeCraftType subCraftType);
 
     @Override
-    protected boolean canPlayerUseSignOn(Player player, @Nullable Craft craft) {
-        if (super.canPlayerUseSignOn(player, craft)) {
+    protected boolean canPlayerUseSignOn(Entity interactor, @Nullable Craft craft) {
+        if (super.canPlayerUseSignOn(interactor, craft)) {
             return true;
         }
-        return craft.getHitBox().inBounds(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ());
+        return craft.getHitBox().inBounds(interactor.getLocation().getX(), interactor.getLocation().getY(), interactor.getLocation().getZ());
     }
 }

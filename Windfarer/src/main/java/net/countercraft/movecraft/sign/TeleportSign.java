@@ -5,7 +5,7 @@ import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 
 public class TeleportSign extends MoveSign {
@@ -15,8 +15,8 @@ public class TeleportSign extends MoveSign {
     }
 
     @Override
-    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Player player) {
-        if (!super.isSignValid(clickType, sign, player)) {
+    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
+        if (!super.isSignValid(clickType, sign, interactor)) {
             return false;
         }
         // Check world => If specified it has to exist!
@@ -47,12 +47,12 @@ public class TeleportSign extends MoveSign {
     }
 
     @Override
-    protected boolean canPlayerUseSignOn(Player player, Craft craft) {
-        if (super.canPlayerUseSignOn(player, craft)) {
+    protected boolean canPlayerUseSignOn(Entity interactor, Craft craft) {
+        if (super.canPlayerUseSignOn(interactor, craft)) {
             if (craft.getCraftProperties().get(PropertyKeys.CAN_TELEPORT)) {
                 long timeSinceLastTeleport = System.currentTimeMillis() - craft.getLastTeleportTime();
                 if (craft.getCraftProperties().get(PropertyKeys.TELEPORTATION_COOLDOWN) > 0 && timeSinceLastTeleport < craft.getCraftProperties().get(PropertyKeys.TELEPORTATION_COOLDOWN)) {
-                    player.sendMessage(String.format(I18nSupport.getInternationalisedString("Teleportation - Cooldown active"), timeSinceLastTeleport));
+                    interactor.sendMessage(String.format(I18nSupport.getInternationalisedString("Teleportation - Cooldown active"), timeSinceLastTeleport));
                     return false;
                 }
                 return true;

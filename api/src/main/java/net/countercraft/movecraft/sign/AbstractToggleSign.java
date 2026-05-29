@@ -8,6 +8,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
@@ -39,7 +40,7 @@ public abstract class AbstractToggleSign extends AbstractCraftSign {
     // Afterwards the header is validated, if it's splitted variant doesn't have exactly 2 entries it is invalid
     // Finally, the "state" (second part of the header) isn't matching suffixOn or suffixOff, it is invalid
     @Override
-    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Player player) {
+    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
         if (PlainTextComponentSerializer.plainText().serialize(sign.line(0)).isBlank()) {
             return false;
         }
@@ -73,8 +74,8 @@ public abstract class AbstractToggleSign extends AbstractCraftSign {
         return suffix.equalsIgnoreCase(this.suffixOn);
     }
 
-    protected abstract void onAfterToggle(Craft craft, SignListener.SignWrapper signWrapper, Player player, boolean toggledToOn);
-    protected abstract boolean onBeforeToggle(Craft craft, SignListener.SignWrapper signWrapper, Player player, boolean willBeOn);
+    protected abstract void onAfterToggle(Craft craft, SignListener.SignWrapper signWrapper, Entity interactor, boolean toggledToOn);
+    protected abstract boolean onBeforeToggle(Craft craft, SignListener.SignWrapper signWrapper, Entity interactor, boolean willBeOn);
 
     // Actual processing, determines wether the sign will switch to on or off
     // If it will be on, the CruiseDirection is retrieved and then setCraftCruising() is called
@@ -83,12 +84,12 @@ public abstract class AbstractToggleSign extends AbstractCraftSign {
     // Finally, the relevant hooks are called
     // This always returns true
     @Override
-    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Player player) {
+    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Entity interactor) {
         boolean isOn = this.isOnOrOff(sign);
         boolean willBeOn = !isOn;
 
         // If we dont toggle, return false
-        if (!this.onBeforeToggle(craft, sign, player, willBeOn)) {
+        if (!this.onBeforeToggle(craft, sign, interactor, willBeOn)) {
             return false;
         }
 
@@ -125,7 +126,7 @@ public abstract class AbstractToggleSign extends AbstractCraftSign {
 //            }
 //        }
 
-        this.onAfterToggle(craft, sign, player, willBeOn);
+        this.onAfterToggle(craft, sign, interactor, willBeOn);
 
         return true;
     }

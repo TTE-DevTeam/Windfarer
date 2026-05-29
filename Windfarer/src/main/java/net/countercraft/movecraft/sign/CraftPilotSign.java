@@ -18,11 +18,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -37,14 +39,14 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
     }
 
     @Override
-    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Player player) {
+    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
         String header = sign.getRaw(0).trim();
         TypeSafeCraftType craftType = CraftManager.getInstance().getCraftTypeByName(header);
         if (craftType != this.craftType) {
             return false;
         }
-        if (craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, player.getWorld()) && !player.hasPermission("movecraft." + header + ".pilot")) {
-            player.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
+        if (craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, interactor.getWorld()) && !interactor.hasPermission("movecraft." + header + ".pilot")) {
+            interactor.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
             return false;
         } else {
             return true;
@@ -52,7 +54,7 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
     }
 
     @Override
-    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Player player, @javax.annotation.Nullable Craft craft) {
+    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Entity interactor, @Nullable Craft craft) {
         if (this.craftType.get(PropertyKeys.MUST_BE_SUBCRAFT) && craft == null) {
             return false;
         }
@@ -68,12 +70,12 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
             return true;
         }
 
-        runDetectTask(startPoint, player, sign, craft, world);
+        runDetectTask(startPoint, interactor, sign, craft, world);
 
         return true;
     }
 
-    protected void runDetectTask(MovecraftLocation startPoint, Player player, final SignListener.SignWrapper signWrapper, Craft parentCraft, World world) {
+    protected void runDetectTask(MovecraftLocation startPoint, Entity interactor, final SignListener.SignWrapper signWrapper, Craft parentCraft, World world) {
         if (PILOTING.add(startPoint)) {
             final boolean isCruiseOnPilot = this.craftType.get(PropertyKeys.CRUISE_ON_PILOT);
 
@@ -114,7 +116,7 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
                         }
                         throw new IllegalStateException("No craft created during detection!");
                     },
-                    world, player, player,
+                    world, interactor, interactor,
                     craft -> () -> {
                         Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(craft, CraftPilotEvent.Reason.PLAYER));
                         if (craft instanceof SubCraft) { // Subtract craft from the parent
@@ -144,7 +146,7 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
                         }
                         else {
                             // Release old craft if it exists
-                            Craft oldCraft = CraftManager.getInstance().getCraftByPlayer(player);
+                            Craft oldCraft = CraftManager.getInstance().getCraftByEntity(interactor);
                             if (oldCraft != null)
                                 CraftManager.getInstance().release(oldCraft, CraftReleaseEvent.Reason.PLAYER, false);
                         }

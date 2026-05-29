@@ -1,6 +1,7 @@
 package net.countercraft.movecraft.events;
 
 import net.countercraft.movecraft.craft.Craft;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
@@ -15,15 +16,23 @@ import org.jetbrains.annotations.NotNull;
 public class CraftScuttleEvent extends CraftEvent implements Cancellable {
     private static final HandlerList HANDLERS = new HandlerList();
     private boolean cancelled = false;
-    private Player cause;
+    private Entity cause;
 
-    public CraftScuttleEvent(@NotNull Craft craft, @NotNull Player cause) {
+    public CraftScuttleEvent(@NotNull Craft craft, @NotNull Entity cause) {
         super(craft);
         this.cause = cause;
     }
 
     public Player getCause() {
-        return cause;
+        if (this.cause instanceof Player player) {
+            return player;
+        } else {
+            return null;
+        }
+    }
+
+    public Entity getCauseEntity() {
+        return this.cause;
     }
 
     @Override

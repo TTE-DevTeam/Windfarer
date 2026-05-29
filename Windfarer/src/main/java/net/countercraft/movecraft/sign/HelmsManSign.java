@@ -5,6 +5,7 @@ import net.countercraft.movecraft.craft.PlayerCraft;
 import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.kyori.adventure.text.Component;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.jetbrains.annotations.Nullable;
@@ -46,28 +47,28 @@ public class HelmsManSign extends AbstractInformationSign {
     }
 
     @Override
-    protected void onCraftIsBusy(Player player, Craft craft) {
+    protected void onCraftIsBusy(Entity interactor, Craft craft) {
 
     }
 
     @Override
-    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Player player) {
+    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Entity interactor) {
         boolean resultTmp = false;
         if (craft instanceof PlayerCraft playerCraft) {
             final Player currentHelmsMan = HelmsManManager.getHelmsMan(playerCraft);
-            if (currentHelmsMan == player) {
+            if (currentHelmsMan == interactor) {
                 HelmsManManager.removeActivePilot(playerCraft);
-                playerCraft.getAudience().sendMessage(Component.text(String.format(I18nSupport.getInternationalisedString("Crew - Helmsman left post"), player.getName())));
+                playerCraft.getAudience().sendMessage(Component.text(String.format(I18nSupport.getInternationalisedString("Crew - Helmsman left post"), interactor.getName())));
             }
-            else if (HelmsManManager.setActivePilot(player, playerCraft)) {
-                playerCraft.getAudience().sendMessage(Component.text(String.format(I18nSupport.getInternationalisedString("Crew - Helmsman took post"), player.getName())));
+            else if (interactor instanceof Player player && HelmsManManager.setActivePilot(player, playerCraft)) {
+                playerCraft.getAudience().sendMessage(Component.text(String.format(I18nSupport.getInternationalisedString("Crew - Helmsman took post"), interactor.getName())));
                 resultTmp = true;
             } else {
-                player.sendMessage(Component.text(I18nSupport.getInternationalisedString("Crew - Helmsman post taken")));
+                interactor.sendMessage(Component.text(I18nSupport.getInternationalisedString("Crew - Helmsman post taken")));
             }
         }
 
-        return super.internalProcessSignWithCraft(clickType, sign, craft, player) || resultTmp;
+        return super.internalProcessSignWithCraft(clickType, sign, craft, interactor) || resultTmp;
     }
 
 }

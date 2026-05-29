@@ -16,7 +16,7 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -248,7 +248,7 @@ public class StatusSign extends AbstractInformationSign {
     }
 
     @Override
-    protected void onCraftIsBusy(Player player, Craft craft) {
+    protected void onCraftIsBusy(Entity interactor, Craft craft) {
 
     }
 

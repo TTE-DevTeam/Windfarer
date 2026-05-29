@@ -4,7 +4,7 @@ import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
 import org.jetbrains.annotations.Nullable;
@@ -16,14 +16,14 @@ public class ReleaseSign extends AbstractMovecraftSign {
     }
 
     @Override
-    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Player player) {
+    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
         return true;
     }
 
     @Override
-    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Player player, @Nullable Craft craft) {
-        if (craft == null || (craft instanceof PilotedCraft pc && pc.getPilotEntity() != player)) {
-            craft = CraftManager.getInstance().getCraftByPlayer(player);
+    protected boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Entity interactor, @Nullable Craft craft) {
+        if (craft == null || (craft instanceof PilotedCraft pc && pc.getPilotEntity() != interactor)) {
+            craft = CraftManager.getInstance().getCraftByEntity(interactor);
         }
         if (craft != null) {
             CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.PLAYER, false);

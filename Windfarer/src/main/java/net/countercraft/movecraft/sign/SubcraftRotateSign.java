@@ -14,7 +14,7 @@ import net.countercraft.movecraft.util.Pair;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -30,7 +30,7 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
     }
 
     @Override
-    protected void runDetectTask(Action clickType, TypeSafeCraftType subcraftType, Craft parentcraft, World world, Player player, MovecraftLocation startPoint) {
+    protected void runDetectTask(Action clickType, TypeSafeCraftType subcraftType, Craft parentcraft, World world, Entity interactor, MovecraftLocation startPoint) {
         final MovecraftRotation rotation = MovecraftRotation.fromAction(clickType);
         if (rotation == MovecraftRotation.NONE) {
             return;
@@ -50,7 +50,7 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
                     Craft parent = parents.iterator().next();
                     return new Pair<>(Result.succeed(), new SubCraftImpl(type, w, parent));
                 },
-                world, player, player,
+                world, interactor, interactor,
                 subcraft -> () -> {
                     Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(subcraft, CraftPilotEvent.Reason.SUB_CRAFT));
                     if (subcraft instanceof SubCraft) { // Subtract craft from the parent
@@ -82,8 +82,8 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
     }
 
     @Override
-    protected void onActionAlreadyInProgress(Player player) {
-        player.sendMessage(I18nSupport.getInternationalisedString("Rotation - Already Rotating"));
+    protected void onActionAlreadyInProgress(Entity interactor) {
+        interactor.sendMessage(I18nSupport.getInternationalisedString("Rotation - Already Rotating"));
     }
 
     static final Component DEFAULT_LINE_3 = Component.text("_\\ / _");
@@ -102,22 +102,22 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
     }
 
     @Override
-    protected boolean canPlayerUseSignForCraftType(Action clickType, SignListener.SignWrapper sign, Player player, TypeSafeCraftType subcraftType) {
+    protected boolean canPlayerUseSignForCraftType(Action clickType, SignListener.SignWrapper sign, Entity interactor, TypeSafeCraftType subcraftType) {
         final String craftTypeStr = subcraftType.getName().toLowerCase();
-        if (subcraftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, player.getWorld()) && !player.hasPermission("movecraft." + craftTypeStr + ".rotate")) {
-            player.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
+        if (subcraftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, interactor.getWorld()) && !interactor.hasPermission("movecraft." + craftTypeStr + ".rotate")) {
+            interactor.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
             return false;
         }
         return true;
     }
 
     @Override
-    protected void onCraftIsBusy(Player player, Craft craft) {
-        player.sendMessage(I18nSupport.getInternationalisedString("Detection - Parent Craft is busy"));
+    protected void onCraftIsBusy(Entity interactor, Craft craft) {
+        interactor.sendMessage(I18nSupport.getInternationalisedString("Detection - Parent Craft is busy"));
     }
 
     @Override
-    protected void onCraftNotFound(Player player, SignListener.SignWrapper sign) {
+    protected void onCraftNotFound(Entity interactor, SignListener.SignWrapper sign) {
         // Ignored
     }
 }

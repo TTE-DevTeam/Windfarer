@@ -1,6 +1,5 @@
 package net.countercraft.movecraft.sign;
 
-import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.controller.AbstractRotationController;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
@@ -8,7 +7,7 @@ import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.util.MathUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.ChatColor;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
 import org.jetbrains.annotations.Nullable;
@@ -27,17 +26,17 @@ public class HelmSign extends AbstractInformationSign {
     }
 
     @Override
-    protected void onCraftIsBusy(Player player, Craft craft) {
+    protected void onCraftIsBusy(Entity interactor, Craft craft) {
 
     }
 
     @Override
-    protected void onCraftNotFound(Player player, SignListener.SignWrapper sign) {
+    protected void onCraftNotFound(Entity interactor, SignListener.SignWrapper sign) {
 
     }
 
     @Override
-    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Player player) {
+    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
         // Nothing to check here honestly...
         return true;
     }
@@ -69,7 +68,7 @@ public class HelmSign extends AbstractInformationSign {
     }
 
     @Override
-    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Player player) {
+    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Entity interactor) {
         /*Long time = timeMap.get(event.getPlayer());
         if (time != null) {
             long ticksElapsed = (System.currentTimeMillis() - time) / 50;
@@ -86,12 +85,12 @@ public class HelmSign extends AbstractInformationSign {
             }
         }*/
 
-        if(!MathUtils.locIsNearCraftFast(craft, MathUtils.bukkit2MovecraftLoc(player.getLocation())))
+        if(!MathUtils.locIsNearCraftFast(craft, MathUtils.bukkit2MovecraftLoc(interactor.getLocation())))
             return false;
 
         AbstractRotationController controller = craft.getCraftProperties().get(PropertyKeys.ROTATION_CONTROLLER);
         if (controller != null) {
-            return controller.onHelmInteraction(craft, sign, clickType, player);
+            return controller.onHelmInteraction(craft, sign, clickType, interactor);
         }
         return false;
 
@@ -107,10 +106,10 @@ public class HelmSign extends AbstractInformationSign {
     }
 
     @Override
-    protected boolean canPlayerUseSignOn(Player player, Craft craft) {
-        if (super.canPlayerUseSignOn(player, craft)) {
-            if (!player.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".rotate")) {
-                player.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
+    protected boolean canPlayerUseSignOn(Entity interactor, Craft craft) {
+        if (super.canPlayerUseSignOn(interactor, craft)) {
+            if (!interactor.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".rotate")) {
+                interactor.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
                 return false;
             }
             return true;

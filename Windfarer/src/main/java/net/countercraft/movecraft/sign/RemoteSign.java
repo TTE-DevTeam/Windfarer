@@ -9,7 +9,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Tag;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
 import org.jetbrains.annotations.Nullable;
@@ -26,17 +26,17 @@ public class RemoteSign extends AbstractCraftSign {
     }
 
     @Override
-    protected void onCraftIsBusy(Player player, Craft craft) {
+    protected void onCraftIsBusy(Entity interactor, Craft craft) {
         // TODO: How to react?
     }
 
     @Override
-    protected void onCraftNotFound(Player player, SignListener.SignWrapper sign) {
-        player.sendMessage(ERROR_PREFIX+I18nSupport.getInternationalisedString("Remote Sign - Must be a part of a piloted craft"));
+    protected void onCraftNotFound(Entity interactor, SignListener.SignWrapper sign) {
+        interactor.sendMessage(ERROR_PREFIX+I18nSupport.getInternationalisedString("Remote Sign - Must be a part of a piloted craft"));
     }
 
     @Override
-    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Player player) {
+    protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Entity interactor) {
         Map<AbstractMovecraftSign, LinkedList<SignListener.SignWrapper>> foundTargetSigns = new HashMap<>();
         boolean firstError = true;
         final String targetIdent = sign.getRaw(1);
@@ -70,10 +70,10 @@ public class RemoteSign extends AbstractCraftSign {
                         // Forbidden strings
                         if (hasForbiddenString(wrapper)) {
                             if (firstError) {
-                                player.sendMessage(I18nSupport.getInternationalisedString("Remote Sign - Forbidden string found"));
+                                interactor.sendMessage(I18nSupport.getInternationalisedString("Remote Sign - Forbidden string found"));
                                 firstError = false;
                             }
-                            player.sendMessage(" - ".concat(tloc.toString()).concat(" : ").concat(ts.getLine(0)));
+                            interactor.sendMessage(" - ".concat(tloc.toString()).concat(" : ").concat(ts.getLine(0)));
                         } else {
                             LinkedList<SignListener.SignWrapper> value = foundTargetSigns.computeIfAbsent(signHandler, (a) -> new LinkedList<>());
                             value.add(wrapper);
@@ -86,14 +86,14 @@ public class RemoteSign extends AbstractCraftSign {
             return false;
         }
         else if (foundTargetSigns.isEmpty()) {
-            player.sendMessage(I18nSupport.getInternationalisedString("Remote Sign - Could not find target sign"));
+            interactor.sendMessage(I18nSupport.getInternationalisedString("Remote Sign - Could not find target sign"));
             return false;
         }
 
         if (Settings.MaxRemoteSigns > -1) {
             int foundLocCount = foundTargetSigns.size();
             if(foundLocCount > Settings.MaxRemoteSigns) {
-                player.sendMessage(String.format(I18nSupport.getInternationalisedString("Remote Sign - Exceeding maximum allowed"), foundLocCount, Settings.MaxRemoteSigns));
+                interactor.sendMessage(String.format(I18nSupport.getInternationalisedString("Remote Sign - Exceeding maximum allowed"), foundLocCount, Settings.MaxRemoteSigns));
                 return false;
             }
         }
@@ -102,7 +102,7 @@ public class RemoteSign extends AbstractCraftSign {
         foundTargetSigns.entrySet().forEach(entry -> {
             AbstractMovecraftSign signHandler = entry.getKey();
             for (SignListener.SignWrapper wrapper : entry.getValue()) {
-                signHandler.processSignClick(clickType, wrapper, player);
+                signHandler.processSignClick(clickType, wrapper, interactor);
             }
         });
 
@@ -110,22 +110,22 @@ public class RemoteSign extends AbstractCraftSign {
     }
 
     @Override
-    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Player player) {
+    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
         String target = sign.getRaw(1);
         if (target.isBlank()) {
-            player.sendMessage(ERROR_PREFIX + I18nSupport.getInternationalisedString("Remote Sign - Cannot be blank"));
+            interactor.sendMessage(ERROR_PREFIX + I18nSupport.getInternationalisedString("Remote Sign - Cannot be blank"));
             return false;
         }
 
         if (hasForbiddenString(sign)) {
-            player.sendMessage(I18nSupport.getInternationalisedString("Remote Sign - Forbidden string found"));
+            interactor.sendMessage(I18nSupport.getInternationalisedString("Remote Sign - Forbidden string found"));
             return false;
         }
 
         return true;
     }
 
-    protected static boolean hasForbiddenString(SignListener.SignWrapper wrapper) {
+    public static boolean hasForbiddenString(SignListener.SignWrapper wrapper) {
         for (int i = 0; i < wrapper.lines().size(); i++) {
             String s = wrapper.getRaw(i).toLowerCase();
             if(Settings.ForbiddenRemoteSigns.contains(s))
@@ -135,7 +135,7 @@ public class RemoteSign extends AbstractCraftSign {
     }
 
     // Walks through all strings on the wrapper and if any of the non-header strings match it returns true
-    protected static boolean matchesDescriptor(final String descriptor, final SignListener.SignWrapper potentialTarget) {
+    public static boolean matchesDescriptor(final String descriptor, final SignListener.SignWrapper potentialTarget) {
         for (int i = 1; i < potentialTarget.lines().size(); i++) {
             String targetStr = potentialTarget.getRaw(i);
             if (descriptor.equalsIgnoreCase(targetStr)) {
@@ -151,16 +151,16 @@ public class RemoteSign extends AbstractCraftSign {
     }
 
     @Override
-    protected boolean canPlayerUseSignOn(Player player, @Nullable Craft craft) {
+    protected boolean canPlayerUseSignOn(Entity interactor, @Nullable Craft craft) {
         if (!craft.getCraftProperties().get(PropertyKeys.ALLOW_REMOTE_SIGN)) {
-            player.sendMessage(ERROR_PREFIX + I18nSupport.getInternationalisedString("Remote Sign - Not allowed on this craft"));
+            interactor.sendMessage(ERROR_PREFIX + I18nSupport.getInternationalisedString("Remote Sign - Not allowed on this craft"));
             return false;
         }
 
-        if (super.canPlayerUseSignOn(player, craft)) {
+        if (super.canPlayerUseSignOn(interactor, craft)) {
             return true;
         }
 
-        return craft.getHitBox().inBounds(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ());
+        return craft.getHitBox().inBounds(interactor.getLocation().getX(), interactor.getLocation().getY(), interactor.getLocation().getZ());
     }
 }

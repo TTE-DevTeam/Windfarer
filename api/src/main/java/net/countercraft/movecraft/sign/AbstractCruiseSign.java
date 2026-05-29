@@ -5,7 +5,7 @@ import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 
 /*
@@ -25,29 +25,29 @@ public abstract class AbstractCruiseSign extends AbstractToggleSign {
     }
 
     // Hook to do stuff that run after stopping to cruise
-    protected void onAfterStoppingCruise(Craft craft, SignListener.SignWrapper signWrapper, Player player) {
+    protected void onAfterStoppingCruise(Craft craft, SignListener.SignWrapper signWrapper, Entity interactor) {
 
     }
 
     // Hook to do stuff that run after starting to cruise
-    protected void onAfterStartingCruise(Craft craft, SignListener.SignWrapper signWrapper, Player player) {
+    protected void onAfterStartingCruise(Craft craft, SignListener.SignWrapper signWrapper, Entity interactor) {
 
     }
 
     @Override
-    protected void onAfterToggle(Craft craft, SignListener.SignWrapper signWrapper, Player player, boolean toggledToOn) {
+    protected void onAfterToggle(Craft craft, SignListener.SignWrapper signWrapper, Entity interactor, boolean toggledToOn) {
         if (toggledToOn) {
-            this.onAfterStartingCruise(craft, signWrapper, player);
+            this.onAfterStartingCruise(craft, signWrapper, interactor);
         } else {
-            this.onAfterStoppingCruise(craft, signWrapper, player);
+            this.onAfterStoppingCruise(craft, signWrapper, interactor);
         }
     }
 
     @Override
-    protected boolean onBeforeToggle(Craft craft, SignListener.SignWrapper signWrapper, Player player, boolean willBeOn) {
+    protected boolean onBeforeToggle(Craft craft, SignListener.SignWrapper signWrapper, Entity interactor, boolean willBeOn) {
         if (willBeOn) {
             CruiseDirection cruiseDirection = this.getCruiseDirection(signWrapper);
-            this.setCraftCruising(player, cruiseDirection, craft);
+            this.setCraftCruising(interactor, cruiseDirection, craft);
         } else {
             craft.setCruising(false, CraftStopCruiseEvent.Reason.SIGN_INTERACTION);
         }
@@ -55,15 +55,15 @@ public abstract class AbstractCruiseSign extends AbstractToggleSign {
     }
 
     // Should call the craft's relevant methods to start cruising
-    protected abstract void setCraftCruising(Player player, CruiseDirection direction, Craft craft);
+    protected abstract void setCraftCruising(Entity interactor, CruiseDirection direction, Craft craft);
 
     // TODO: Rework cruise direction to vectors => Vector defines the skip distance and the direction
     // Returns the direction in which the craft should cruise
     protected abstract CruiseDirection getCruiseDirection(SignListener.SignWrapper sign);
 
     @Override
-    protected boolean canPlayerUseSignOn(Player player, @Nullable Craft craft) {
-        if (super.canPlayerUseSignOn(player, craft) || HelmsManManager.getHelmsMan(craft) == player) {
+    protected boolean canPlayerUseSignOn(Entity interactor, @Nullable Craft craft) {
+        if (super.canPlayerUseSignOn(interactor, craft) || HelmsManManager.getHelmsMan(craft) == interactor) {
             return craft.getCraftProperties().get(PropertyKeys.CAN_CRUISE);
         }
         return false;

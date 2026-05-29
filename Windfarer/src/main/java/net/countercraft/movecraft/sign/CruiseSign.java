@@ -3,12 +3,10 @@ package net.countercraft.movecraft.sign;
 import net.countercraft.movecraft.CruiseDirection;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
-import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
-import org.jetbrains.annotations.Nullable;
 
 public class CruiseSign extends AbstractCruiseSign {
 
@@ -17,7 +15,7 @@ public class CruiseSign extends AbstractCruiseSign {
     }
 
     @Override
-    protected void setCraftCruising(Player player, CruiseDirection direction, Craft craft) {
+    protected void setCraftCruising(Entity interactor, CruiseDirection direction, Craft craft) {
         craft.setCruiseDirection(direction);
         craft.setLastCruiseUpdate(System.currentTimeMillis());
         craft.setCruising(true);
@@ -32,8 +30,8 @@ public class CruiseSign extends AbstractCruiseSign {
     }
 
     @Override
-    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Player player) {
-        if (super.isSignValid(clickType, sign, player)) {
+    protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
+        if (super.isSignValid(clickType, sign, interactor)) {
             switch(sign.facing()) {
                 case NORTH:
                 case EAST:
@@ -48,8 +46,8 @@ public class CruiseSign extends AbstractCruiseSign {
     }
 
     @Override
-    protected void onAfterStartingCruise(Craft craft, SignListener.SignWrapper signWrapper, Player player) {
-        super.onAfterStartingCruise(craft, signWrapper, player);
+    protected void onAfterStartingCruise(Craft craft, SignListener.SignWrapper signWrapper, Entity interactor) {
+        super.onAfterStartingCruise(craft, signWrapper, interactor);
         // Left over artifact from manually launched torpedoes
         if (!craft.getCraftProperties().get(PropertyKeys.CAN_MOVE_ENTITIES)) {
             CraftManager.getInstance().addReleaseTask(craft);
@@ -62,12 +60,12 @@ public class CruiseSign extends AbstractCruiseSign {
     }
 
     @Override
-    protected void onCraftIsBusy(Player player, Craft craft) {
+    protected void onCraftIsBusy(Entity interactor, Craft craft) {
         // Ignore
     }
 
     @Override
-    protected void onCraftNotFound(Player player, SignListener.SignWrapper sign) {
+    protected void onCraftNotFound(Entity interactor, SignListener.SignWrapper sign) {
 
     }
 
