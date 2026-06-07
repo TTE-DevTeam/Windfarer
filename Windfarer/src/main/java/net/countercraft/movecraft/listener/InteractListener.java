@@ -26,6 +26,7 @@ import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.type.Switch;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -112,12 +113,12 @@ public final class InteractListener implements Listener {
         }
     }
 
-    public static void storeInteraction(final Craft craft, final Player player) {
+    public static void storeInteraction(final Craft craft, final Entity pilot) {
         INTERACTION_TIME_MAP.put(craft.getUUID(), System.currentTimeMillis());
-        PLAYER_INTERACTION_TIME_MAP.put(player.getUniqueId(), System.currentTimeMillis());
+        PLAYER_INTERACTION_TIME_MAP.put(pilot.getUniqueId(), System.currentTimeMillis());
     }
 
-    public static boolean isCraftReadyForInteraction(final Craft craft, final Player player) {
+    public static boolean isCraftReadyForInteraction(final Craft craft, final Entity pilot) {
         TypeSafeCraftType type = craft.getCraftProperties();
         int currentGear = craft.getCurrentGear();
         int tickCooldown = type.get(
@@ -125,7 +126,7 @@ public final class InteractListener implements Listener {
         if (type.get(PropertyKeys.GEAR_SHIFT_AFFECT_DIRECT_MOVEMENT)
                 && type.get(PropertyKeys.GEAR_SHIFT_AFFECT_TICK_COOLDOWN))
             tickCooldown *= currentGear; // Account for gear shifts
-        Long lastTimePlayer = PLAYER_INTERACTION_TIME_MAP.get(player.getUniqueId());
+        Long lastTimePlayer = PLAYER_INTERACTION_TIME_MAP.get(pilot.getUniqueId());
         Long lastTimeCraft = INTERACTION_TIME_MAP.get(craft.getUUID());
         if (lastTimeCraft != null || lastTimePlayer != null) {
             Long lastTime = null;
@@ -136,7 +137,7 @@ public final class InteractListener implements Listener {
                 lastTime = lastTimeCraft;
             }
             else {
-                lastTime = Math.min(INTERACTION_TIME_MAP.get(craft.getUUID()), PLAYER_INTERACTION_TIME_MAP.get(player.getUniqueId()));
+                lastTime = Math.min(INTERACTION_TIME_MAP.get(craft.getUUID()), PLAYER_INTERACTION_TIME_MAP.get(pilot.getUniqueId()));
             }
             if (lastTime != null) {
                 long ticksElapsed = (System.currentTimeMillis() - lastTime) / 50;
