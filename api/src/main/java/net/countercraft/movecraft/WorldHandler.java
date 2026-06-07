@@ -19,8 +19,8 @@ public abstract class WorldHandler {
     public static @NotNull String[] getPackageNames(@NotNull String minecraftVersion) {
         String[] parts = minecraftVersion.split("\\.");
         return new String[] {
-                "v1_" + parts[1] + "_" + parts[2],
-                "v1_" + parts[1]
+                "v" + parts[0] + "_" + parts[1] + "_" + parts[2],
+                "v" + parts[0] + "_" + parts[1]
         };
     }
 }
