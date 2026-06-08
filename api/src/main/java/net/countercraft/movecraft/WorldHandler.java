@@ -18,9 +18,14 @@ public abstract class WorldHandler {
 
     public static @NotNull String[] getPackageNames(@NotNull String minecraftVersion) {
         String[] parts = minecraftVersion.split("\\.");
+        // TODO: Replace with ServiceLoaders!
         return new String[] {
+                // Exact version (e.g. 1.21.11 or 26.1.2)
                 "v" + parts[0] + "_" + parts[1] + "_" + parts[2],
-                "v" + parts[0] + "_" + parts[1]
+                // After that minor version (e.g. 1.21 or 26.1)
+                "v" + parts[0] + "_" + parts[1],
+                // And at last, the major version only (e.g. 1 or 26), hopefully we never need this!
+                "v" + parts[0]
         };
     }
 }
