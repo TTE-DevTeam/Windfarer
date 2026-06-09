@@ -49,19 +49,18 @@ public class TypeSafeCraftType extends TypedContainer<PropertyKey<?>> {
     }
 
     @NotNull
+    // TODO: Rework to return Optionals
+    // TODO: Add access to proper logger
     public static TypeSafeCraftType load(@NotNull File file, String name, Function<String, TypeSafeCraftType> typeRetriever) {
-        final InputStream input;
         try {
-            input = new FileInputStream(file);
-        }
-        catch (FileNotFoundException e) {
-            e.printStackTrace();
-            return new TypeSafeCraftType(name, typeRetriever);
-        }
-        try(input) {
             FileConfiguration yaml = YamlConfiguration.loadConfiguration(file);
             return buildType(name, typeRetriever, yaml);
         }
+        // Thrown if there is an error in the file, like serialized objects not being registered or their class is missing
+        catch(IllegalArgumentException iaex) {
+            iaex.printStackTrace();
+            return new TypeSafeCraftType(name, typeRetriever);
+        }            
         catch (IOException e) {
             e.printStackTrace();
             return new TypeSafeCraftType(name, typeRetriever);
