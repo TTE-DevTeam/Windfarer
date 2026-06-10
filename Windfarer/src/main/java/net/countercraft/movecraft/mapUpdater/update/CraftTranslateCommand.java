@@ -196,7 +196,7 @@ public class CraftTranslateCommand extends UpdateCommand {
     }
 
     @NotNull
-    private Set<MovecraftLocation> verifyExterior(Set<MovecraftLocation> invertedHitBox, SetHitBox validExterior) {
+    private Set<MovecraftLocation> verifyExterior(Set<MovecraftLocation> invertedHitBox, MutableHitBox validExterior) {
         var shifts = new MovecraftLocation[]{new MovecraftLocation(0,-1,0),
                 new MovecraftLocation(1,0,0),
                 new MovecraftLocation(-1,0,0),
@@ -267,7 +267,7 @@ public class CraftTranslateCommand extends UpdateCommand {
     }
 
     @NotNull
-    private LinkedList<MovecraftLocation> hullSearch(SetHitBox validExterior) {
+    private LinkedList<MovecraftLocation> hullSearch(MutableHitBox validExterior) {
         var shifts = new MovecraftLocation[]{new MovecraftLocation(0,-1,0),
                 new MovecraftLocation(1,0,0),
                 new MovecraftLocation(-1,0,0),
