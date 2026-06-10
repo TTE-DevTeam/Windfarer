@@ -20,6 +20,7 @@ import java.io.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.logging.Logger;
 
 public class TypeSafeCraftType extends TypedContainer<PropertyKey<?>> {
 
@@ -51,25 +52,21 @@ public class TypeSafeCraftType extends TypedContainer<PropertyKey<?>> {
     @NotNull
     // TODO: Rework to return Optionals
     // TODO: Add access to proper logger
-    public static TypeSafeCraftType load(@NotNull File file, String name, Function<String, TypeSafeCraftType> typeRetriever) {
+    public static Optional<TypeSafeCraftType> load(@NotNull File file, String name, Function<String, TypeSafeCraftType> typeRetriever, final Logger logger) {
         try {
             FileConfiguration yaml = YamlConfiguration.loadConfiguration(file);
-            return buildType(name, typeRetriever, yaml);
+            return Optional.of(buildType(name, typeRetriever, yaml, logger));
         }
         // Thrown if there is an error in the file, like serialized objects not being registered or their class is missing
         catch(IllegalArgumentException iaex) {
-            iaex.printStackTrace();
-            return new TypeSafeCraftType(name, typeRetriever);
-        }            
-        catch (IOException e) {
-            e.printStackTrace();
-            return new TypeSafeCraftType(name, typeRetriever);
+            //iaex.printStackTrace();
+            logger.warning(String.format("Caught exception <%s> while parsing file!", iaex.getMessage()));
+            return Optional.empty();
         }
     }
 
     public static void runTransformers(Queue<TypeSafeCraftType> types) {
         // Step 4: Apply transforms
-        Queue<TypeSafeCraftType> queueForRemoval = new LinkedList<>(types);
         Set<PropertyKey> toDelete = new HashSet<>();
 
         // Run all transformers
@@ -114,7 +111,7 @@ public class TypeSafeCraftType extends TypedContainer<PropertyKey<?>> {
         this.typeRetriever = typeRetriever;
     }
 
-    private static TypeSafeCraftType buildType(String name, Function<String, TypeSafeCraftType> typeRetriever, final ConfigurationSection yamlMapping) {
+    private static TypeSafeCraftType buildType(String name, Function<String, TypeSafeCraftType> typeRetriever, final ConfigurationSection yamlMapping, final Logger logger) {
         TypeSafeCraftType result = new TypeSafeCraftType(name, typeRetriever);
         Object parentObj = yamlMapping.get("parent", null);
         if (parentObj != null) {
@@ -131,7 +128,7 @@ public class TypeSafeCraftType extends TypedContainer<PropertyKey<?>> {
         // Simplified loading strategy => Simply attempt to load all properties that have been registered
         for (PropertyKey<?> propertyKey : PROPERTY_REGISTRY.getAllValues()) {
             if (readProperty(propertyKey, yamlMapping, result) > 1) {
-                System.err.println("FAILED to read propertykey <" + propertyKey.key().toString() +"> from type <" + result.getName() +">!");
+                logger.warning("FAILED to read propertykey <" + propertyKey.key().toString() +"> from type <" + result.getName() +">!");
             }
         }
 

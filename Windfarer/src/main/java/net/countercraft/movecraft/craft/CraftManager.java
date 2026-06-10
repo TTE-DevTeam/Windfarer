@@ -124,13 +124,19 @@ public class CraftManager implements Iterable<Craft>{
             File file = queue.poll();
             final String name = file.getName().substring(0, file.getName().lastIndexOf('.')).toUpperCase();
             Movecraft.getInstance().getLogger().info(String.format("Loading crafttype file <%s> (type name will be %s>)...", file.getName(), name));
-            TypeSafeCraftType typeSafeCraftType = TypeSafeCraftType.load(file, name, this::getCraftTypeByName);
-            final TypeSafeCraftType previous = this.craftTypeMap.put(name, typeSafeCraftType);
-            if (previous != null) {
-                Movecraft.getInstance().getLogger().warning("Overriding crafttype setting with name <" + name + ">! This means there are duplicates!");
-                loadedTypes.remove(previous);
+            Optional<TypeSafeCraftType> optTypeSafeCraftType = TypeSafeCraftType.load(file, name, this::getCraftTypeByName, Movecraft.getInstance().getLogger());
+
+            if (optTypeSafeCraftType.isEmpty()) {
+                Movecraft.getInstance().getLogger().warning("FAILED to load crafttype file <" + file.getName() + ">! Skipping...");
+            } else {
+                final TypeSafeCraftType typeSafeCraftType = optTypeSafeCraftType.get();
+                final TypeSafeCraftType previous = this.craftTypeMap.put(name, typeSafeCraftType);
+                if (previous != null) {
+                    Movecraft.getInstance().getLogger().warning("Overriding crafttype setting with name <" + name + ">! This means there are duplicates!");
+                    loadedTypes.remove(previous);
+                }
+                loadedTypes.add(typeSafeCraftType);
             }
-            loadedTypes.add(typeSafeCraftType);
         }
 
         TypeSafeCraftType.runTransformers(new LinkedList<>(loadedTypes));
