@@ -17,10 +17,7 @@ import net.countercraft.movecraft.events.CraftReleaseEvent;
 import net.countercraft.movecraft.sign.SignListener;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.Tags;
-import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
-import net.countercraft.movecraft.util.hitboxes.HitBox;
-import net.countercraft.movecraft.util.hitboxes.SetHitBox;
-import net.countercraft.movecraft.util.hitboxes.SolidHitBox;
+import net.countercraft.movecraft.util.hitboxes.*;
 import org.bukkit.*;
 import org.bukkit.block.data.Waterlogged;
 import org.jetbrains.annotations.NotNull;
@@ -73,7 +70,7 @@ public class CraftTranslateCommand extends UpdateCommand {
             sendSignEvents();
         }
         else {
-            SetHitBox originalLocations = new SetHitBox();
+            MutableHitBox originalLocations = new BitmapHitBox();
             for (MovecraftLocation movecraftLocation : craft.getHitBox()) {
                 originalLocations.add(movecraftLocation.subtract(displacement));
             }
@@ -106,7 +103,7 @@ public class CraftTranslateCommand extends UpdateCommand {
                     new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(maxX, maxY, minZ)),
                     new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, minY, maxZ))
             };
-            final SetHitBox validExterior = new SetHitBox();
+            final MutableHitBox validExterior = new BitmapHitBox();
             for (HitBox hitBox : surfaces) {
                 validExterior.addAll(Sets.difference(hitBox.asSet(),craft.getHitBox().asSet()));
             }
@@ -205,6 +202,8 @@ public class CraftTranslateCommand extends UpdateCommand {
                 new MovecraftLocation(-1,0,0),
                 new MovecraftLocation(0,0,1),
                 new MovecraftLocation(0,0,-1)};
+        // TODO: Use multithreading using ForkJoin here!
+        // TODO: Use a bitmap hitbox instead of the HashSet for speed
         Set<MovecraftLocation> visited = new LinkedHashSet<>(validExterior.asSet());
         Queue<MovecraftLocation> queue = new ArrayDeque<>();
         for(var node : validExterior){
@@ -243,7 +242,7 @@ public class CraftTranslateCommand extends UpdateCommand {
                 new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(minX, maxY, maxZ)),
                 new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(maxX, maxY, minZ)),
                 new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, minY, maxZ))};
-        final SetHitBox validExterior = new SetHitBox();
+        final MutableHitBox validExterior = new BitmapHitBox();
         for (HitBox surface : surfaces) {
             for(var location : surface){
                 if(!craft.getHitBox().contains(location)){
@@ -277,7 +276,7 @@ public class CraftTranslateCommand extends UpdateCommand {
         var hull = new LinkedList<MovecraftLocation>();
         var craftBox = craft.getHitBox();
         Queue<MovecraftLocation> queue = Lists.newLinkedList(validExterior);
-        var visited = new SetHitBox(validExterior);
+        var visited = new BitmapHitBox(validExterior);
         while (!queue.isEmpty()){
             var top = queue.poll();
             if(craftBox.contains(top)){

@@ -34,10 +34,7 @@ import net.countercraft.movecraft.sign.CraftSignManager;
 import net.countercraft.movecraft.sign.MovecraftSignRegistry;
 import net.countercraft.movecraft.sign.SignListener;
 import net.countercraft.movecraft.util.*;
-import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
-import net.countercraft.movecraft.util.hitboxes.HitBox;
-import net.countercraft.movecraft.util.hitboxes.SetHitBox;
-import net.countercraft.movecraft.util.hitboxes.SolidHitBox;
+import net.countercraft.movecraft.util.hitboxes.*;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import org.bukkit.*;
@@ -170,8 +167,8 @@ public class DetectionTask implements Supplier<Effect> {
         final HitBox invertedHitBox = new BitmapHitBox(craft.getHitBox().boundingHitBox()).difference(craft.getHitBox());
 
         //A set of locations that are confirmed to be "exterior" locations
-        final SetHitBox confirmed = new SetHitBox();
-        final SetHitBox entireHitbox = new SetHitBox(craft.getHitBox());
+        final MutableHitBox confirmed = new BitmapHitBox();
+        final MutableHitBox entireHitbox = new BitmapHitBox(craft.getHitBox());
 
         //place phased blocks
         final Set<Location> overlap = new HashSet<>(craft.getPhaseBlocks().keySet());
@@ -189,7 +186,7 @@ public class DetectionTask implements Supplier<Effect> {
                 new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(maxX, maxY, minZ)),
                 new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, minY, maxZ))
         };
-        final SetHitBox validExterior = new SetHitBox();
+        final MutableHitBox validExterior = new BitmapHitBox();
         for (HitBox hitBox : surfaces) {
             validExterior.addAll(new BitmapHitBox(hitBox).difference(craft.getHitBox()));
         }

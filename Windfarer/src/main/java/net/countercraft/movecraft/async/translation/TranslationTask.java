@@ -49,10 +49,10 @@ import static net.countercraft.movecraft.util.MathUtils.withinWorldBorder;
 public class TranslationTask extends FuelAwareAsyncTask {
     private World world;
     private int dx, dy, dz;
-    private SetHitBox newHitBox;
+    private MutableHitBox newHitBox;
     private HitBox oldHitBox;
-    private SetHitBox oldFluidList;
-    private SetHitBox newFluidList;
+    private MutableHitBox oldFluidList;
+    private MutableHitBox newFluidList;
     private boolean failed;
     private boolean collisionExplosion = false;
     private String failMessage;
@@ -66,10 +66,10 @@ public class TranslationTask extends FuelAwareAsyncTask {
         this.dx = dx;
         this.dy = dy;
         this.dz = dz;
-        newHitBox = new SetHitBox();
+        newHitBox = new BitmapHitBox();
         oldHitBox = c.getHitBox();
-        oldFluidList = new SetHitBox(c.getFluidLocations());
-        newFluidList = new SetHitBox();
+        oldFluidList = new BitmapHitBox(c.getFluidLocations());
+        newFluidList = new BitmapHitBox();
     }
 
     @Override
@@ -149,7 +149,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
         final List<MovecraftLocation> harvestedBlocks = new ArrayList<>();
         final BlockSetProperty harvesterBladeBlocks = craft.getCraftProperties().get(
                 PropertyKeys.HARVESTER_BLADE_BLOCKS);
-        final SetHitBox collisionBox = new SetHitBox();
+        final MutableHitBox collisionBox = new BitmapHitBox();
         for (MovecraftLocation oldLocation : oldHitBox) {
             final MovecraftLocation newLocation = oldLocation.translate(dx, dy, dz);
             //If the new location already exists in the old hitbox than this is unnecessary because a craft can't hit
@@ -260,7 +260,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
                         collisionExplosion = true;
                     }
                 }
-                SetHitBox toRemove = new SetHitBox();
+                MutableHitBox toRemove = new BitmapHitBox();
                 MovecraftLocation next = location.translate(-dx, -dy, -dz);
                 while (oldHitBox.contains(next)) {
                     toRemove.add(next);
@@ -271,6 +271,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
             }
         } else if ((craft.getCraftProperties().get(PropertyKeys.COLLISION_EXPLOSION) > 0F)
                 && System.currentTimeMillis() - craft.getOrigPilotTime() > craft.getCraftProperties().get(PropertyKeys.EXPLOSION_ARMING_TIME)) {
+            // TODO: Rework! Collect all explosion positions first, ignore the ones within the craft if we are not allowed to explode internally. Then calculate the center if focused is to be used
             Craft parentCraft = null;
             if (craft instanceof SubCraft) {
                 parentCraft = ((SubCraft) craft).getParent();
@@ -322,7 +323,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
                         Material.AIR.createBlockData());
                 updates.add(new BlockCreateCommand(craft.getWorld(), location, phaseBlock));
             }
-            newHitBox = new SetHitBox();
+            newHitBox = new BitmapHitBox();
         }
 
         if (!collisionBox.isEmpty()) {
@@ -848,7 +849,8 @@ public class TranslationTask extends FuelAwareAsyncTask {
         if (isOnGround(hitBox) && dy < 0) {
             dy = 0;
         }
-        SetHitBox collisionBox = new SetHitBox();
+        // TODO: Use a offset hitbox
+        MutableHitBox collisionBox = new BitmapHitBox();
         for (MovecraftLocation ml : hitBox) {
             MovecraftLocation nl = ml.translate(dx, dy, dz);
             if (hitBox.contains(nl))
@@ -875,7 +877,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
         if (elevation == 0) {
             return 0;
         }
-        SetHitBox movedCollBox = new SetHitBox();
+        MutableHitBox movedCollBox = new BitmapHitBox();
         for (MovecraftLocation ml : collisionBox) {
             movedCollBox.add(ml.translate(0, elevation, 0));
 
@@ -884,7 +886,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
     }
 
     private int dropDistance(HitBox hitBox) {
-        MutableHitBox bottomLocs = new SetHitBox();
+        MutableHitBox bottomLocs = new BitmapHitBox();
         MovecraftLocation corner1 = new MovecraftLocation(hitBox.getMinX(), 0, hitBox.getMinZ());
         MovecraftLocation corner2 = new MovecraftLocation(hitBox.getMaxX(), 0, hitBox.getMaxZ());
         for (MovecraftLocation location : new SolidHitBox(corner1, corner2)) {
@@ -934,8 +936,8 @@ public class TranslationTask extends FuelAwareAsyncTask {
     }
 
     private boolean isOnGround(HitBox hitBox) {
-        MutableHitBox bottomLocs = new SetHitBox();
-        MutableHitBox translatedBottomLocs = new SetHitBox();
+        MutableHitBox bottomLocs = new BitmapHitBox();
+        MutableHitBox translatedBottomLocs = new BitmapHitBox();
         if (hitBox.getMinY() <= craft.getCraftProperties().get(PropertyKeys.MIN_HEIGHT_LIMIT, craft.getWorld())) {
             return true;
         }

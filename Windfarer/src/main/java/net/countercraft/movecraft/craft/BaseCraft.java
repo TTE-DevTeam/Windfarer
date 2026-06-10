@@ -13,6 +13,7 @@ import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
 import net.countercraft.movecraft.events.CraftSetAudienceEvent;
+import net.countercraft.movecraft.events.CraftStartCruiseEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.processing.CachedMovecraftWorld;
@@ -21,6 +22,7 @@ import net.countercraft.movecraft.processing.WorldManager;
 import net.countercraft.movecraft.util.Counter;
 import net.countercraft.movecraft.util.Tags;
 import net.countercraft.movecraft.util.TimingData;
+import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
 import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
 import net.countercraft.movecraft.util.hitboxes.SetHitBox;
@@ -100,9 +102,9 @@ public abstract class BaseCraft implements Craft {
         Hidden.uuidToCraft.put(uuid, this);
         this.craftProperties = type.createCraftProperties(this);
         this.w = world;
-        hitBox = new SetHitBox();
-        collapsedHitBox = new SetHitBox();
-        fluidLocations = new SetHitBox();
+        hitBox = new BitmapHitBox();
+        collapsedHitBox = new BitmapHitBox();
+        fluidLocations = new BitmapHitBox();
         lastCruiseUpdate = System.currentTimeMillis();
         cruising = false;
         disabled = false;
@@ -288,6 +290,9 @@ public abstract class BaseCraft implements Craft {
         if (!this.cruising) {
             this.setCruiseCooldownMultiplier(1);
             CraftStopCruiseEvent event = new CraftStopCruiseEvent(this, reason);
+            Bukkit.getPluginManager().callEvent(event);
+        } else {
+            CraftStartCruiseEvent event = new CraftStartCruiseEvent(this);
             Bukkit.getPluginManager().callEvent(event);
         }
     }

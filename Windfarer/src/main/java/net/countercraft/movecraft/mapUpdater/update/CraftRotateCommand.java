@@ -17,10 +17,7 @@ import net.countercraft.movecraft.sign.SignListener;
 import net.countercraft.movecraft.util.CollectionUtils;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.Tags;
-import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
-import net.countercraft.movecraft.util.hitboxes.HitBox;
-import net.countercraft.movecraft.util.hitboxes.SetHitBox;
-import net.countercraft.movecraft.util.hitboxes.SolidHitBox;
+import net.countercraft.movecraft.util.hitboxes.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -63,7 +60,7 @@ public class CraftRotateCommand extends UpdateCommand {
             passthroughBlocks.addEnumSet(Tags.SINKING_PASSTHROUGH);
         }
         if (!passthroughBlocks.isEmpty()) {
-            SetHitBox originalLocations = new SetHitBox();
+            MutableHitBox originalLocations = new BitmapHitBox();
             final MovecraftRotation counterRotation = rotation == MovecraftRotation.CLOCKWISE ? MovecraftRotation.ANTICLOCKWISE : MovecraftRotation.CLOCKWISE;
             for (MovecraftLocation movecraftLocation : craft.getHitBox()) {
                 originalLocations.add(MathUtils.rotateVec(counterRotation, movecraftLocation.subtract(originLocation)).add(originLocation));
@@ -80,8 +77,8 @@ public class CraftRotateCommand extends UpdateCommand {
             //The subtraction of the set of coordinates in the HitBox cube and the HitBox itself
             final Set<MovecraftLocation> invertedHitBox = Sets.difference(craft.getHitBox().boundingHitBox().asSet(), craft.getHitBox().asSet());
             //A set of locations that are confirmed to be "exterior" locations
-            final SetHitBox exterior = new SetHitBox();
-            final SetHitBox interior = new SetHitBox();
+            final MutableHitBox exterior = new BitmapHitBox();
+            final MutableHitBox interior = new BitmapHitBox();
 
             //place phased blocks
             final Set<Location> overlap = new HashSet<>(craft.getPhaseBlocks().keySet());
@@ -99,13 +96,13 @@ public class CraftRotateCommand extends UpdateCommand {
                     new SolidHitBox(new MovecraftLocation(maxX, minY, maxZ), new MovecraftLocation(maxX, maxY, minZ)),
                     new SolidHitBox(new MovecraftLocation(minX, minY, minZ), new MovecraftLocation(maxX, minY, maxZ))};
             //Valid exterior starts as the 6 surface planes of the HitBox with the locations that lie in the HitBox removed
-            final SetHitBox validExterior = new SetHitBox();
+            final MutableHitBox validExterior = new BitmapHitBox();
             for (HitBox hitBox : surfaces) {
                 validExterior.addAll(Sets.difference(hitBox.asSet(),craft.getHitBox().asSet()));
             }
 
             //Check to see which locations in the from set are actually outside of the craft
-            SetHitBox visited = new SetHitBox();
+            MutableHitBox visited = new BitmapHitBox();
             for (MovecraftLocation location : validExterior) {
                 if (craft.getHitBox().contains(location))
                     continue;

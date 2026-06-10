@@ -35,6 +35,7 @@ import net.countercraft.movecraft.mapUpdater.update.EntityUpdateCommand;
 import net.countercraft.movecraft.mapUpdater.update.UpdateCommand;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.NamespacedIDUtil;
+import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
 import net.countercraft.movecraft.util.hitboxes.SetHitBox;
 import net.kyori.adventure.text.Component;
@@ -82,10 +83,10 @@ public class RotationTask extends FuelAwareAsyncTask {
         this.rotation = rotation;
         this.w = w;
         this.isSubCraft = isSubCraft;
-        this.newHitBox = new SetHitBox();
-        this.oldHitBox = new SetHitBox(c.getHitBox());
-        this.oldFluidList = new SetHitBox(c.getFluidLocations());
-        this.newFluidList = new SetHitBox(c.getFluidLocations());
+        this.newHitBox = new BitmapHitBox();
+        this.oldHitBox = new BitmapHitBox(c.getHitBox());
+        this.oldFluidList = new BitmapHitBox(c.getFluidLocations());
+        this.newFluidList = new BitmapHitBox(c.getFluidLocations());
         if (rotationProcessor != null) {
             this.rotationProcessor = rotationProcessor;
         }
@@ -130,6 +131,7 @@ public class RotationTask extends FuelAwareAsyncTask {
             }
         }
 
+        final BitmapHitBox collisionBox = new BitmapHitBox();
         for(MovecraftLocation originalLocation : oldHitBox){
             MovecraftLocation newLocation = MathUtils.rotateVec(rotation,originalLocation.subtract(originPoint)).add(originPoint);
             newHitBox.add(newLocation);
