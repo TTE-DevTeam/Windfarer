@@ -51,6 +51,7 @@ public class Settings {
     public static HashSet<String> ForbiddenRemoteSigns;
     public static boolean ReleaseOnDeath = false;
     public static boolean displayBlockLists = false;
+    public static boolean suppressRedstoneEventOnMovingCrafts = true;
     public static String displayBlockListsAtlasName = "minecraft:blocks";
     public static String displayBlockListsAtlasPrefix = "block/";
 }

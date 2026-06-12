@@ -112,8 +112,13 @@ public class BlockListener implements Listener {
     // process certain redstone on cruising crafts
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onRedstoneEvent(@NotNull BlockRedstoneEvent e) {
+        // Toggleable as this is rather expensive
+        if (!Settings.suppressRedstoneEventOnMovingCrafts)
+            return;
+
         Block block = e.getBlock();
         // Only react if we are sticky piston, normal piston or dispenser
+        // TODO: In the case of droppers and dispensers, try checking via the attached data container like we do for signs!
         if (!(block.getType() == Material.STICKY_PISTON || block.getType() == Material.PISTON || block.getType() == Material.DISPENSER))
             return;
 
