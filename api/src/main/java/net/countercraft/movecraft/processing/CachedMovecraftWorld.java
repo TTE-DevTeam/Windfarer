@@ -3,17 +3,14 @@ package net.countercraft.movecraft.processing;
 import com.google.common.collect.MapMaker;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.support.AsyncChunk;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.WorldBorder;
+import org.bukkit.*;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class CachedMovecraftWorld implements MovecraftWorld{
@@ -102,11 +99,24 @@ public final class CachedMovecraftWorld implements MovecraftWorld{
         if((test = chunkCache.get(chunkLocation)) != null){
             return test;
         }
-        test = WorldManager.INSTANCE.executeMain(() -> {
-            AsyncChunk<?> temp;
-            if((temp = chunkCache.get(chunkLocation)) != null) return temp;
-            return AsyncChunk.of(world.getChunkAt(location.toBukkit(world)));
-        });
+        // TODO: Maybe use world.getChunkAtAsync() or world.getChunkAtAsyncUrgently() instead?
+//        test = WorldManager.INSTANCE.executeMain(() -> {
+//            AsyncChunk<?> temp;
+//            if((temp = chunkCache.get(chunkLocation)) != null) return temp;
+//            return AsyncChunk.of(world.getChunkAt(location.toBukkit(world)));
+//        });
+        Chunk chunk;
+        final int chunkX = location.getX() >> 4;
+        final int chunkZ = location.getZ() >> 4;
+
+        if (Bukkit.isPrimaryThread()) {
+            chunk = world.getChunkAt(chunkX, chunkZ);
+        } else {
+            chunk = world.getChunkAtAsyncUrgently(chunkX, chunkZ).join();
+        }
+        
+        test = AsyncChunk.of(chunk);
+
         var previous = chunkCache.putIfAbsent(chunkLocation, test);
         return previous == null ? test : previous;
     }
