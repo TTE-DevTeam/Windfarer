@@ -66,6 +66,7 @@ public class ContactsSign extends AbstractInformationSign {
 
     @Override
     protected boolean internalProcessSignWithCraft(Action clickType, SignListener.SignWrapper sign, Craft craft, Entity interactor) {
+        // TODO: Tie to craft, not to player!
         if (interactor instanceof Player player) {
             player.performCommand("contacts");
         }
