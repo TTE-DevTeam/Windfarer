@@ -1,6 +1,8 @@
 package net.countercraft.movecraft.sign;
 
 import net.countercraft.movecraft.craft.Craft;
+import net.countercraft.movecraft.craft.PilotedCraft;
+import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
@@ -107,5 +109,15 @@ public class SpeedSign extends AbstractInformationSign {
             this.refreshSign(craft, sign, true, REFRESH_CAUSE.SIGN_MOVED_BY_CRAFT);
             this.sendUpdatePacket(craft, sign, REFRESH_CAUSE.SIGN_MOVED_BY_CRAFT);
         }
+    }
+
+    @Override
+    protected boolean canPlayerUseSignOn(Entity interactor, Craft craft) {
+        // Check for pilot or helmsman as well
+        // Issue is, that the icky implementation of gears is also toggled via this!
+        if (craft instanceof PilotedCraft pc) {
+            return pc.getPilotUUID().equals(interactor.getUniqueId()) || HelmsManManager.getHelmsMan(craft) == interactor;
+        }
+        return false;
     }
 }

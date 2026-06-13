@@ -1,7 +1,9 @@
 package net.countercraft.movecraft.sign;
 
 import net.countercraft.movecraft.craft.Craft;
+import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.craft.controller.AbstractRotationController;
+import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.util.MathUtils;
@@ -107,12 +109,17 @@ public class HelmSign extends AbstractInformationSign {
 
     @Override
     protected boolean canPlayerUseSignOn(Entity interactor, Craft craft) {
+        // TODO: Refactor into general method
         if (super.canPlayerUseSignOn(interactor, craft)) {
             if (!interactor.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".rotate")) {
                 interactor.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
                 return false;
             }
-            return true;
+            // Check for pilot or helmsman as well
+            // Issue is, the helm sign is not an actual control sign, it more or less is a information sing!
+            if (craft instanceof PilotedCraft pc) {
+                return pc.getPilotUUID().equals(interactor.getUniqueId()) || HelmsManManager.getHelmsMan(craft) == interactor;
+            }
         }
         return false;
     }
