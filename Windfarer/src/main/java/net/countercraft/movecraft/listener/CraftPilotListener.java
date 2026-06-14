@@ -4,6 +4,7 @@ import com.google.common.base.Predicates;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.TrackedLocation;
 import net.countercraft.movecraft.craft.Craft;
+import net.countercraft.movecraft.craft.CraftCache;
 import net.countercraft.movecraft.craft.SubCraft;
 import net.countercraft.movecraft.events.CraftDetectEvent;
 import net.countercraft.movecraft.events.CraftPilotEvent;
@@ -54,6 +55,11 @@ public class CraftPilotListener implements Listener {
         }
         // Traction and contact blocks!
         ContactBlockHelper.onPilot(event);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onCraftPiloted(CraftPilotEvent event) {
+        CraftCache.onCraftFinishedMovement(event.getCraft());
     }
 
     @EventHandler(ignoreCancelled = true)
