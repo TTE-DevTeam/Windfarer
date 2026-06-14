@@ -4,6 +4,7 @@ import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 
@@ -23,6 +24,7 @@ public class CraftCache {
 
     // TODO: Implement MUTEX based Craft state with push() and pop() functions
     // TODO: Implement function that determines if we should add a craft or not
+    // TODO: Implement getClosestCraftTo method
 
     protected static Map<UUID, CraftCache> worldMap = new ConcurrentHashMap<>();
 
@@ -38,7 +40,7 @@ public class CraftCache {
     }
 
     public static void onCraftFinishedMovement(final Craft craft) {
-        of(craft.getWorld()).onCraftFinishedMovementInternal(craft);
+        Bukkit.getScheduler().runTaskAsynchronously(Movecraft.getInstance(), new UpdateCraftPositionRunnable(craft, craft.getWorld().getUID()));
     }
 
     public static Set<Craft> getCraftsAtChunk(World world, MovecraftLocation blockCoordinate) {
@@ -158,6 +160,14 @@ public class CraftCache {
             return 131 * 131 * chunkX + 131 * chunkZ + chunkY;
         }
 
+    }
+
+    protected record UpdateCraftPositionRunnable(Craft craft, UUID worldUUID) implements Runnable {
+
+        @Override
+        public void run() {
+            of(worldUUID).onCraftFinishedMovementInternal(craft);
+        }
     }
 
 }
