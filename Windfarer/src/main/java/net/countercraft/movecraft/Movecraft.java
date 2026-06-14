@@ -51,7 +51,6 @@ import net.countercraft.movecraft.util.BukkitTeleport;
 import net.countercraft.movecraft.util.Tags;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -187,6 +186,7 @@ public class Movecraft extends JavaPlugin {
 
 
         CraftManager.initialize(datapackInitialized);
+        // TODO: Can this run asynchronously? Probably not
         Bukkit.getScheduler().runTaskTimer(this, WorldManager.INSTANCE::run, 0,1);
         wreckManager = new WreckManager(WorldManager.INSTANCE);
 
