@@ -2,6 +2,7 @@ package net.countercraft.movecraft.listener;
 
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.craft.Craft;
+import net.countercraft.movecraft.craft.CraftCache;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
 import org.bukkit.Bukkit;
@@ -40,6 +41,10 @@ public class WorldListener implements Listener {
             Bukkit.getScheduler().runTaskLater(Movecraft.getInstance(), () -> {
                 Bukkit.unloadWorld(world, true);
             }, 10);
+        }
+
+        if (!event.isCancelled()) {
+            CraftCache.onWorldUnload(world.getUID());
         }
     }
 

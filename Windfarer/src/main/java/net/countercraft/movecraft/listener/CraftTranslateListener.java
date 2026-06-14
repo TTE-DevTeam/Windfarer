@@ -1,6 +1,7 @@
 package net.countercraft.movecraft.listener;
 
 import net.countercraft.movecraft.craft.Craft;
+import net.countercraft.movecraft.craft.CraftCache;
 import net.countercraft.movecraft.events.CraftFinishMovementEvent;
 import net.countercraft.movecraft.events.CraftPreTranslateEvent;
 import net.countercraft.movecraft.processing.WorldManager;
@@ -20,6 +21,8 @@ public class CraftTranslateListener implements Listener {
         }
 
         WorldManager.INSTANCE.submit(new UpdateBannersTask(craft));
+
+        CraftCache.onCraftFinishedMovement(craft);
     }
 
     @EventHandler(ignoreCancelled = true)
