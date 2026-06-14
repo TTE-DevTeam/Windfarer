@@ -1,6 +1,5 @@
 package net.countercraft.movecraft.features.status;
 
-import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
@@ -9,32 +8,21 @@ import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
-import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
 import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.features.status.events.CraftStatusUpdateEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.processing.WorldManager;
-import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.sign.SignListener;
 import net.countercraft.movecraft.util.Counter;
-import net.countercraft.movecraft.util.NamespacedIDUtil;
-import net.countercraft.movecraft.util.Tags;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.function.Supplier;
 
 public class StatusManager extends BukkitRunnable implements Listener {
     public static final CraftDataTagKey<Long> LAST_STATUS_CHECK = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey("movecraft", "last-status-check"), craft -> System.currentTimeMillis());
@@ -48,73 +36,6 @@ public class StatusManager extends BukkitRunnable implements Listener {
 
             c.setDataTag(LAST_STATUS_CHECK, System.currentTimeMillis());
             WorldManager.INSTANCE.submit(new StatusUpdateTask(c));
-        }
-    }
-
-    public static final class StatusUpdateTask implements Supplier<Effect> {
-        private final Craft craft;
-        private final NamespacedKeyToDoubleProperty fuelTypes;
-
-        public StatusUpdateTask(@NotNull Craft craft) {
-            this.craft = craft;
-
-            fuelTypes = craft.getCraftProperties().get(PropertyKeys.FUEL_TYPES);
-        }
-
-        @Override
-        public @NotNull Effect get() {
-            Counter<NamespacedKey> materials = new Counter<>();
-            int nonNegligibleBlocks = 0;
-            int nonNegligibleSolidBlocks = 0;
-
-            for (MovecraftLocation l : craft.getHitBox()) {
-                BlockData data = craft.getMovecraftWorld().getData(l);
-                Material type = data.getMaterial();
-                NamespacedKey namespacedKey = NamespacedIDUtil.getBlockID(data);
-                materials.add(namespacedKey);
-
-                if (type != Material.FIRE && !type.isAir()) {
-                    nonNegligibleBlocks++;
-                }
-                if (type != Material.FIRE && !type.isAir() && !Tags.FLUID.contains(type)) {
-                    nonNegligibleSolidBlocks++;
-                }
-            }
-
-            Counter<RequiredBlockEntry> flyblocks = new Counter<>();
-            Counter<RequiredBlockEntry> moveblocks = new Counter<>();
-
-            // Pre-fill the moveblocks counter to avoid ignoring moveblocks
-            for(RequiredBlockEntry entry : craft.getCraftProperties().get(PropertyKeys.MOVE_BLOCKS)) {
-                moveblocks.add(entry, 0);
-            }
-
-            for(NamespacedKey material : materials.getKeySet()) {
-                for(RequiredBlockEntry entry : craft.getCraftProperties().get(PropertyKeys.FLY_BLOCKS)) {
-                    if (entry == null)
-                        continue;
-                    if(entry.contains(material)) {
-                        flyblocks.add(entry, materials.get(material) );
-                    }
-                }
-
-                for(RequiredBlockEntry entry : craft.getCraftProperties().get(PropertyKeys.MOVE_BLOCKS)) {
-                    // TODO: For whatever reason, this can be null?!
-                    if (entry == null)
-                        continue;
-                    if(entry.contains(material)) {
-                        moveblocks.add(entry, materials.get(material) );
-                    }
-                }
-            }
-
-            craft.setDataTag(Craft.BLOCKS, materials);
-            craft.setDataTag(Craft.FLYBLOCKS, flyblocks);
-            craft.setDataTag(Craft.MOVEBLOCKS, moveblocks);
-            craft.setDataTag(Craft.NON_NEGLIGIBLE_BLOCKS, nonNegligibleBlocks);
-            craft.setDataTag(Craft.NON_NEGLIGIBLE_SOLID_BLOCKS, nonNegligibleSolidBlocks);
-            craft.setDataTag(LAST_STATUS_CHECK, System.currentTimeMillis());
-            return () -> Bukkit.getPluginManager().callEvent(new CraftStatusUpdateEvent(craft));
         }
     }
 
