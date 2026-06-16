@@ -18,6 +18,8 @@ project(":windfarer-v1_21_8").projectDir = file("v1_21_8")
 project(":windfarer-v1_21_10").projectDir = file("v1_21_10")
 project(":windfarer-v1_21_11").projectDir = file("v1_21_11")
 project(":windfarer-v26_1_2").projectDir = file("v26_1_2")
+project(":windfarer-v26_2").projectDir = file("v26_2")
 project(":windfarer-api").projectDir = file("api")
 project(":windfarer-datapack").projectDir = file("datapack")
 project(":windfarer").projectDir = file("Windfarer")
+
