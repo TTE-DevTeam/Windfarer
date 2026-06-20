@@ -54,4 +54,5 @@ public class Settings {
     public static boolean suppressRedstoneEventOnMovingCrafts = true;
     public static String displayBlockListsAtlasName = "minecraft:blocks";
     public static String displayBlockListsAtlasPrefix = "block/";
+    public static long maxElapsedTimeForWorldChanges = 50000;
 }

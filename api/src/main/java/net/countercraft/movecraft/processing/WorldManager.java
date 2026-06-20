@@ -1,5 +1,6 @@
 package net.countercraft.movecraft.processing;
 
+import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.util.CompletableFutureTask;
 import org.bukkit.Bukkit;
@@ -7,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -49,19 +51,29 @@ public final class WorldManager implements Executor {
         int remaining = 0;
         List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
         // TODO: Allow the task to also supply lists of effects instead of a single one
+        // TODO: Add a option on how long or how many tasks we can start
         // Issue is, all the collected effects will be run in the same tick...
         while(!tasks.isEmpty()){
             remaining++;
             // DONE: Will this block our mainthread while the task is calculating?
-            // => No, it simply builds a list of completableFutures
-            inProgress.add(CompletableFuture.supplyAsync(tasks.poll()).whenComplete((effect, exception) -> {
-                poison();
-                if(exception != null){
-                    exception.printStackTrace();
-                } else if(effect != null) {
-                    worldChanges.add(effect);
-                }
-            }));
+            // => No, it simply builds a list of completableFutures, it waits later down the line (when polling from "currentTasks")
+            final Supplier<@Nullable Effect> task = tasks.poll();
+            // NoOpTask tasks do not provide us any effects, we do not need to wait for those and can just start them normally
+            if (!(task instanceof NoOpTask)) {
+                inProgress.add(CompletableFuture.supplyAsync(task).whenComplete((effect, exception) -> {
+                    // Once the task is complete, we add poison to currentTasks, which also holds all requests to the main thread
+                    poison();
+                    if(exception != null){
+                        exception.printStackTrace();
+                    } else if(effect != null) {
+                        // And if there were no exceptions, we add all or THE effect the task produced
+                        addEffect(effect);
+                    }
+                }));
+            } else {
+                CompletableFuture.supplyAsync(task);
+            }
+
         }
         // process pre-queued tasks and their requests to the main thread
         eventLoop: while(true){
@@ -89,13 +101,31 @@ public final class WorldManager implements Executor {
             }
         }
         // process world updates on the main thread
-        // TODO: Limit the amount of time a effect has to run, otherwise, all effects from "now" must run in the same tick!
+        // DONE: Limit the amount of time a effect has to run, otherwise, all effects from "now" must run in the same tick!
+        final long startTime = System.currentTimeMillis();
         Effect sideEffect;
         while((sideEffect = worldChanges.poll()) != null){
             sideEffect.run();
+            long timeElapsed = System.currentTimeMillis() - startTime;
+            if (timeElapsed >= Settings.maxElapsedTimeForWorldChanges)
+                break;
         }
-        CachedMovecraftWorld.purge();
+        // Once we are fully done, purge the worlds
+        if (worldChanges.isEmpty()) {
+            CachedMovecraftWorld.purge();
+        }
         running = false;
+    }
+
+    private void addEffect(@Nullable Effect effect) {
+        if (effect instanceof Effect.MultiEffect multiEffect) {
+            final Iterator<Effect> iterator = multiEffect.iterator();
+            while (iterator.hasNext()) {
+                addEffect(iterator.next());
+            }
+        } else {
+            worldChanges.add(effect);
+        }
     }
 
     public <T> T executeMain(@NotNull Supplier<T> callable){

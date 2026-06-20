@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 @FunctionalInterface
@@ -43,7 +44,11 @@ public interface Effect {
         return new AndEffect(this, chain);
     }
 
-    class AndEffect implements Effect {
+    public interface MultiEffect extends Iterable<Effect> {
+        Iterator<Effect> iterator();
+    }
+
+    class AndEffect implements Effect, MultiEffect {
         private final List<Effect> effects = new ArrayList<>();
 
         public AndEffect(Effect... effects){
@@ -83,6 +88,11 @@ public interface Effect {
             effects.add(chain);
 
             return this;
+        }
+
+        @Override
+        public @NotNull Iterator<Effect> iterator() {
+            return this.effects.iterator();
         }
     }
 }

@@ -110,6 +110,8 @@ public class Movecraft extends JavaPlugin {
         Settings.displayBlockListsAtlasName = getConfig().getString("DisplayBlockListsAtlasName", "minecraft:blocks");
         Settings.displayBlockListsAtlasPrefix = getConfig().getString("DisplayBlockListsAtlasPrefix", "block/");
 
+        Settings.maxElapsedTimeForWorldChanges = getConfig().getLong("MaxElapsedTimeForWorldChanges", Settings.maxElapsedTimeForWorldChanges);
+
         String[] localisations = {"en", "cz", "nl", "fr"};
         for (String s : localisations) {
             if (!new File(getDataFolder()
