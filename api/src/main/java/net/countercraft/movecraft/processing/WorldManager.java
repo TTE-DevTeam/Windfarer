@@ -48,8 +48,12 @@ public final class WorldManager implements Executor {
         running = true;
         int remaining = 0;
         List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
+        // TODO: Allow the task to also supply lists of effects instead of a single one
+        // Issue is, all the collected effects will be run in the same tick...
         while(!tasks.isEmpty()){
             remaining++;
+            // DONE: Will this block our mainthread while the task is calculating?
+            // => No, it simply builds a list of completableFutures
             inProgress.add(CompletableFuture.supplyAsync(tasks.poll()).whenComplete((effect, exception) -> {
                 poison();
                 if(exception != null){
@@ -85,6 +89,7 @@ public final class WorldManager implements Executor {
             }
         }
         // process world updates on the main thread
+        // TODO: Limit the amount of time a effect has to run, otherwise, all effects from "now" must run in the same tick!
         Effect sideEffect;
         while((sideEffect = worldChanges.poll()) != null){
             sideEffect.run();
