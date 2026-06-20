@@ -68,6 +68,7 @@ public class FuelBurnTask implements Supplier<Effect> {
     @Override
     public Effect get() {
         // TODO: new craft status concept! Stop the craft from moving while we do something
+        // TODO: Add API for additional fuel sources and how to use them
         this.craft.setProcessing(true);
 
         boolean hasFuel = false;
@@ -246,6 +247,7 @@ public class FuelBurnTask implements Supplier<Effect> {
         }
     }
 
+    // TODO: Find better name
     private record WorkerData(
         @Nullable FurnaceInventory inventory,
         @Nullable TrackedLocation location,
@@ -266,6 +268,7 @@ public class FuelBurnTask implements Supplier<Effect> {
         }
     }
 
+    // TODO: Find better name
     private record Worker(
             @NotNull Craft craft,
             @NotNull TrackedLocation location,
@@ -334,6 +337,7 @@ public class FuelBurnTask implements Supplier<Effect> {
         return new NamespacedKey(trackedListId.namespace(), "illegal/" + trackedListId.getKey());
     }
 
+    // TODO: Move to FuelUtil
     protected Set<TrackedLocation> getBlocksAsync(NamespacedKey trackedListId, final TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> checkPredicate) {
         // Reset set if necessary
         Set<TrackedLocation> result = this.craft.getTrackedLocations().getOrDefault(trackedListId, null);
@@ -358,12 +362,14 @@ public class FuelBurnTask implements Supplier<Effect> {
         return result;
     }
 
+    // TODO: Move to FuelUtil
     protected Set<TrackedLocation> getFuelBurners() {
         return getBlocksAsync(FURNACES_KEY, (l, w, c) -> {
             return Result.of(Tags.FURNACES.contains(w.getMaterial(l)));
         });
     }
 
+    // TODO: Move to FuelUtil
     protected Set<TrackedLocation> getSolidFuelBlocks() {
         final Set<NamespacedKey> blockSet = Sets.newConcurrentHashSet(this.craft.getCraftProperties().get(PropertyKeys.FUEL_TYPES).getContainedBlockIDs());
         return getBlocksAsync(SOLID_FUEL_KEY, (l, w, c) -> {
