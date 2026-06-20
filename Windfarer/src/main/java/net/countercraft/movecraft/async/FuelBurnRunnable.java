@@ -11,11 +11,11 @@ import net.countercraft.movecraft.craft.SinkingCraft;
 import net.countercraft.movecraft.craft.SubCraft;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
-import net.countercraft.movecraft.craft.type.CraftProperties;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.events.FuelBurnEvent;
+import net.countercraft.movecraft.features.fuel.CraftFurnaceUtil;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.util.Tags;
 import org.bukkit.Bukkit;
@@ -40,11 +40,12 @@ public class FuelBurnRunnable implements Runnable {
     // FuelBurnRate: How much fuel gets burnt per tick?
     // "BurningFuel": How many ticks of fuel does the craft still have aboard?
 
-    // TODO: Listen to furnace burn events (item consumption and stuff) and cancel them if it is a actively used furnace!
+    // DONE: Listen to furnace burn events (item consumption and stuff) and cancel them if it is a actively used furnace! => Not necessary
 
     public static final CraftDataTagKey<Boolean> IS_FUELED = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Movecraft.getInstance(), "is_fueled"), c -> false);
     public static final CraftDataTagKey<Double> FUEL_PERCENTAGE = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Movecraft.getInstance(), "fuel_percentage"), c -> 0.0D);
     // TODO: Replace with config object that has the values directly
+    // TODO: Rewrite a good bit and allow consuming blocks from the craft as solid fuel
     public static final CraftDataTagKey<ItemStack> CURRENT_FUEL_ITEM = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Movecraft.getInstance(), "fuel_item"), c -> ItemStack.empty());
 
     private static final NamespacedKey FURNACES_KEY = new NamespacedKey(Movecraft.getInstance(), "furnaces");
@@ -294,7 +295,7 @@ public class FuelBurnRunnable implements Runnable {
                 if (Tags.FURNACES.contains(state.getType())) {
                     if (state instanceof InventoryHolder inventoryHolder) {
                         if (inventoryHolder.getInventory() instanceof FurnaceInventory furnaceInventory) {
-                            furnaceFuelLevel += getFurnaceFuelLevel(furnaceInventory, craft.getCraftProperties());
+                            furnaceFuelLevel += CraftFurnaceUtil.getFurnaceFuelLevel(furnaceInventory, craft.getCraftProperties());
                         }
                     }
                 }
@@ -323,31 +324,16 @@ public class FuelBurnRunnable implements Runnable {
         craft.setDataTag(FUEL_PERCENTAGE, furnaceFuelLevel);
     }
 
-    static double getFurnaceFuelLevel(final FurnaceInventory furnaceInventory, final CraftProperties craftProperties) {
-        if (furnaceInventory == null || furnaceInventory.isEmpty())
-            return 0.0D;
-
-        // Check fuel item
-        // If fueled, check for special effects of the cooked item
-        // If we consumed a bucket, add the bucket to the result slot or drop it in front of the furnace
-        ItemStack fuelItemStack = furnaceInventory.getFuel();
-        if (fuelItemStack == null || fuelItemStack.isEmpty())
-            return 0.0D;
-        NamespacedKey itemID = fuelItemStack.getType().getKey();
-        if (!craftProperties.get(PropertyKeys.FUEL_TYPES).contains(itemID)) {
-            return 0.0D;
-        }
-        // Return how full this itemstack is
-        return (((double) fuelItemStack.getAmount()) / ((double) fuelItemStack.getMaxStackSize()));
-    }
-
     static Set<TrackedLocation> calcFurnaceLocations(final Craft craft) {
         Set<TrackedLocation> result = craft.getTrackedLocations().get(FURNACES_KEY);
         if (result != null) {
-            return result;
+            if (!result.isEmpty()) {
+                return result;
+            }
+        } else {
+            result = new HashSet<>();
+            craft.getTrackedLocations().put(FURNACES_KEY, result);
         }
-        result = new HashSet<>();
-        craft.getTrackedLocations().put(FURNACES_KEY, result);
 
         // FUrnaces are valid, if they belong to the tag AND have fuel in them
         Predicate<MovecraftLocation> testFurnacePredicate;
