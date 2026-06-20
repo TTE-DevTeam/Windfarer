@@ -35,6 +35,10 @@ public interface Effect {
         return false;
     }
 
+    default @NotNull Effect andThen(@Nullable List<Effect> chain){
+        chain.add(0, this);
+        return new AndEffect(chain);
+    }
     default @NotNull Effect andThen(@Nullable Effect chain){
         return new AndEffect(this, chain);
     }
@@ -43,6 +47,11 @@ public interface Effect {
         private final List<Effect> effects = new ArrayList<>();
 
         public AndEffect(Effect... effects){
+            for (Effect effect : effects) {
+                andThen(effect);
+            }
+        }
+        public AndEffect(List<Effect> effects){
             for (Effect effect : effects) {
                 andThen(effect);
             }

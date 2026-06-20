@@ -1,9 +1,11 @@
 package net.countercraft.movecraft.craft.type.property;
 
+import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import net.countercraft.movecraft.util.SerializationUtil;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.SerializableAs;
 import org.bukkit.util.NumberConversions;
@@ -11,11 +13,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @SerializableAs("Movecraft_NamespacedKeyToDoubleProperty")
 public class NamespacedKeyToDoubleProperty implements ConfigurationSerializable {
 
-    private final Map<NamespacedKey, Double> mapping = new HashMap<>();
+    private final Map<NamespacedKey, Double> mapping = new ConcurrentHashMap<>();
 
     public NamespacedKeyToDoubleProperty(NamespacedKeyToDoubleProperty toClone) {
         this.copy();
@@ -31,6 +34,25 @@ public class NamespacedKeyToDoubleProperty implements ConfigurationSerializable 
             result.put(entry.getKey(), entry.getValue());
         }
         return result;
+    }
+
+    protected Set<NamespacedKey> getSubSet(RegistryKey<? extends Keyed> registryKey) {
+        Set<NamespacedKey> result = new HashSet<>();
+        for (NamespacedKey key : this.mapping.keySet()) {
+            final Registry<? extends Keyed> registry = RegistryAccess.registryAccess().getRegistry(registryKey);
+            if (registry.get(key) != null) {
+                result.add(key);
+            }
+        }
+        return result;
+    }
+
+    public Set<NamespacedKey> getContainedBlockIDs() {
+        return getSubSet(RegistryKey.BLOCK);
+    }
+
+    public Set<NamespacedKey> getContainedItemIDs() {
+        return getSubSet(RegistryKey.ITEM);
     }
 
     @Nullable
