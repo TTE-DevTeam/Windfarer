@@ -1,6 +1,5 @@
 package net.countercraft.movecraft.processing.effects;
 
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,11 +43,12 @@ public interface Effect {
         return new AndEffect(this, chain);
     }
 
+    // TODO: Customization flags
     public interface MultiEffect extends Iterable<Effect> {
         Iterator<Effect> iterator();
     }
 
-    class AndEffect implements Effect, MultiEffect {
+    class AndEffect implements Effect {
         private final List<Effect> effects = new ArrayList<>();
 
         public AndEffect(Effect... effects){
@@ -88,11 +88,6 @@ public interface Effect {
             effects.add(chain);
 
             return this;
-        }
-
-        @Override
-        public @NotNull Iterator<Effect> iterator() {
-            return this.effects.iterator();
         }
     }
 }
