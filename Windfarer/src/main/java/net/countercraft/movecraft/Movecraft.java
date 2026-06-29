@@ -238,6 +238,7 @@ public class Movecraft extends JavaPlugin {
         MovecraftSignRegistry.INSTANCE.register("Teleport:", new TeleportSign());
         MovecraftSignRegistry.INSTANCE.register("Scuttle", new ScuttleSign());
         MovecraftSignRegistry.INSTANCE.register("Helmsman", new HelmsManSign());
+        MovecraftSignRegistry.INSTANCE.register("Subcraft Move", new SubcraftMoveSign(CraftManager.getInstance()::getCraftTypeByName, Movecraft::getInstance), true, "SC Move");
 
         getServer().getPluginManager().registerEvents(new CraftPilotListener(), this);
         getServer().getPluginManager().registerEvents(new CraftReleaseListener(), this);
