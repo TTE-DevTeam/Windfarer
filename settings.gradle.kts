@@ -22,4 +22,3 @@ project(":windfarer-v26_2").projectDir = file("v26_2")
 project(":windfarer-api").projectDir = file("api")
 project(":windfarer-datapack").projectDir = file("datapack")
 project(":windfarer").projectDir = file("Windfarer")
-
