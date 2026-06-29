@@ -6,9 +6,9 @@ plugins {
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 dependencies {
-    api(project(":movecraft-api"))
+    api(project(":windfarer-api"))
     paperweight.paperDevBundle("26.2.build.+")
 }
 
-description = "Movecraft-v26_2"
+description = "Windfarer-v26_2"
 paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.MOJANG_PRODUCTION
