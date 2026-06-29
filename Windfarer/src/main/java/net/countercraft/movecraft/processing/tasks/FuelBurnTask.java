@@ -1,6 +1,5 @@
 package net.countercraft.movecraft.processing.tasks;
 
-import com.google.common.collect.Sets;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.TrackedLocation;
@@ -8,20 +7,16 @@ import net.countercraft.movecraft.async.FuelBurnRunnable;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
-import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
-import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
 import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.events.FuelBurnEvent;
+import net.countercraft.movecraft.features.fuel.FuelDataTags;
+import net.countercraft.movecraft.features.fuel.FuelUtil;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.WorldManager;
 import net.countercraft.movecraft.processing.effects.Effect;
-import net.countercraft.movecraft.processing.functions.Result;
-import net.countercraft.movecraft.processing.functions.TriadicPredicate;
-import net.countercraft.movecraft.util.BlockCollectionUtil;
-import net.countercraft.movecraft.util.NamespacedIDUtil;
 import net.countercraft.movecraft.util.Tags;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -49,13 +44,6 @@ import java.util.function.Supplier;
 //   - burnFuel()
 
 public class FuelBurnTask implements Supplier<Effect> {
-
-    public static final CraftDataTagKey<Boolean> IS_FUELED = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Movecraft.getInstance(), "is_fueled"), c -> false);
-    public static final CraftDataTagKey<Double> FUEL_PERCENTAGE = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Movecraft.getInstance(), "fuel_percentage"), c -> 0.0D);
-
-    public static final NamespacedKey FURNACES_KEY = new NamespacedKey(Movecraft.getInstance(), "furnaces");
-    public static final NamespacedKey SOLID_FUEL_KEY = new NamespacedKey(Movecraft.getInstance(), "solid_fuel");
-    //private static final CraftDataTagKey<Long> NEXT_FURNACE_CALCULATION = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Movecraft.getInstance(), "fuel_last_burner_calculation"), c -> System.currentTimeMillis() + 5000);
 
     private final Craft craft;
     private final double fuelBurnRate;
@@ -104,7 +92,7 @@ public class FuelBurnTask implements Supplier<Effect> {
             double burnTime = 0;
             // After that, find our source for a new fuel item
             // Step 1): Check for fuel in the burners
-            Set<TrackedLocation> furnaces = this.getFuelBurners();
+            Set<TrackedLocation> furnaces = FuelUtil.getFuelBurners(this.craft);
             if (!furnaces.isEmpty()) {
                 // Access furnace inventories and determine the next active burner
                 // Also collect the burners in a list to update them later on
@@ -205,7 +193,7 @@ public class FuelBurnTask implements Supplier<Effect> {
             }
 
             // We were fueld, but now we are no longer fueled
-            if (craft.getDataTag(IS_FUELED)) {
+            if (craft.getDataTag(FuelDataTags.IS_FUELED)) {
                 if (craft.getCraftProperties().get(PropertyKeys.SINK_WHEN_OUT_OF_FUEL) && !fueled) {
                     if (Settings.Debug) {
                         Movecraft.getInstance().getLogger().info("Scuttling craft <" + craft.getUUID().toString() +"> at <" + craft.getHitBox().getMidPoint().toString() + "> as it ran out of fuel!");
@@ -214,7 +202,7 @@ public class FuelBurnTask implements Supplier<Effect> {
                     CraftManager.getInstance().sink(craft, CraftSinkEvent.SIMPLE_SINK_REASONS.OUT_OF_FUEL);
                 }
             }
-            craft.setDataTag(IS_FUELED, fueled);
+            craft.setDataTag(FuelDataTags.IS_FUELED, fueled);
         }
     }
 
@@ -330,52 +318,6 @@ public class FuelBurnTask implements Supplier<Effect> {
             return null;
         }
 
-    }
-
-    // Can be used by addons to exclude specific positions from usage for solid fuel or burners
-    public static NamespacedKey buildIllegalTrackingListKeyFor(final NamespacedKey trackedListId) {
-        return new NamespacedKey(trackedListId.namespace(), "illegal/" + trackedListId.getKey());
-    }
-
-    // TODO: Move to FuelUtil
-    protected Set<TrackedLocation> getBlocksAsync(NamespacedKey trackedListId, final TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> checkPredicate) {
-        // Reset set if necessary
-        Set<TrackedLocation> result = this.craft.getTrackedLocations().getOrDefault(trackedListId, null);
-        Set<TrackedLocation> illegal = this.craft.getTrackedLocations().getOrDefault(buildIllegalTrackingListKeyFor(trackedListId), null);
-        // TODO: Squadrons / Subcraft detection will interfere here! For now, do not refresh
-        // DONE: Add another trackedlocation list that represents illegal positions for burners and blocks
-        if (result == null /*|| this.craft.getDataTag(NEXT_FURNACE_CALCULATION) <= System.currentTimeMillis()*/) {
-            result = Sets.newConcurrentHashSet();
-        } else {
-            return result;
-        }
-
-        Set<MovecraftLocation> candidates = BlockCollectionUtil.getLocations(this.craft, checkPredicate);
-
-        for (MovecraftLocation loc : candidates) {
-            result.add(new TrackedLocation(this.craft, loc));
-        }
-        if (illegal != null)
-            result.removeAll(illegal);
-
-        this.craft.getTrackedLocations().put(trackedListId, result);
-        return result;
-    }
-
-    // TODO: Move to FuelUtil
-    protected Set<TrackedLocation> getFuelBurners() {
-        return getBlocksAsync(FURNACES_KEY, (l, w, c) -> {
-            return Result.of(Tags.FURNACES.contains(w.getMaterial(l)));
-        });
-    }
-
-    // TODO: Move to FuelUtil
-    protected Set<TrackedLocation> getSolidFuelBlocks() {
-        final Set<NamespacedKey> blockSet = Sets.newConcurrentHashSet(this.craft.getCraftProperties().get(PropertyKeys.FUEL_TYPES).getContainedBlockIDs());
-        return getBlocksAsync(SOLID_FUEL_KEY, (l, w, c) -> {
-            NamespacedKey blockId = NamespacedIDUtil.getBlockID(w.getData(l));
-            return Result.of(blockSet.contains(blockId));
-        });
     }
 
 }
