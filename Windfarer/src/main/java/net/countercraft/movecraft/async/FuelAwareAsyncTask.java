@@ -17,13 +17,9 @@
 
 package net.countercraft.movecraft.async;
 
-import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.craft.Craft;
-import net.countercraft.movecraft.localisation.I18nSupport;
-import org.bukkit.scheduler.BukkitRunnable;
-
-import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
+import net.countercraft.movecraft.features.fuel.FuelDataTags;
+import net.countercraft.movecraft.features.fuel.FuelUtil;
 
 public abstract class FuelAwareAsyncTask extends AsyncTask {
 
@@ -35,16 +31,16 @@ public abstract class FuelAwareAsyncTask extends AsyncTask {
     // DONE: Check against craft datatag
     protected boolean checkFuel() {
         final Craft craft = this.getCraft();
-        if (!FuelBurnRunnable.doesBurnFuel(craft)) {
+        if (!FuelUtil.doesBurnFuel(craft)) {
             return true;
         }
         // Workaround for stick movement being treated as passive
         // If we are not cruising, we are either sinking or stick-moving
         // Or if we only consume on movement, we will consume fuel
         boolean stick = !craft.getCruising();
-        if (stick || FuelBurnRunnable.burnsOnlyOnMovement(craft)) {
+        if (stick || FuelUtil.onlyBurnsFuelOnMovement(craft)) {
             FuelBurnRunnable.runFuelBurnLogic(craft, stick);
         }
-        return this.getCraft().getDataTag(FuelBurnRunnable.IS_FUELED);
+        return this.getCraft().getDataTag(FuelDataTags.IS_FUELED);
     }
 }
