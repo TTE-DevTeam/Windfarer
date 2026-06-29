@@ -39,6 +39,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import static net.countercraft.movecraft.features.fuel.FuelDataTags.IS_FUELED;
+
 // Problematic methods (highest to lowest9:
 //   - updateFurnaces (getBlockState(), BlockState.update())
 //   - burnFuel()
@@ -159,6 +161,11 @@ public class FuelBurnTask implements Supplier<Effect> {
         additionalSteps.add(consumeFuelEffect);
         additionalSteps.add(fuelCraftEffect);
         additionalSteps.add(new SinkOutOfFuelCraftsAndApplyIsFueled(craft, hasFuel));
+        // Update burner effect at last
+        additionalSteps.add(() -> {
+            boolean fueled = craft.getDataTag(IS_FUELED);
+            WorldManager.INSTANCE.submit(new UpdateFuelBurnersTask(craft, fueled));
+        });
         return new Effect.AndEffect(additionalSteps);
     }
 
@@ -170,7 +177,7 @@ public class FuelBurnTask implements Supplier<Effect> {
 
         @Override
         public void run() {
-            craft.setDataTag(FuelBurnRunnable.CURRENT_FUEL_ITEM, fuelItem());
+            craft.setDataTag(FuelDataTags.CURRENT_FUEL_ITEM, fuelItem());
             craft.setBurningFuel(craft.getBurningFuel() + burnTime());
             craft.setMaxBurningFuel(craft.getBurningFuel());
         }
@@ -193,7 +200,7 @@ public class FuelBurnTask implements Supplier<Effect> {
             }
 
             // We were fueld, but now we are no longer fueled
-            if (craft.getDataTag(FuelDataTags.IS_FUELED)) {
+            if (craft.getDataTag(IS_FUELED)) {
                 if (craft.getCraftProperties().get(PropertyKeys.SINK_WHEN_OUT_OF_FUEL) && !fueled) {
                     if (Settings.Debug) {
                         Movecraft.getInstance().getLogger().info("Scuttling craft <" + craft.getUUID().toString() +"> at <" + craft.getHitBox().getMidPoint().toString() + "> as it ran out of fuel!");
@@ -202,7 +209,7 @@ public class FuelBurnTask implements Supplier<Effect> {
                     CraftManager.getInstance().sink(craft, CraftSinkEvent.SIMPLE_SINK_REASONS.OUT_OF_FUEL);
                 }
             }
-            craft.setDataTag(FuelDataTags.IS_FUELED, fueled);
+            craft.setDataTag(IS_FUELED, fueled);
         }
     }
 

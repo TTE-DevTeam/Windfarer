@@ -6,6 +6,7 @@ import net.countercraft.movecraft.TrackedLocation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.features.fuel.CraftFurnaceUtil;
+import net.countercraft.movecraft.features.fuel.FuelUtil;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.util.Tags;
@@ -23,7 +24,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ForkJoinTask;
 import java.util.function.Supplier;
 
-import static net.countercraft.movecraft.async.FuelBurnRunnable.*;
+import static net.countercraft.movecraft.features.fuel.FuelDataTags.CURRENT_FUEL_ITEM;
+import static net.countercraft.movecraft.features.fuel.FuelDataTags.FUEL_PERCENTAGE;
 
 public class UpdateFuelBurnersTask implements Supplier<Effect> {
 
@@ -46,7 +48,7 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
 
         final boolean furnaceNMSAvailable = Movecraft.getInstance().getNMSHelper() != null;
 
-        final Set<TrackedLocation> furnaceLocations = craft.getDataTag(FURNACES);
+        final Set<TrackedLocation> furnaceLocations = FuelUtil.getFuelBurners(craft);
         if (furnaceLocations.size() > 0) {
             ArrayList<ForkJoinTask<BurnerWorkerData>> workers = new ArrayList<>();
             final Queue<MovecraftLocation> burnersToUpdate = new ConcurrentLinkedQueue<>();
