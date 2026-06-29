@@ -1,11 +1,12 @@
 package net.countercraft.movecraft.features.status;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import net.countercraft.movecraft.async.FuelBurnRunnable;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
 import net.countercraft.movecraft.events.CraftDetectEvent;
+import net.countercraft.movecraft.features.fuel.FuelDataTags;
+import net.countercraft.movecraft.features.fuel.FuelUtil;
 import net.countercraft.movecraft.sign.AbstractInformationSign;
 import net.countercraft.movecraft.sign.SignListener;
 import net.countercraft.movecraft.util.Counter;
@@ -65,12 +66,12 @@ public class StatusSign extends AbstractInformationSign {
 
     protected Component calcFuel(Craft craft) {
         // If we dont burn any fuel, we can quit early
-        if (!FuelBurnRunnable.doesBurnFuel(craft)) {
+        if (!FuelUtil.doesBurnFuel(craft)) {
             return null;
         }
 
         // Since our fuel burn rate varies, we will just display how full our tank is instead...
-        final double fuelLevel = craft.getDataTag(FuelBurnRunnable.FUEL_PERCENTAGE);
+        final double fuelLevel = craft.getDataTag(FuelDataTags.FUEL_PERCENTAGE);
         int cells = (int) Math.round(fuelLevel * ((double) CELL_COUNT));
         Component result = Component.text("Fuel: ");
         result = result.append(FUEL_PREFIX);

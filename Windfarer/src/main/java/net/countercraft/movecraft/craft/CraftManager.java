@@ -33,6 +33,7 @@ import net.countercraft.movecraft.processing.CachedMovecraftWorld;
 import net.countercraft.movecraft.processing.WorldManager;
 import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.processing.functions.CraftSupplier;
+import net.countercraft.movecraft.processing.tasks.UpdateFuelBurnersTask;
 import net.countercraft.movecraft.processing.tasks.detection.DetectionTask;
 import net.countercraft.movecraft.util.TypeDependency;
 import net.kyori.adventure.audience.Audience;
@@ -266,7 +267,8 @@ public class CraftManager implements Iterable<Craft>{
 
         crafts.remove(craft);
         // Turn off furnaces
-        FuelBurnRunnable.updateFurnaces(craft, false);
+        // TODO: Not sure if this will work at all
+        WorldManager.INSTANCE.submit(new UpdateFuelBurnersTask(craft, false));
         if(craft instanceof PlayerCraft)
             playerCrafts.remove(((PlayerCraft) craft).getPilotUUID());
 
