@@ -125,7 +125,7 @@ public class FuelBurnTask implements Supplier<Effect> {
                     fuelItem = fuelItem.asQuantity(consumeQty);
 
                     consumeFuelEffect = new ConsumeFuelItemInBurner(
-                            this.craft.getWorld(),
+                            this.craft,
                             result.get().location().getAbsoluteLocation(),
                             consumeQty
                     );
@@ -214,13 +214,14 @@ public class FuelBurnTask implements Supplier<Effect> {
     }
 
     private record ConsumeFuelItemInBurner(
-            World world,
+            Craft craft,
             MovecraftLocation burnerLocation,
             int comsumeQty
     ) implements Effect {
 
         @Override
         public void run() {
+            final World world = craft.getWorld();
             BlockState blockState = world.getBlockState(burnerLocation().toBukkit(world));
             if (Tags.FURNACES.contains(blockState.getType())) {
                 if (blockState instanceof InventoryHolder inventoryHolder) {

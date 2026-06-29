@@ -10,7 +10,9 @@ import net.countercraft.movecraft.features.fuel.FuelUtil;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.util.Tags;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Furnace;
@@ -83,8 +85,9 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
         final ItemStack fuelItem = craft.getDataTag(CURRENT_FUEL_ITEM);
         int burnTime = 0;
         int totalBurnTime = 0;
-        if (fuelItem != null && !fuelItem.isEmpty() && Movecraft.getInstance().getNMSHelper().isFuel(fuelItem, craft.getWorld())) {
-            totalBurnTime = (Movecraft.getInstance().getNMSHelper().getBurnDuration(fuelItem, craft.getWorld()));
+        final World worldWorkaround = Bukkit.getWorld(craft.getMovecraftWorld().getWorldUUID());
+        if (fuelItem != null && !fuelItem.isEmpty() && Movecraft.getInstance().getNMSHelper().isFuel(fuelItem, worldWorkaround)) {
+            totalBurnTime = (Movecraft.getInstance().getNMSHelper().getBurnDuration(fuelItem, worldWorkaround));
             double burnDuration = totalBurnTime;
             burnTime = (int) (burnDuration * burnPercentage);
         }
