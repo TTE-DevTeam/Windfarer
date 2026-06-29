@@ -16,6 +16,7 @@ import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.events.FuelBurnEvent;
 import net.countercraft.movecraft.features.fuel.CraftFurnaceUtil;
+import net.countercraft.movecraft.features.fuel.FuelUtil;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.util.Tags;
 import org.bukkit.Bukkit;
@@ -51,19 +52,15 @@ public class FuelBurnRunnable implements Runnable {
     private static final NamespacedKey FURNACES_KEY = new NamespacedKey(Movecraft.getInstance(), "furnaces");
     public static final CraftDataTagKey<Set<TrackedLocation>> FURNACES = CraftDataTagRegistry.INSTANCE.registerTagKey(FURNACES_KEY, FuelBurnRunnable::calcFurnaceLocations);
 
-    static boolean burnsOnlyOnMovement(final Craft craft) {
-        return craft.getCraftProperties().get(PropertyKeys.ONLY_CONSUME_FUEL_ON_MOVEMENT);
-    }
-
     @Override
     public void run() {
         List<Craft> crafts = Lists.newArrayList(CraftManager.getInstance());
         for (Craft craft : crafts) {
-            if (!doesBurnFuel(craft)) {
+            if (!FuelUtil.doesBurnFuel(craft)) {
                 continue;
             }
 
-            if (burnsOnlyOnMovement(craft)) {
+            if (FuelUtil.onlyBurnsFuelOnMovement(craft)) {
                 continue;
             }
 
@@ -307,9 +304,11 @@ public class FuelBurnRunnable implements Runnable {
 
                 if (state instanceof org.bukkit.block.Furnace furnace1) {
                     if (setProgress) {
-                        Movecraft.getInstance().getNMSHelper().setFurnaceBurnTime(burnTime, totalBurnTime + 1, furnace1);
-                    } else if (!active) {
-                        Movecraft.getInstance().getNMSHelper().setFurnaceBurnTime(0, 0, furnace1);
+                        if (active) {
+                            Movecraft.getInstance().getNMSHelper().setFurnaceBurnTime(burnTime, totalBurnTime + 1, furnace1);
+                        } else {
+                            Movecraft.getInstance().getNMSHelper().setFurnaceBurnTime(0, 0, furnace1);
+                        }
                     }
                 }
                 if (furnace instanceof Furnace furnaceState) {
@@ -356,15 +355,4 @@ public class FuelBurnRunnable implements Runnable {
         return result;
     }
 
-    public static boolean doesBurnFuel(final Craft craft) {
-        if (craft instanceof SinkingCraft) {
-            return false;
-        }
-        // TODO: Squadrons are subcrafts too! So treat them properly
-        if (craft instanceof SubCraft) {
-            return false;
-        }
-        double fuelBurnRate = craft.getCraftProperties().get(PropertyKeys.FUEL_BURN_RATE, craft.getMovecraftWorld());
-        return fuelBurnRate > 0.0D;
-    }
 }
