@@ -20,6 +20,7 @@ package net.countercraft.movecraft.listener;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
+import net.countercraft.movecraft.craft.CraftCache;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
@@ -53,6 +54,7 @@ import org.bukkit.material.Attachable;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import java.util.List;
+import java.util.Optional;
 
 public class BlockListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -64,11 +66,13 @@ public class BlockListener implements Listener {
 
         Location location = e.getBlock().getLocation();
         MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
-        for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
+        Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
+        if (optCraft.isPresent()) {
             // TODO: check against flag in crafttype
+            final Craft craft = optCraft.get();
             boolean craftAllowsBlockBreaking = !craft.getCraftProperties().get(PropertyKeys.REQUIRE_DISABLED_TO_BREAK_BLOCKS) || (craft.getCraftProperties().get(PropertyKeys.ALLOW_BLOCK_BREAKING_WHEN_DISABLED) && craft.getDisabled());
-            if (craftAllowsBlockBreaking || !craft.getHitBox().contains(loc))
-                continue;
+            if (craftAllowsBlockBreaking)
+                return;
 
             e.setCancelled(true);
             return;
@@ -84,11 +88,13 @@ public class BlockListener implements Listener {
         Location location = e.getBlockAgainst().getLocation();
         MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
         Player p = e.getPlayer();
-        for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
-            if (craft.getDisabled() || !(craft instanceof PilotedCraft) || !craft.getHitBox().contains(loc))
-                continue;
+        Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
+        if (optCraft.isPresent()) {
+            final Craft craft = optCraft.get();
+            if (craft.getDisabled() || !(craft instanceof PilotedCraft))
+                return;
             if (((PilotedCraft) craft).getPilotUUID().equals(p.getUniqueId()))
-                continue;
+                return;
 
             e.setCancelled(true);
             return;
@@ -100,9 +106,11 @@ public class BlockListener implements Listener {
     public void onItemSpawn(@NotNull ItemSpawnEvent e) {
         Location location = e.getLocation();
         MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
-        for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
-            if (craft.isNotProcessing() || !craft.getHitBox().contains(loc))
-                continue;
+        Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
+        if (optCraft.isPresent()) {
+            final Craft craft = optCraft.get();
+            if (craft.isNotProcessing())
+                return;
 
             e.setCancelled(true);
             return;
@@ -124,9 +132,11 @@ public class BlockListener implements Listener {
 
         Location location = block.getLocation();
         MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
-        for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
-            if (craft.isNotProcessing() || !craft.getHitBox().contains(loc))
-                continue;
+        Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
+        if (optCraft.isPresent()) {
+            final Craft craft = optCraft.get();
+            if (craft.isNotProcessing())
+                return;
 
             e.setNewCurrent(e.getOldCurrent()); // don't allow piston movement on cruising crafts
             return;
@@ -147,15 +157,15 @@ public class BlockListener implements Listener {
         Block block = e.getBlock();
         Location location = block.getLocation();
         MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
-        for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
-            if (!craft.getHitBox().contains(loc))
-                continue;
+        Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
+        if (optCraft.isPresent()) {
+            final Craft craft = optCraft.get();
 
            if (!craft.isNotProcessing())
                e.setCancelled(true); // prevent pistons on cruising crafts           
             // merge piston extensions to craft if the property is true
            if (!craft.getCraftProperties().get(PropertyKeys.MERGE_PISTON_EXTENSIONS))
-                continue;
+                return;
 
            BitmapHitBox hitBox = new BitmapHitBox();
            for (Block b : affectedBlocks) {
@@ -173,9 +183,11 @@ public class BlockListener implements Listener {
         if ((e.getSource().getHolder(false) instanceof Hopper hopper)) {
             Location location = hopper.getLocation();
             MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
-            for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
-                if (craft.isNotProcessing() || !craft.getHitBox().contains(loc))
-                    continue;
+            Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
+            if (optCraft.isPresent()) {
+                final Craft craft = optCraft.get();
+                if (craft.isNotProcessing())
+                    return;
 
                 e.setCancelled(true);
                 return;
@@ -192,10 +204,10 @@ public class BlockListener implements Listener {
 
         Location location = block.getLocation();
         MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
-        for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
-            if (!craft.getHitBox().contains(loc))
-                continue;
-        
+        Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
+        if (optCraft.isPresent()) {
+            final Craft craft = optCraft.get();
+
             BlockData m = block.getBlockData();
             BlockFace face = BlockFace.DOWN;
             boolean faceAlwaysDown = block.getType() == Material.COMPARATOR || block.getType() == Material.REPEATER;
@@ -203,7 +215,7 @@ public class BlockListener implements Listener {
                 face = ((Attachable) m).getAttachedFace();
 
             if (e.getBlock().getRelative(face).getType().isSolid())
-                continue;
+                return;
 
             e.setCancelled(true);
             return;
@@ -214,9 +226,11 @@ public class BlockListener implements Listener {
     public void onBlockDispense(@NotNull BlockDispenseEvent e) {
         Location location = e.getBlock().getLocation();
         MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
-        for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
-            if (craft.isNotProcessing() || !craft.getHitBox().contains(loc))
-                continue;
+        Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
+        if (optCraft.isPresent()) {
+            final Craft craft = optCraft.get();
+            if (craft.isNotProcessing())
+                return;
 
             e.setCancelled(true);
             return;
@@ -234,9 +248,11 @@ public class BlockListener implements Listener {
         Location location = block.getLocation();
         MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
         MovecraftLocation toLoc = MathUtils.bukkit2MovecraftLoc(e.getToBlock().getLocation());
-        for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
-            if (!craft.getHitBox().contains(loc) || craft.getFluidLocations().contains(toLoc))
-                continue;
+        Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
+        if (optCraft.isPresent()) {
+            final Craft craft = optCraft.get();
+            if (craft.getFluidLocations().contains(toLoc))
+                return;
 
             e.setCancelled(true);
             return;
@@ -252,10 +268,8 @@ public class BlockListener implements Listener {
 
         Location location = e.getBlock().getLocation();
         MovecraftLocation loc = MathUtils.bukkit2MovecraftLoc(location);
-        for (Craft craft : MathUtils.craftsNearLocFast(CraftManager.getInstance().getCrafts(), location)) {
-            if (!craft.getHitBox().contains(loc))
-                continue;
-
+        Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
+        if (optCraft.isPresent()) {
             e.setCancelled(true);
             return;
         }
