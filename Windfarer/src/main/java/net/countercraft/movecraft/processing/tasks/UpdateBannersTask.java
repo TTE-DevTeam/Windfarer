@@ -48,7 +48,7 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
     @Override
     public void run() {
         boolean processing = !this.craft.isNotProcessing();
-        this.craft.setProcessing(true);
+        //this.craft.setProcessing(true);
         for (MovecraftLocation location : this.updateLocations) {
             Block block = location.toBukkit(this.world).getBlock();
             BlockState state = block.getState();
@@ -56,6 +56,6 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
                 banner.update(false, false);
             }
         }
-        this.craft.setProcessing(processing);
+        //this.craft.setProcessing(processing);
     }
 }

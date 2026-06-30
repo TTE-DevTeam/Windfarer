@@ -60,7 +60,7 @@ public class FuelBurnTask implements Supplier<Effect> {
         Movecraft.getInstance().getLogger().info(String.format("Starting fuel burn task for craft <%s>...", craft.getUUID()));
         // TODO: new craft status concept! Stop the craft from moving while we do something
         // TODO: Add API for additional fuel sources and how to use them
-        this.craft.setProcessing(true);
+        //this.craft.setProcessing(true);
 
         boolean hasFuel = false;
         double fuelBurnRate = this.fuelBurnRate;
@@ -155,7 +155,7 @@ public class FuelBurnTask implements Supplier<Effect> {
 
         // TODO: Reset the furnace trackedlocations after a while
 
-        craft.setProcessing(false);
+        //craft.setProcessing(false);
 
         additionalSteps.add(new SinkOutOfFuelCraftsAndApplyIsFueled(craft, hasFuel));
         // Update burner effect at last
