@@ -78,9 +78,14 @@ public class FuelBurnTask implements Supplier<Effect> {
             hasFuel = true;
 
             double burningFuel = craft.getBurningFuel();
+            final double finalBurningFuel = burningFuel;
+            final double finalFuelBurnRate = fuelBurnRate;
             // call event
-            final FuelBurnEvent event = new FuelBurnEvent(craft, burningFuel, fuelBurnRate);
-            Bukkit.getPluginManager().callEvent(event);
+            final FuelBurnEvent event = WorldManager.INSTANCE.executeMain(() -> {
+                final FuelBurnEvent fuelBurnEvent = new FuelBurnEvent(craft, finalBurningFuel, finalFuelBurnRate);
+                Bukkit.getPluginManager().callEvent(fuelBurnEvent);
+                return fuelBurnEvent;
+            });
             if (event.getBurningFuel() != burningFuel)
                 burningFuel = event.getBurningFuel();
             if (event.getFuelBurnRate() != fuelBurnRate)
