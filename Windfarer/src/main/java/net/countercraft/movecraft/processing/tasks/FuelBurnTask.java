@@ -57,6 +57,8 @@ public class FuelBurnTask implements Supplier<Effect> {
 
     @Override
     public Effect get() {
+        final long startTime = System.currentTimeMillis();
+        Movecraft.getInstance().getLogger().info(String.format("Starting fuel burn task for craft <%s>...", craft.getUUID()));
         // TODO: new craft status concept! Stop the craft from moving while we do something
         // TODO: Add API for additional fuel sources and how to use them
         this.craft.setProcessing(true);
@@ -166,6 +168,7 @@ public class FuelBurnTask implements Supplier<Effect> {
             boolean fueled = craft.getDataTag(IS_FUELED);
             WorldManager.INSTANCE.submit(new UpdateFuelBurnersTask(craft, fueled));
         });
+        Movecraft.getInstance().getLogger().info(String.format("Finished fuel burn task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
         return new Effect.AndEffect(additionalSteps);
     }
 

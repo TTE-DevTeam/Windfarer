@@ -248,6 +248,8 @@ public class DetectionTask implements Supplier<Effect> {
 
     @Override
     public Effect get() {
+        final long startTime = System.currentTimeMillis();
+        Movecraft.getInstance().getLogger().info(String.format("Starting detection task for pilot <%s>...", pilot == null ? "NULL" : pilot.getUniqueId()));
         frontier();
         if (!illegal.isEmpty()) {
             if (this.alwaysRunAfter != null) {
@@ -302,6 +304,7 @@ public class DetectionTask implements Supplier<Effect> {
         if (event.isCancelled())
             return () -> craft.getAudience().sendMessage(Component.text(event.getFailMessage()));
 
+        Movecraft.getInstance().getLogger().info(String.format("Finished detection task for pilot <%s>! Time taken: %dms", pilot == null ? "NULL" : pilot.getUniqueId(), System.currentTimeMillis() - startTime));
         return ((Effect) () -> {
             // Notify player and console
             craft.getAudience().sendMessage(Component.text(String.format(

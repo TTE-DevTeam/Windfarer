@@ -1,5 +1,6 @@
 package net.countercraft.movecraft.processing.tasks;
 
+import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.processing.effects.Effect;
@@ -28,6 +29,8 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
 
     @Override
     public Effect get() {
+        final long startTime = System.currentTimeMillis();
+        Movecraft.getInstance().getLogger().info(String.format("Starting banner update task for craft <%s>...", craft.getUUID()));
         Set<MovecraftLocation> banners = BlockCollectionUtil.getLocations(this.craft, (location, world, craftTmp) -> {
             BlockState state = world.getState(location);
             if (state instanceof Banner banner) {
@@ -38,6 +41,7 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
             return Result.fail();
         });
         this.updateLocations.addAll(banners);
+        Movecraft.getInstance().getLogger().info(String.format("Finished banner update task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
         return this;
     }
 

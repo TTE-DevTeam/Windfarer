@@ -41,6 +41,8 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
 
     @Override
     public Effect get() {
+        final long startTime = System.currentTimeMillis();
+        Movecraft.getInstance().getLogger().info(String.format("Starting fuel burner update task for craft <%s>...", craft.getUUID()));
         // TODO: Add API for additional fuel sources and how full they are
         // Step 0): Determine if we can modify furnaces or not
         // Step 1): Collect the data about every furnace on our craft that still exists, use the tracked locations for that
@@ -69,6 +71,7 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
             }
         }
 
+        Movecraft.getInstance().getLogger().info(String.format("Finished fuel burner update task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
         if (furnaceNMSAvailable) {
             return makeBurnerProgressEffect(furnaceLocations);
         } else {
