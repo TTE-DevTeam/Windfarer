@@ -2,6 +2,7 @@ package net.countercraft.movecraft.features.status;
 
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
+import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
@@ -43,7 +44,8 @@ public final class StatusUpdateTask implements Supplier<Effect> {
     @Override
     public @NotNull Effect get() {
         final long startTime = System.currentTimeMillis();
-        Movecraft.getInstance().getLogger().info(String.format("Starting status update task for craft <%s>...", craft.getUUID()));
+        if (Settings.Debug)
+            Movecraft.getInstance().getLogger().info(String.format("Starting status update task for craft <%s>...", craft.getUUID()));
         ArrayList<ForkJoinTask<StatusWorkerData>> workers = new ArrayList<>();
         final MovecraftWorld world = this.craft.getMovecraftWorld();
         new HitBoxSlicer(craft.getHitBox()).forEach(slice -> workers.add(ForkJoinTask.adapt(new StatusWorker(world, slice))));
@@ -94,7 +96,8 @@ public final class StatusUpdateTask implements Supplier<Effect> {
         craft.setDataTag(Craft.NON_NEGLIGIBLE_BLOCKS, nonNegligibleBlocks);
         craft.setDataTag(Craft.NON_NEGLIGIBLE_SOLID_BLOCKS, nonNegligibleSolidBlocks);
         craft.setDataTag(StatusManager.LAST_STATUS_CHECK, System.currentTimeMillis());
-        Movecraft.getInstance().getLogger().info(String.format("Finished status update task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
+        if (Settings.Debug)
+            Movecraft.getInstance().getLogger().info(String.format("Finished status update task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
         return () -> Bukkit.getPluginManager().callEvent(new CraftStatusUpdateEvent(craft));
     }
 
