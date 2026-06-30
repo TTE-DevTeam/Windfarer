@@ -17,6 +17,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 /**
@@ -36,7 +37,8 @@ public final class WorldManager implements Executor {
 
     private final ConcurrentLinkedQueue<Effect> worldChanges = new ConcurrentLinkedQueue<>();
     private final ConcurrentLinkedQueue<Supplier<@Nullable Effect>> tasks = new ConcurrentLinkedQueue<>();
-    private final BlockingQueue<Runnable> currentTasks = new LinkedBlockingQueue<>();
+    private final ConcurrentLinkedQueue<Runnable> currentTasks = new ConcurrentLinkedQueue<>();
+    private final AtomicInteger pendingTasks = new AtomicInteger(0);
     private volatile boolean running = false;
 
     private WorldManager(){}
@@ -45,16 +47,16 @@ public final class WorldManager implements Executor {
         if(!Bukkit.isPrimaryThread()){
             throw new RuntimeException("WorldManager must be executed on the main thread.");
         }
-        if(tasks.isEmpty())
+        // If we have nothing to start and nothing to wait for, we can quit early :)
+        if(tasks.isEmpty() && currentTasks.isEmpty() && worldChanges.isEmpty() && pendingTasks.get() == 0)
             return;
         running = true;
-        int remaining = 0;
         List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
         // TODO: Allow the task to also supply lists of effects instead of a single one
         // TODO: Add a option on how long or how many tasks we can start
         // Issue is, all the collected effects will be run in the same tick...
         while(!tasks.isEmpty()){
-            remaining++;
+            pendingTasks.getAndIncrement();
             // DONE: Will this block our mainthread while the task is calculating?
             // => No, it simply builds a list of completableFutures, it waits later down the line (when polling from "currentTasks")
             final Supplier<@Nullable Effect> task = tasks.poll();
@@ -75,31 +77,22 @@ public final class WorldManager implements Executor {
             }
 
         }
-        // process pre-queued tasks and their requests to the main thread
-        eventLoop: while(true){
-            var runningTasks = new ArrayList<Runnable>();
-            try {
-                runningTasks.add(currentTasks.poll(5, TimeUnit.SECONDS));
-            } catch (InterruptedException e) {
-                continue;
+
+        // Run all requests to main thread now!
+        final long startTimeTasks = System.currentTimeMillis();
+        while (!currentTasks.isEmpty()) {
+            Runnable task = currentTasks.poll();
+            if (task == POISON) {
+                // Ensure this never goes below zero
+                pendingTasks.updateAndGet(val -> Math.max(0, val -1));
+            } else {
+                task.run();
             }
-            if(runningTasks.isEmpty() || runningTasks.get(0) == null){
-                Bukkit.getLogger().severe("WorldManager timed out on task query! Dumping " + inProgress.size() + " tasks.");
-                inProgress.forEach(task -> task.cancel(true));
-                worldChanges.clear();
+            long timeElapsed = System.currentTimeMillis() - startTimeTasks;
+            if (timeElapsed >= Settings.maxElapsedTimeForSyncTaskProcessing)
                 break;
-            }
-            currentTasks.drainTo(runningTasks);
-            for(var runnable : runningTasks){
-                if(runnable == POISON){
-                    remaining--;
-                    if(remaining == 0){
-                        break eventLoop;
-                    }
-                }
-                runnable.run();
-            }
         }
+
         // process world updates on the main thread
         // DONE: Limit the amount of time a effect has to run, otherwise, all effects from "now" must run in the same tick!
         final long startTime = System.currentTimeMillis();
@@ -111,10 +104,10 @@ public final class WorldManager implements Executor {
                 break;
         }
         // Once we are fully done, purge the worlds
-        if (worldChanges.isEmpty()) {
+        if (pendingTasks.get() == 0 && currentTasks.isEmpty() && tasks.isEmpty() && worldChanges.isEmpty()) {
             CachedMovecraftWorld.purge();
+            running = false;
         }
-        running = false;
     }
 
     private void addEffect(@Nullable Effect effect) {

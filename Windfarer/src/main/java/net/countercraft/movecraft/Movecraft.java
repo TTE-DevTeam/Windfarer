@@ -111,6 +111,7 @@ public class Movecraft extends JavaPlugin {
         Settings.displayBlockListsAtlasPrefix = getConfig().getString("DisplayBlockListsAtlasPrefix", "block/");
 
         Settings.maxElapsedTimeForWorldChanges = getConfig().getLong("MaxElapsedTimeForWorldChanges", Settings.maxElapsedTimeForWorldChanges);
+        Settings.maxElapsedTimeForSyncTaskProcessing = getConfig().getLong("MaxElapsedTimeForSyncTasks", Settings.maxElapsedTimeForSyncTaskProcessing);
 
         String[] localisations = {"en", "cz", "nl", "fr"};
         for (String s : localisations) {

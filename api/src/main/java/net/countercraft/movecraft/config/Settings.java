@@ -55,4 +55,5 @@ public class Settings {
     public static String displayBlockListsAtlasName = "minecraft:blocks";
     public static String displayBlockListsAtlasPrefix = "block/";
     public static long maxElapsedTimeForWorldChanges = 50000;
+    public static long maxElapsedTimeForSyncTaskProcessing = 50000;
 }
