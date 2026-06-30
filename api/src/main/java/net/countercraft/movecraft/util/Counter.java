@@ -59,6 +59,12 @@ public class Counter<T> {
     }
 
     public void add(@NotNull Counter<T> other) {
-        other.getKeySet().forEach(key -> counter.put(key, other.get(key)));
+        if (this.isEmpty()) {
+            other.getKeySet().forEach(key -> counter.put(key, other.get(key)));
+        } else {
+            for (var entry : other.counter.object2IntEntrySet()) {
+                this.add(entry.getKey(), entry.getIntValue());
+            }
+        }
     }
 }
