@@ -9,6 +9,7 @@ import net.countercraft.movecraft.util.hitboxes.HitBoxSlicer;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ForkJoinTask;
@@ -18,10 +19,15 @@ public class BlockCollectionUtil {
     /*
      * Returns a set of locations in the craft's hitbox that fulfill checkPredicate and that is calculted off-thread
      */
+    @Nullable
     public static Set<MovecraftLocation> getLocations(final Craft craft, final TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> checkPredicate) {
         return getLocations(craft, checkPredicate, (l, w, c) -> {});
     }
+    @Nullable
     public static Set<MovecraftLocation> getLocations(final Craft craft, final TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> checkPredicate, TriConsumer<MovecraftLocation, MovecraftWorld, Craft> consumer) {
+        if (craft.getHitBox() == null || craft.getHitBox().isEmpty()) {
+            return new HashSet<>();
+        }
         ArrayList<ForkJoinTask<WorkerData>> workers = new ArrayList<>();
         new HitBoxSlicer(craft.getHitBox()).forEach(slice -> workers.add(ForkJoinTask.adapt(new Worker(craft, slice, checkPredicate, consumer, Sets.newConcurrentHashSet()))));
 
