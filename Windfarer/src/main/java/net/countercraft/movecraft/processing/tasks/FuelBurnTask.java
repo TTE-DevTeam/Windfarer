@@ -3,7 +3,6 @@ package net.countercraft.movecraft.processing.tasks;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.TrackedLocation;
-import net.countercraft.movecraft.async.FuelBurnRunnable;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
@@ -65,8 +64,7 @@ public class FuelBurnTask implements Supplier<Effect> {
 
         boolean hasFuel = false;
         double fuelBurnRate = this.fuelBurnRate;
-        Effect consumeFuelEffect = Effect.NONE;
-        Effect fuelCraftEffect = Effect.NONE;
+        List<Effect> additionalSteps = new ArrayList<>(2);
 
         // If the specified rate is 0 and we are here, then we burn fuel, but not currently!
         if (fuelBurnRate <= 0.0D) {
@@ -76,25 +74,13 @@ public class FuelBurnTask implements Supplier<Effect> {
         // We currently have somethign that we are burning
         else if (craft.getBurningFuel() >= fuelBurnRate) {
             hasFuel = true;
-
-            double burningFuel = craft.getBurningFuel();
-            final double finalBurningFuel = burningFuel;
-            final double finalFuelBurnRate = fuelBurnRate;
-            // call event
-            final FuelBurnEvent event = WorldManager.INSTANCE.executeMain(() -> {
-                final FuelBurnEvent fuelBurnEvent = new FuelBurnEvent(craft, finalBurningFuel, finalFuelBurnRate);
-                Bukkit.getPluginManager().callEvent(fuelBurnEvent);
-                return fuelBurnEvent;
-            });
-            if (event.getBurningFuel() != burningFuel)
-                burningFuel = event.getBurningFuel();
-            if (event.getFuelBurnRate() != fuelBurnRate)
-                fuelBurnRate = event.getFuelBurnRate();
-            craft.setBurningFuel(burningFuel - fuelBurnRate);
+            additionalSteps.add(new ReduceBurningFuelEffect(craft, fuelBurnRate));
         }
         // Find a new fuel item to burn, save to tag, remove item from furnace, throw event
         // We burnt the item we had, if we had any. Search for something new to burn
         else {
+            Effect consumeFuelEffect = null;
+            Effect fuelCraftEffect = null;
             // TODO: Refactor into a expandable list of callable functions
             // Step 0): Initialize variables for burn process
             ItemStack fuelItem = null;
@@ -158,15 +144,19 @@ public class FuelBurnTask implements Supplier<Effect> {
                         burnTime
                 );
             }
+
+            if (consumeFuelEffect != null) {
+                additionalSteps.add(consumeFuelEffect);
+            }
+            if (fuelCraftEffect != null) {
+                additionalSteps.add(fuelCraftEffect);
+            }
         }
 
         // TODO: Reset the furnace trackedlocations after a while
 
         craft.setProcessing(false);
 
-        List<Effect> additionalSteps = new ArrayList<>(2);
-        additionalSteps.add(consumeFuelEffect);
-        additionalSteps.add(fuelCraftEffect);
         additionalSteps.add(new SinkOutOfFuelCraftsAndApplyIsFueled(craft, hasFuel));
         // Update burner effect at last
         additionalSteps.add(() -> {
@@ -175,6 +165,20 @@ public class FuelBurnTask implements Supplier<Effect> {
         });
         Movecraft.getInstance().getLogger().info(String.format("Finished fuel burn task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
         return new Effect.AndEffect(additionalSteps);
+    }
+
+    private record ReduceBurningFuelEffect(
+            Craft craft,
+            double fuelBurnRate
+    ) implements Effect {
+
+        @Override
+        public void run() {
+            // call event
+            final FuelBurnEvent fuelBurnEvent = new FuelBurnEvent(craft, craft.getBurningFuel(), fuelBurnRate);
+            Bukkit.getPluginManager().callEvent(fuelBurnEvent);
+            craft.setBurningFuel(fuelBurnEvent.getBurningFuel() - fuelBurnEvent.getFuelBurnRate());
+        }
     }
 
     private record ApplyCraftFuel(
