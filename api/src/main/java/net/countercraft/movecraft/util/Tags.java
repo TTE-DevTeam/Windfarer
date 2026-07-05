@@ -27,6 +27,7 @@ public class Tags {
     public static final EnumSet<Material> SIGN_BYPASS_RIGHT_CLICK = EnumSet.of(Material.FEATHER);
     public static final EnumSet<Material> SIGN_BYPASS_LEFT_CLICK = EnumSet.copyOf(Tag.ITEMS_AXES.getValues());
     public static final EnumSet<Material> SIGN_EDIT_MATERIALS = EnumSet.copyOf(Tag.ITEMS_AXES.getValues());
+    public static final EnumSet<Material> BANNERS = EnumSet.copyOf(Tag.BANNERS.getValues());
 
     static {
         FRAGILE_MATERIALS.add(Material.PISTON_HEAD);
