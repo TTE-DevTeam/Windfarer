@@ -65,7 +65,8 @@ public class CraftCache {
 
     protected void cleanup() {
         this.chunkMap.entrySet().removeIf(e -> {
-            e.getValue().removeIf(ref -> ref.get() == null);
+            // TODO: Replace that contains clause!
+            e.getValue().removeIf(ref -> ref.get() == null || !CraftManager.getInstance().getCrafts().contains(ref.get()));
             return e.getValue().isEmpty();
         });
     }
@@ -75,14 +76,15 @@ public class CraftCache {
     }
 
     public static void removeCraft(final Craft craft) {
-        Set<WeakReference<List<WeakReference<Craft>>>> setsOfCraft = getSetsOfCraft(craft);
-        if (!setsOfCraft.isEmpty()) {
-            // First, remove all no longer existing lists
-            setsOfCraft.removeIf(ref -> ref.get() == null);
-            // Then remove the references to this craft
-            setsOfCraft.forEach(ref -> ref.get().remove(craft));
+        worldMap.values().forEach(cc -> cc.removeCraftInternal(craft));
+    }
+
+    protected void removeCraftInternal(final Craft craft) {
+        final WeakReference<Craft> reference = new WeakReference<>(craft);
+        for (List<WeakReference<Craft>> list : this.chunkMap.values()) {
+            list.remove(reference);
         }
-        of(craft.getWorld()).cleanup();
+        this.cleanup();
     }
 
     // Returns all crafts that somehow contain this chunk in their hitbox; No guarantee on if the craft actually has a block there or not!
@@ -127,7 +129,7 @@ public class CraftCache {
             // First, remove all no longer existing lists
             setsOfCraft.removeIf(ref -> ref.get() == null);
             // Then remove the references to this craft
-            setsOfCraft.forEach(ref -> ref.get().remove(craft));
+            setsOfCraft.forEach(ref -> ref.get().remove(new WeakReference<>(craft)));
             setsOfCraft.clear();
         }
         // Now, recalculate the chunks of that craft

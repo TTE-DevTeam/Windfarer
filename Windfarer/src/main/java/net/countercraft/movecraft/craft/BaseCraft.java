@@ -32,6 +32,8 @@ import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+
+import java.lang.ref.Reference;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -687,6 +689,9 @@ public abstract class BaseCraft implements Craft {
 
     @Override
     public boolean equals(Object obj) {
+        if (obj instanceof Reference<?> reference) {
+            return this.equals(reference.get());
+        }
         if (!(obj instanceof BaseCraft))
             return false;
 
