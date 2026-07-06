@@ -271,7 +271,10 @@ public class CraftManager implements Iterable<Craft>{
 
         // Turn off furnaces
         // TODO: Not sure if this will work at all
-        WorldManager.INSTANCE.submitAndRunNow(new UpdateFuelBurnersTask(craft, false));
+        // TODO: FInd a prettier solution! THis is a pretty ugly workaround...
+        Bukkit.getScheduler().runTaskLater(Movecraft.getInstance(), () -> {
+            WorldManager.INSTANCE.submitAndRunNow(new UpdateFuelBurnersTask(craft, false));
+        }, 10);
 
         if(craft.getHitBox().isEmpty())
             Movecraft.getInstance().getLogger().warning(I18nSupport.getInternationalisedString(

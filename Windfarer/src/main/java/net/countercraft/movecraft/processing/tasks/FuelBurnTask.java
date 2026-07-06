@@ -43,7 +43,6 @@ import static net.countercraft.movecraft.features.fuel.FuelDataTags.IS_FUELED;
 // Problematic methods (highest to lowest9:
 //   - updateFurnaces (getBlockState(), BlockState.update())
 //   - burnFuel()
-
 public class FuelBurnTask implements Supplier<Effect> {
 
     private final Craft craft;
