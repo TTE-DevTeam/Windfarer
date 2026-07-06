@@ -229,7 +229,7 @@ public class CraftManager implements Iterable<Craft>{
         if (event.isCancelled())
             return false;
 
-        final MovecraftLocation craftPos = craft.getHitBox().getMidPoint();
+        final MovecraftLocation craftPos = craft.getHitBox().isEmpty() ? MovecraftLocation.zero() : craft.getHitBox().getMidPoint();
         Movecraft.getInstance().getLogger().info(
                 String.format(
                         "Sunk craft %s (%s) at [%d %d %d] in %s - reason: %s",
