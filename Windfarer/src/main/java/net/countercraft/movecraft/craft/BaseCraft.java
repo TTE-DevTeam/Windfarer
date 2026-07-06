@@ -6,10 +6,7 @@ import net.countercraft.movecraft.async.translation.TranslationTask;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagContainer;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
-import net.countercraft.movecraft.craft.type.CraftProperties;
-import net.countercraft.movecraft.craft.type.CraftType;
-import net.countercraft.movecraft.craft.type.PropertyKeys;
-import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
+import net.countercraft.movecraft.craft.type.*;
 import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
 import net.countercraft.movecraft.events.CraftSetAudienceEvent;
@@ -543,13 +540,13 @@ public abstract class BaseCraft implements Craft {
     public int getWaterLine() {
         //TODO: Remove this temporary system in favor of passthrough blocks
         // Find the waterline from the surrounding terrain or from the static level in the craft type
-        int waterLine = 0;
-        // TODO: Use waterlevel of the world instead?
-        if (getCraftProperties().get(PropertyKeys.STATIC_WATER_LEVEL) != 0 || hitBox.isEmpty()) {
-            return getCraftProperties().get(PropertyKeys.STATIC_WATER_LEVEL);
+        // DONE: Use waterlevel of the world instead?
+        if (getCraftProperties().hasInSelfOrAnyParent(PropertyKeys.STATIC_WATER_LEVEL, true) || hitBox.isEmpty()) {
+            return getCraftProperties().get(PropertyKeys.STATIC_WATER_LEVEL, this.getMovecraftWorld());
         }
 
         // figure out the water level by examining blocks next to the outer boundaries of the craft
+        int waterLine = 0;
         for (int posY = hitBox.getMaxY() + 1; posY >= hitBox.getMinY() - 1; posY--) {
             int numWater = 0;
             int numAir = 0;
