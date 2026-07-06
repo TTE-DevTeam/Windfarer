@@ -51,31 +51,14 @@ public final class WorldManager implements Executor {
         if(tasks.isEmpty() && currentTasks.isEmpty() && worldChanges.isEmpty() && pendingTasks.get() == 0)
             return;
         running = true;
-        List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
         // TODO: Allow the task to also supply lists of effects instead of a single one
         // TODO: Add a option on how long or how many tasks we can start
         // Issue is, all the collected effects will be run in the same tick...
         while(!tasks.isEmpty()){
-            pendingTasks.getAndIncrement();
             // DONE: Will this block our mainthread while the task is calculating?
             // => No, it simply builds a list of completableFutures, it waits later down the line (when polling from "currentTasks")
             final Supplier<@Nullable Effect> task = tasks.poll();
-            // NoOpTask tasks do not provide us any effects, we do not need to wait for those and can just start them normally
-            if (!(task instanceof NoOpTask)) {
-                inProgress.add(CompletableFuture.supplyAsync(task).whenComplete((effect, exception) -> {
-                    // Once the task is complete, we add poison to currentTasks, which also holds all requests to the main thread
-                    poison();
-                    if(exception != null){
-                        exception.printStackTrace();
-                    } else if(effect != null) {
-                        // And if there were no exceptions, we add all or THE effect the task produced
-                        addEffect(effect);
-                    }
-                }));
-            } else {
-                CompletableFuture.supplyAsync(task);
-            }
-
+            startTask(task);
         }
 
         // Run all requests to main thread now!
@@ -107,6 +90,26 @@ public final class WorldManager implements Executor {
         if (pendingTasks.get() == 0 && currentTasks.isEmpty() && tasks.isEmpty() && worldChanges.isEmpty()) {
             CachedMovecraftWorld.purge();
             running = false;
+        }
+    }
+
+    private void startTask(Supplier<@Nullable Effect> task) {
+        List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
+        pendingTasks.getAndIncrement();
+        // NoOpTask tasks do not provide us any effects, we do not need to wait for those and can just start them normally
+        if (!(task instanceof NoOpTask)) {
+            inProgress.add(CompletableFuture.supplyAsync(task).whenComplete((effect, exception) -> {
+                // Once the task is complete, we add poison to currentTasks, which also holds all requests to the main thread
+                poison();
+                if(exception != null){
+                    exception.printStackTrace();
+                } else if(effect != null) {
+                    // And if there were no exceptions, we add all or THE effect the task produced
+                    addEffect(effect);
+                }
+            }));
+        } else {
+            CompletableFuture.supplyAsync(task);
         }
     }
 
@@ -153,6 +156,10 @@ public final class WorldManager implements Executor {
 
     public void submit(Supplier<@Nullable Effect> task){
         tasks.add(task);
+    }
+
+    public void submitAndRunNow(Supplier<@Nullable Effect> task){
+        startTask(task);
     }
 
     public boolean isRunning() {
