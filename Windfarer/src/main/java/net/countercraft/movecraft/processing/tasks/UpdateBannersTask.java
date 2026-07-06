@@ -3,6 +3,7 @@ package net.countercraft.movecraft.processing.tasks;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.TrackedLocation;
+import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
@@ -41,12 +42,14 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
     @Override
     public Effect get() {
         final long startTime = System.currentTimeMillis();
-        Movecraft.getInstance().getLogger().info(String.format("Starting banner update task for craft <%s>...", craft.getUUID()));
+        if (Settings.Debug)
+            Movecraft.getInstance().getLogger().info(String.format("Starting banner update task for craft <%s>...", craft.getUUID()));
         FilteredTrackedLocations banners = this.craft.getDataTag(BANNER_LOCATIONS);
         for (TrackedLocation trackedLocation : banners) {
             this.updateLocations.add(trackedLocation.getAbsoluteLocation());
         }
-        Movecraft.getInstance().getLogger().info(String.format("Finished banner update task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
+        if (Settings.Debug)
+            Movecraft.getInstance().getLogger().info(String.format("Finished banner update task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
         return this;
     }
 
