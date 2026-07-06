@@ -52,7 +52,7 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
 
     protected static Result isBannerBlock(MovecraftLocation location, MovecraftWorld world, Craft craftTmp) {
         Material material = world.getMaterial(location);
-        if (Tags.BANNERS.contains(material)) {
+        if (!Tags.BANNERS.contains(material)) {
             return Result.fail();
         }
         BlockState state = world.getState(location);
