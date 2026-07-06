@@ -177,7 +177,7 @@ public class CraftManager implements Iterable<Craft>{
                         @NotNull World world, @Nullable Entity pilot,
                         @NotNull Audience audience,
                         @NotNull Function<Craft, Effect> postDetection) {
-        WorldManager.INSTANCE.submit(new DetectionTask(
+        WorldManager.INSTANCE.submitAndRunNow(new DetectionTask(
                 startPoint, CachedMovecraftWorld.of(world),
                 type, supplier,
                 world, pilot,
@@ -192,7 +192,7 @@ public class CraftManager implements Iterable<Craft>{
                        @NotNull Audience audience,
                        @NotNull Function<Craft, Effect> postDetection,
                        @Nullable Function<@Nullable Craft, Effect> alwaysRunAfter) {
-        WorldManager.INSTANCE.submit(new DetectionTask(
+        WorldManager.INSTANCE.submitAndRunNow(new DetectionTask(
                 startPoint, CachedMovecraftWorld.of(world),
                 type, supplier,
                 world, pilot,
@@ -271,7 +271,7 @@ public class CraftManager implements Iterable<Craft>{
 
         // Turn off furnaces
         // TODO: Not sure if this will work at all
-        WorldManager.INSTANCE.submit(new UpdateFuelBurnersTask(craft, false));
+        WorldManager.INSTANCE.submitAndRunNow(new UpdateFuelBurnersTask(craft, false));
 
         if(craft.getHitBox().isEmpty())
             Movecraft.getInstance().getLogger().warning(I18nSupport.getInternationalisedString(
