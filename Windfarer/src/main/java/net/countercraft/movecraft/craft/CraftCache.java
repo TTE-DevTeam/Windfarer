@@ -74,6 +74,17 @@ public class CraftCache {
         return craft.getDataTag(positionCaches);
     }
 
+    public static void removeCraft(final Craft craft) {
+        Set<WeakReference<List<WeakReference<Craft>>>> setsOfCraft = getSetsOfCraft(craft);
+        if (!setsOfCraft.isEmpty()) {
+            // First, remove all no longer existing lists
+            setsOfCraft.removeIf(ref -> ref.get() == null);
+            // Then remove the references to this craft
+            setsOfCraft.forEach(ref -> ref.get().remove(craft));
+        }
+        of(craft.getWorld()).cleanup();
+    }
+
     // Returns all crafts that somehow contain this chunk in their hitbox; No guarantee on if the craft actually has a block there or not!
     protected Set<Craft> getCraftsAtChunkInternal(MovecraftLocation blockCoordinate) {
         final ChunkPos chunkPos = ChunkPos.of(blockCoordinate);
