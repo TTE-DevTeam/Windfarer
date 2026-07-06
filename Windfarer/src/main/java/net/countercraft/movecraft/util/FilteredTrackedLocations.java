@@ -26,6 +26,7 @@ public class FilteredTrackedLocations implements Iterable<TrackedLocation> {
     public FilteredTrackedLocations(final Craft craft, NamespacedKey listKey, long lifetime, TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> testPredicate) {
         this.listKey = listKey;
         this.lifetime = lifetime;
+        this.lastUpdate = System.currentTimeMillis() - this.lifetime - 1;
         this.craftWeakReference = new WeakReference<>(craft);
         this.testPredicate = testPredicate;
         this.lastUpdateKey = new NamespacedKey(listKey.namespace(), listKey.getKey() + "/last_update_timestamp");
@@ -52,6 +53,7 @@ public class FilteredTrackedLocations implements Iterable<TrackedLocation> {
     }
 
     protected Set<TrackedLocation> computeList(final Craft craft) {
+        lastUpdate = System.currentTimeMillis();
         final Set<TrackedLocation> result = Sets.newConcurrentHashSet();
         Set<MovecraftLocation> banners = BlockCollectionUtil.getLocations(craft, this.testPredicate);
         banners.forEach(loc -> result.add(new TrackedLocation(craft, loc)));
