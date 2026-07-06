@@ -19,7 +19,6 @@ package net.countercraft.movecraft.craft;
 
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
-import net.countercraft.movecraft.async.FuelBurnRunnable;
 import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.CraftType;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
@@ -242,13 +241,18 @@ public class CraftManager implements Iterable<Craft>{
                         event.getReason().getName()
                 )
         );
+        this.removeCraft(craft);
+        return crafts.add(new SinkingCraftImpl(craft));
+    }
+
+    public void removeCraft(final Craft craft) {
         crafts.remove(craft);
+        CraftCache.removeCraft(craft);
         if (craft instanceof PlayerCraft)
             playerCrafts.remove(((PlayerCraft) craft).getPilotUUID());
 
         // TODO: Is this safe?
         HelmsManManager.activePilotToCraftUUID.values().remove(craft);
-        return crafts.add(new SinkingCraftImpl(craft));
     }
 
     public void release(@NotNull Craft craft, @NotNull CraftReleaseEvent.Reason reason, boolean force) {
@@ -265,12 +269,9 @@ public class CraftManager implements Iterable<Craft>{
                 return false;
         }
 
-        crafts.remove(craft);
         // Turn off furnaces
         // TODO: Not sure if this will work at all
         WorldManager.INSTANCE.submit(new UpdateFuelBurnersTask(craft, false));
-        if(craft instanceof PlayerCraft)
-            playerCrafts.remove(((PlayerCraft) craft).getPilotUUID());
 
         if(craft.getHitBox().isEmpty())
             Movecraft.getInstance().getLogger().warning(I18nSupport.getInternationalisedString(
@@ -302,8 +303,9 @@ public class CraftManager implements Iterable<Craft>{
                 ));
         }
         Movecraft.getInstance().getWreckManager().queueWreck(craft);
-        // TODO: Is this safe?
-        HelmsManManager.activePilotToCraftUUID.values().remove(craft);
+
+        this.removeCraft(craft);
+
         return true;
     }
 
