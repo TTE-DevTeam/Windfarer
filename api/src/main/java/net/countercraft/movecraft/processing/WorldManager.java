@@ -159,7 +159,11 @@ public final class WorldManager implements Executor {
     }
 
     public void submitAndRunNow(Supplier<@Nullable Effect> task){
-        startTask(task);
+        if (this.isRunning()) {
+            this.startTask(task);
+        } else {
+            this.submit(task);
+        }
     }
 
     public boolean isRunning() {
