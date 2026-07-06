@@ -152,8 +152,8 @@ public class PropertyKeys {
     public static PropertyKey<Boolean> RESTRICT_TO_MOVEBOX =
             register(PropertyKeyTypes.boolPropertyKey(key("constraints/subcraft_move/restrict_to_parent_movebox"), true)).immutable();
     // TODO: Remove, worlds have their own waterlevel which should be used instead
-    public static final PropertyKey<Integer> STATIC_WATER_LEVEL =
-            register(PropertyKeyTypes.intPropertyKey(key("static_water_level"), t -> 0).immutable());
+    public static final PropertyKey<PerWorldData<Integer>> STATIC_WATER_LEVEL =
+            register(PropertyKeyTypes.intPropertyKey(key("static_water_level"), t -> 0).perWorld().immutable());
     public static final PropertyKey<Double> INACTIVE_FUEL_BURN_RATE =
             register(PropertyKeyTypes.doublePropertyKey(key("fuel/passive_burn_rate"), t -> 0D));
     public static final PropertyKey<Boolean> FURNACE_FUEL_VISUALIZATION =
