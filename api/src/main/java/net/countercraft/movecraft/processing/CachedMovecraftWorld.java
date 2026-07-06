@@ -100,11 +100,23 @@ public final class CachedMovecraftWorld implements MovecraftWorld{
             return test;
         }
         // TODO: Maybe use world.getChunkAtAsync() or world.getChunkAtAsyncUrgently() instead?
-        test = WorldManager.INSTANCE.executeMain(() -> {
-            AsyncChunk<?> temp;
-            if((temp = chunkCache.get(chunkLocation)) != null) return temp;
-            return AsyncChunk.of(world.getChunkAt(location.toBukkit(world)));
-        });
+//        test = WorldManager.INSTANCE.executeMain(() -> {
+//            AsyncChunk<?> temp;
+//            if((temp = chunkCache.get(chunkLocation)) != null) return temp;
+//            return AsyncChunk.of(world.getChunkAt(location.toBukkit(world)));
+//        });
+        try {
+            // Test idea: Try to use getChunkAtAsync to gain performance
+            Chunk chunk = world.getChunkAtAsync(location.toBukkit(world)).get();
+            test = AsyncChunk.of(chunk);
+        } catch (InterruptedException | ExecutionException e) {
+            // Safeguard => Fallback to APDev solution
+            test = WorldManager.INSTANCE.executeMain(() -> {
+                AsyncChunk<?> temp;
+                if((temp = chunkCache.get(chunkLocation)) != null) return temp;
+                return AsyncChunk.of(world.getChunkAt(location.toBukkit(world)));
+            });
+        }
         var previous = chunkCache.putIfAbsent(chunkLocation, test);
         return previous == null ? test : previous;
     }
