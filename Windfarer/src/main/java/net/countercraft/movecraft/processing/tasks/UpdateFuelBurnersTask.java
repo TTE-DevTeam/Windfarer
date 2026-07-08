@@ -3,6 +3,7 @@ package net.countercraft.movecraft.processing.tasks;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.TrackedLocation;
+import net.countercraft.movecraft.async.FuelBurnRunnable;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
@@ -76,9 +77,17 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
         if (Settings.Debug)
             Movecraft.getInstance().getLogger().info(String.format("Finished fuel burner update task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
         if (furnaceNMSAvailable) {
-            return makeBurnerProgressEffect(furnaceLocations);
+            return makeBurnerProgressEffect(furnaceLocations).andThen(new RemoveCraftFromProcessingList(craft.getUUID()));
         } else {
-            return null;
+            return new RemoveCraftFromProcessingList(craft.getUUID());
+        }
+    }
+
+    protected record RemoveCraftFromProcessingList(UUID craftUUID) implements Effect {
+
+        @Override
+        public void run() {
+            FuelBurnRunnable.craftsInProgress.remove(craftUUID());
         }
     }
 

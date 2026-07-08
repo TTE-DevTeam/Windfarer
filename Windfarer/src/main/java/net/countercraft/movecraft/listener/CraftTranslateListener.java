@@ -20,7 +20,11 @@ public class CraftTranslateListener implements Listener {
             return;
         }
 
-        WorldManager.INSTANCE.submit(new UpdateBannersTask(craft));
+        // TODO: This thing is super slow, introduce caching of relevant blocks with TrackedLocations
+        UpdateBannersTask task = UpdateBannersTask.createTask(craft);
+        if (task != null) {
+            WorldManager.INSTANCE.submit(task);
+        }
 
         CraftCache.onCraftFinishedMovement(craft);
     }

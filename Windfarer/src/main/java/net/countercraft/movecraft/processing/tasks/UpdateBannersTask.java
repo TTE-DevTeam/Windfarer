@@ -1,5 +1,6 @@
 package net.countercraft.movecraft.processing.tasks;
 
+import com.google.common.collect.Sets;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.TrackedLocation;
@@ -19,8 +20,11 @@ import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 // DONE: Add cache for banners
@@ -31,10 +35,20 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
     protected final List<MovecraftLocation> updateLocations = new ArrayList<>();
     protected final Craft craft;
 
+    // TODO: Replace once a proper status concept has been established!
+    private static final Set<UUID> craftsInProgress = Sets.newConcurrentHashSet();
+
     private static final NamespacedKey BANNER_LOCATIONS_KEY = new NamespacedKey("windfarer", "tracked_locations/banners");
     protected static final CraftDataTagKey<FilteredTrackedLocations> BANNER_LOCATIONS = CraftDataTagRegistry.INSTANCE.registerTagKey(BANNER_LOCATIONS_KEY, c -> new FilteredTrackedLocations(c, BANNER_LOCATIONS_KEY, 20000, UpdateBannersTask::isBannerBlock));
 
-    public UpdateBannersTask(Craft craft) {
+    public static @Nullable UpdateBannersTask createTask(final Craft craft) {
+        if (craftsInProgress.add(craft.getUUID())) {
+            return new UpdateBannersTask(craft);
+        }
+        return null;
+    }
+
+    protected UpdateBannersTask(Craft craft) {
         this.world = craft.getWorld();
         this.craft = craft;
     }
@@ -78,6 +92,7 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
                 banner.update(false, false);
             }
         }
+        craftsInProgress.remove(this.craft.getUUID());
         //this.craft.setProcessing(processing);
     }
 }
