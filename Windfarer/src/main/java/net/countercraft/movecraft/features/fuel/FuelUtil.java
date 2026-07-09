@@ -1,6 +1,7 @@
 package net.countercraft.movecraft.features.fuel;
 
 import com.google.common.collect.Sets;
+import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.TrackedLocation;
 import net.countercraft.movecraft.craft.Craft;
@@ -15,6 +16,7 @@ import net.countercraft.movecraft.util.NamespacedIDUtil;
 import net.countercraft.movecraft.util.Tags;
 import org.bukkit.NamespacedKey;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import static net.countercraft.movecraft.features.fuel.FuelDataTags.FURNACES_KEY;
@@ -57,11 +59,25 @@ public class FuelUtil {
 
         Set<MovecraftLocation> candidates = BlockCollectionUtil.getLocations(craft, checkPredicate);
 
+        Movecraft.getInstance().getLogger().info(String.format("Burners found in total: %d", candidates.size()));
+        // Remove all tracked locations that are "here"
+        // Remove all tracked locations checking if the tracked locations are the same => same vector and same craft
+        if (illegal != null) {
+            Movecraft.getInstance().getLogger().info(String.format("Illegal burners: %d", illegal.size()));
+            //result.removeAll(illegal);
+
+            // Somehow, TrackedLocations are not reliably checked earlier on, so we use this dirty hack :/
+            Set<MovecraftLocation> illegals = new HashSet<>(illegal != null ? illegal.size() : 0);
+            for (TrackedLocation trackedLocation : illegal) {
+                illegals.add(trackedLocation.getAbsoluteLocation());
+            }
+            candidates.removeIf(illegals::contains);
+            Movecraft.getInstance().getLogger().info(String.format("Burners left after removing illegal ones: %d", candidates.size()));
+        }
+
         for (MovecraftLocation loc : candidates) {
             result.add(new TrackedLocation(craft, loc));
         }
-        if (illegal != null)
-            result.removeAll(illegal);
 
         craft.getTrackedLocations().put(trackedListId, result);
         return result;
