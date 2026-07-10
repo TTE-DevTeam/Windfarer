@@ -249,12 +249,13 @@ public class DetectionTask implements Supplier<Effect> {
     @Override
     public Effect get() {
         final long startTime = System.currentTimeMillis();
-        Movecraft.getInstance().getLogger().info(String.format("Starting detection task for pilot <%s>...", pilot == null ? "NULL" : pilot.getUniqueId()));
+        Movecraft.getInstance().getLogger().info(String.format("Starting detection task for pilot <%s> and type <%s>...", pilot == null ? "NULL" : pilot.getUniqueId(), this.type.getName()));
         frontier();
         if (!illegal.isEmpty()) {
             if (this.alwaysRunAfter != null) {
                 this.alwaysRunAfter.apply(null);
             }
+            Movecraft.getInstance().getLogger().info(String.format("Detection task for pilot <%s> FAILED during validation! Illegal size: %d", pilot == null ? "NULL" : pilot.getUniqueId(), illegal.size()));
             return null;
         }
 
@@ -268,6 +269,7 @@ public class DetectionTask implements Supplier<Effect> {
             Component message = result.getMessageComponent();
             if (this.alwaysRunAfter != null)
                 this.alwaysRunAfter.apply(null);
+            Movecraft.getInstance().getLogger().info(String.format("Detection task for pilot <%s> FAILED during validation! Message: <%s>", pilot == null ? "NULL" : pilot.getUniqueId(), result.getMessage()));
             return () -> audience.sendMessage(message);
         }
 
@@ -286,6 +288,7 @@ public class DetectionTask implements Supplier<Effect> {
             Component message = result.getMessageComponent();
             if (this.alwaysRunAfter != null)
                 this.alwaysRunAfter.apply(craft);
+            Movecraft.getInstance().getLogger().info(String.format("Detection task for pilot <%s> FAILED during validation! Message: <%s>", pilot == null ? "NULL" : pilot.getUniqueId(), result.getMessage()));
             return () -> audience.sendMessage(message);
         }
 
@@ -301,8 +304,10 @@ public class DetectionTask implements Supplier<Effect> {
         final CraftDetectEvent event = new CraftDetectEvent(craft, startLocation);
 
         WorldManager.INSTANCE.executeMain(() -> Bukkit.getPluginManager().callEvent(event));
-        if (event.isCancelled())
+        if (event.isCancelled()) {
+            Movecraft.getInstance().getLogger().info(String.format("Detection task for pilot <%s> FAILED! DetectEvent was canclled. Message: <%s>", pilot == null ? "NULL" : pilot.getUniqueId(), event.getFailMessage()));
             return () -> craft.getAudience().sendMessage(Component.text(event.getFailMessage()));
+        }
 
         Movecraft.getInstance().getLogger().info(String.format("Finished detection task for pilot <%s>! Time taken: %dms", pilot == null ? "NULL" : pilot.getUniqueId(), System.currentTimeMillis() - startTime));
         return ((Effect) () -> {
