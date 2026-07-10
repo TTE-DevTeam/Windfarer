@@ -4,6 +4,8 @@ import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
+import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
+import net.countercraft.movecraft.util.hitboxes.HitBox;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
@@ -40,7 +42,7 @@ public class CraftCache {
     }
 
     public static void onCraftFinishedMovement(final Craft craft) {
-        Bukkit.getScheduler().runTaskAsynchronously(Movecraft.getInstance(), new UpdateCraftPositionRunnable(craft, craft.getWorld().getUID(), new BitmapHitBox(craft.getHitBox()));
+        Bukkit.getScheduler().runTaskAsynchronously(Movecraft.getInstance(), new UpdateCraftPositionRunnable(craft, craft.getWorld().getUID(), new BitmapHitBox(craft.getHitBox())));
     }
 
     public static Set<Craft> getCraftsAtChunk(World world, MovecraftLocation blockCoordinate) {
