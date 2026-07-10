@@ -249,6 +249,7 @@ public class DetectionTask implements Supplier<Effect> {
     @Override
     public Effect get() {
         final long startTime = System.currentTimeMillis();
+        this.audience.sendMessage(Component.text("Starting detection... Please wait..."));
         Movecraft.getInstance().getLogger().info(String.format("Starting detection task for pilot <%s> and type <%s>...", pilot == null ? "NULL" : pilot.getUniqueId(), this.type.getName()));
         frontier();
         if (!illegal.isEmpty()) {
