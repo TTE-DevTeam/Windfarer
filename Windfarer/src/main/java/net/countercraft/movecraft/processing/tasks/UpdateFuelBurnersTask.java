@@ -94,7 +94,7 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
     protected Effect makeBurnerProgressEffect(Set<TrackedLocation> furnaceLocations) {
         // NO burners? Nothing to do!
         if (furnaceLocations.isEmpty()) {
-            return null;
+            return Effect.NONE;
         }
         final double burnPercentage = craft.getBurningFuel() / craft.getMaxBurningFuel();
         final ItemStack fuelItem = craft.getDataTag(CURRENT_FUEL_ITEM);
