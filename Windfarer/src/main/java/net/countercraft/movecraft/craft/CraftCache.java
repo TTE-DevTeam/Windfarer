@@ -132,6 +132,11 @@ public class CraftCache {
             setsOfCraft.forEach(ref -> ref.get().remove(new WeakReference<>(craft)));
             setsOfCraft.clear();
         }
+        // If the hitbox is empty, we quit early
+        if (craft.getHitBox().isEmpty()) {
+            return;
+        }
+        
         // Now, recalculate the chunks of that craft
         final int minChunkX = craft.getHitBox().getMinX() >> 4;
         final int minChunkY = craft.getHitBox().getMinY() >> 4;
