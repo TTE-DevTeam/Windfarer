@@ -40,7 +40,7 @@ public class CraftCache {
     }
 
     public static void onCraftFinishedMovement(final Craft craft) {
-        Bukkit.getScheduler().runTaskAsynchronously(Movecraft.getInstance(), new UpdateCraftPositionRunnable(craft, craft.getWorld().getUID()));
+        Bukkit.getScheduler().runTaskAsynchronously(Movecraft.getInstance(), new UpdateCraftPositionRunnable(craft, craft.getWorld().getUID(), new BitmapHitBox(craft.getHitBox()));
     }
 
     public static Set<Craft> getCraftsAtChunk(World world, MovecraftLocation blockCoordinate) {
@@ -123,7 +123,8 @@ public class CraftCache {
         return Optional.ofNullable(result);
     }
 
-    protected void onCraftFinishedMovementInternal(final Craft craft) {
+    // TODO: Change to repeating AsyncTask that works down a queue
+    protected void onCraftFinishedMovementInternal(final Craft craft, final HitBox hitBox) {
         Set<WeakReference<List<WeakReference<Craft>>>> setsOfCraft = getSetsOfCraft(craft);
         if (!setsOfCraft.isEmpty()) {
             // First, remove all no longer existing lists
@@ -133,17 +134,17 @@ public class CraftCache {
             setsOfCraft.clear();
         }
         // If the hitbox is empty, we quit early
-        if (craft.getHitBox().isEmpty()) {
+        if (hitBox.isEmpty()) {
             return;
         }
         
         // Now, recalculate the chunks of that craft
-        final int minChunkX = craft.getHitBox().getMinX() >> 4;
-        final int minChunkY = craft.getHitBox().getMinY() >> 4;
-        final int minChunkZ = craft.getHitBox().getMinZ() >> 4;
-        final int maxChunkX = craft.getHitBox().getMaxX() >> 4;
-        final int maxChunkY = craft.getHitBox().getMaxY() >> 4;
-        final int maxChunkZ = craft.getHitBox().getMaxZ() >> 4;
+        final int minChunkX = hitBox.getMinX() >> 4;
+        final int minChunkY = hitBox.getMinY() >> 4;
+        final int minChunkZ = hitBox.getMinZ() >> 4;
+        final int maxChunkX = hitBox.getMaxX() >> 4;
+        final int maxChunkY = hitBox.getMaxY() >> 4;
+        final int maxChunkZ = hitBox.getMaxZ() >> 4;
 
         final WeakReference<Craft> craftWeakReference = new WeakReference<>(craft);
         for (int iX = minChunkX; iX <= maxChunkX; iX++) {
@@ -180,11 +181,11 @@ public class CraftCache {
 
     }
 
-    protected record UpdateCraftPositionRunnable(Craft craft, UUID worldUUID) implements Runnable {
+    protected record UpdateCraftPositionRunnable(Craft craft, UUID worldUUID, HitBox hitBox) implements Runnable {
 
         @Override
         public void run() {
-            of(worldUUID).onCraftFinishedMovementInternal(craft);
+            of(worldUUID).onCraftFinishedMovementInternal(craft, hitBox);
         }
     }
 
