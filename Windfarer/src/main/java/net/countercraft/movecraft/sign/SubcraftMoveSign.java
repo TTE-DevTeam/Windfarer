@@ -115,7 +115,9 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
         }
 
         if (movement.length() != 0) {
-            final Vector finalMovement = movement;
+            final int deltaX = Math.toIntExact(Math.round(movement.getX()));
+            final int deltaY = Math.toIntExact(Math.round(movement.getY()));
+            final int deltaZ = Math.toIntExact(Math.round(movement.getZ()));
             CraftManager.getInstance().detect(startPoint, subcraftType, (type, w, p, parents) -> {
                 if (parents.size() > 1) {
                     return new Pair(Result.failWithMessage(I18nSupport.getInternationalisedString("Detection - Failed - Already commanding a craft")), (Object) null);
@@ -137,13 +139,13 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
                         // Validate if this would move out of the parentcraft
 
                         HitBox subcraftHitbox = subcraft.getHitBox();
-                        final int minX = subcraftHitbox.getMinX() + finalMovement.getBlockX();
-                        final int minY = subcraftHitbox.getMinY() + finalMovement.getBlockY();
-                        final int minZ = subcraftHitbox.getMinZ() + finalMovement.getBlockZ();
+                        final int minX = subcraftHitbox.getMinX() + deltaX;
+                        final int minY = subcraftHitbox.getMinY() + deltaY;
+                        final int minZ = subcraftHitbox.getMinZ() + deltaZ;
 
-                        final int maxX = subcraftHitbox.getMaxX() + finalMovement.getBlockX();
-                        final int maxY = subcraftHitbox.getMaxY() + finalMovement.getBlockY();
-                        final int maxZ = subcraftHitbox.getMaxZ() + finalMovement.getBlockZ();
+                        final int maxX = subcraftHitbox.getMaxX() + deltaX;
+                        final int maxY = subcraftHitbox.getMaxY() + deltaY;
+                        final int maxZ = subcraftHitbox.getMaxZ() + deltaZ;
 
                         if (!(parent.getHitBox().inBounds(minX, minY, minZ) && parent.getHitBox().inBounds(maxX, maxY, maxZ))) {
                             movementAllowed = false;
@@ -151,7 +153,7 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
                     }
 
                     if (movementAllowed || !subcraftType.get(PropertyKeys.RESTRICT_TO_MOVEBOX)) {
-                        subcraft.translate(world, finalMovement.getBlockX(), finalMovement.getBlockY(), finalMovement.getBlockZ());
+                        subcraft.translate(world, deltaX, deltaY, deltaZ);
                     } else {
                         player.sendMessage(I18nSupport.getInternationalisedComponent("Subcraft Move - can't move out of the parentcraft!"));
                     }
