@@ -10,13 +10,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -26,7 +23,7 @@ import java.util.function.Supplier;
 public final class WorldManager implements Executor {
 
     public static final WorldManager INSTANCE = new WorldManager();
-    private static final Runnable POISON = new Runnable() {
+    protected static final Runnable POISON = new Runnable() {
         @Override
         public void run() {/* No-op */}
         @Override
@@ -35,13 +32,13 @@ public final class WorldManager implements Executor {
         }
     };
 
-    private final ConcurrentLinkedQueue<Effect> worldChanges = new ConcurrentLinkedQueue<>();
-    private final ConcurrentLinkedQueue<Supplier<@Nullable Effect>> tasks = new ConcurrentLinkedQueue<>();
-    private final ConcurrentLinkedQueue<Runnable> currentTasks = new ConcurrentLinkedQueue<>();
-    private final AtomicInteger pendingTasks = new AtomicInteger(0);
-    private volatile boolean running = false;
+    protected final ConcurrentLinkedQueue<Effect> worldChanges = new ConcurrentLinkedQueue<>();
+    protected final ConcurrentLinkedQueue<Supplier<@Nullable Effect>> tasks = new ConcurrentLinkedQueue<>();
+    protected final ConcurrentLinkedQueue<Runnable> currentTasks = new ConcurrentLinkedQueue<>();
+    protected final AtomicInteger pendingTasks = new AtomicInteger(0);
+    protected volatile boolean running = false;
 
-    private WorldManager(){}
+    protected WorldManager(){}
 
     public void run() {
         if(!Bukkit.isPrimaryThread()){
@@ -93,7 +90,7 @@ public final class WorldManager implements Executor {
         }
     }
 
-    private void startTask(Supplier<@Nullable Effect> task) {
+    protected void startTask(Supplier<@Nullable Effect> task) {
         List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
         pendingTasks.getAndIncrement();
         // NoOpTask tasks do not provide us any effects, we do not need to wait for those and can just start them normally
@@ -113,7 +110,7 @@ public final class WorldManager implements Executor {
         }
     }
 
-    private void addEffect(@Nullable Effect effect) {
+    protected void addEffect(@Nullable Effect effect) {
         if (effect instanceof Effect.MultiEffect multiEffect) {
             final Iterator<Effect> iterator = multiEffect.iterator();
             while (iterator.hasNext()) {
@@ -143,7 +140,7 @@ public final class WorldManager implements Executor {
         });
     }
 
-    private void poison(){
+    protected void poison(){
         currentTasks.add(POISON);
     }
 
