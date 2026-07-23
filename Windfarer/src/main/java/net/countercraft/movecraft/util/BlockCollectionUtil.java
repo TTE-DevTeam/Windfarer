@@ -25,11 +25,15 @@ public class BlockCollectionUtil {
     }
     @Nullable
     public static Set<MovecraftLocation> getLocations(final Craft craft, final TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> checkPredicate, TriConsumer<MovecraftLocation, MovecraftWorld, Craft> consumer) {
-        if (craft.getHitBox() == null || craft.getHitBox().isEmpty()) {
+        if (craft.getHitBox() == null) {
+            return new HashSet<>();
+        }
+        final HitBox hitbox = new BitmapHitBox(craft.getHitBox());
+        if (hitbox.isEmpty() {
             return new HashSet<>();
         }
         ArrayList<ForkJoinTask<WorkerData>> workers = new ArrayList<>();
-        new HitBoxSlicer(craft.getHitBox()).forEach(slice -> workers.add(ForkJoinTask.adapt(new Worker(craft, slice, checkPredicate, consumer, Sets.newConcurrentHashSet()))));
+        new HitBoxSlicer(hitbox).forEach(slice -> workers.add(ForkJoinTask.adapt(new Worker(craft, slice, checkPredicate, consumer, Sets.newConcurrentHashSet()))));
 
         Optional<WorkerData> workResult = ForkJoinTask
                 .invokeAll(workers)
