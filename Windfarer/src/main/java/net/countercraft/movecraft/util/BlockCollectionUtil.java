@@ -6,6 +6,8 @@ import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.functions.TriadicPredicate;
 import net.countercraft.movecraft.util.hitboxes.HitBoxSlicer;
+import net.countercraft.movecraft.util.hitboxes.HitBox;
+import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 
