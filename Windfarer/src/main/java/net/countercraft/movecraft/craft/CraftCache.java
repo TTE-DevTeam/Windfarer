@@ -90,15 +90,20 @@ public class CraftCache {
         this.cleanup();
     }
 
-    // Returns all crafts that somehow contain this chunk in their hitbox; No guarantee on if the craft actually has a block there or not!
-    protected Set<Craft> getCraftsAtChunkInternal(MovecraftLocation blockCoordinate) {
+    @Nullable
+    protected List<CraftEntry> getEntriesAtChunk(MovecraftLocation blockCoordinate) {
         final ChunkPos chunkPos = ChunkPos.of(blockCoordinate);
-        Set<Craft> result = new HashSet<>();
 
         // Very important: Cleanup first!
         this.cleanup();
 
-        List<CraftEntry> list = this.chunkMap.getOrDefault(chunkPos, null);
+        return this.chunkMap.getOrDefault(chunkPos, null);
+    }
+
+    // Returns all crafts that somehow contain this chunk in their hitbox; No guarantee on if the craft actually has a block there or not!
+    protected Set<Craft> getCraftsAtChunkInternal(MovecraftLocation blockCoordinate) {
+        Set<Craft> result = new HashSet<>();
+        List<CraftEntry> list = this.getEntriesAtChunk(blockCoordinate);
         if (list != null) {
             for (CraftEntry reference : list) {
                 if (!reference.craftIsValid())
@@ -116,14 +121,20 @@ public class CraftCache {
 
     // returns the first craft that contains this position
     protected Optional<Craft> getCraftAtInternal(MovecraftLocation blockCoordinate) {
-        Set<Craft> craftsInChunk = this.getCraftsAtChunkInternal(blockCoordinate);
+        List<CraftEntry> craftsInChunk = this.getEntriesAtChunk(blockCoordinate);
         Craft result = null;
         // Access can happen ASYNCHRONOUSLY!
         synchronized (craftsInChunk) {
             if (!craftsInChunk.isEmpty()) {
-                for (Craft craft : craftsInChunk) {
-                    if (craft.getHitBox().inBounds(blockCoordinate) && craft.getHitBox().contains(blockCoordinate)) {
-                        result = craft;
+                for (CraftEntry craftEntry : craftsInChunk) {
+                    if (!craftEntry.craftIsValid())
+                        continue;
+
+                    if (craftEntry.hitBoxSnapshot().isEmpty())
+                        continue;
+
+                    if (craftEntry.hitBoxSnapshot().inBounds(blockCoordinate) && craftEntry.hitBoxSnapshot().contains(blockCoordinate)) {
+                        result = craftEntry.getCraft();
                         break;
                     }
                 }
