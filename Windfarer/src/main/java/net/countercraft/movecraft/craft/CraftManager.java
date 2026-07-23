@@ -253,6 +253,8 @@ public class CraftManager implements Iterable<Craft>{
 
         // TODO: Is this safe?
         HelmsManManager.activePilotToCraftUUID.values().remove(craft);
+
+        craft.onReleased();
     }
 
     public void release(@NotNull Craft craft, @NotNull CraftReleaseEvent.Reason reason, boolean force) {
