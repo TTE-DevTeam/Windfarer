@@ -31,7 +31,7 @@ public class BlockCollectionUtil {
             return new HashSet<>();
         }
         final HitBox hitbox = new BitmapHitBox(craft.getHitBox());
-        if (hitbox.isEmpty() {
+        if (hitbox.isEmpty()) {
             return new HashSet<>();
         }
         ArrayList<ForkJoinTask<WorkerData>> workers = new ArrayList<>();
