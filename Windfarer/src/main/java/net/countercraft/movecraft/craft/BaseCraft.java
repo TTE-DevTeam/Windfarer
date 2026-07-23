@@ -58,7 +58,7 @@ public abstract class BaseCraft implements Craft {
     @NotNull
     private final Map<Location, BlockData> phaseBlocks = new HashMap<>();
     @NotNull
-    protected HitBox hitBox;
+    protected volatile HitBox hitBox;
     @NotNull
     protected MutableHitBox fluidLocations;
     @NotNull
