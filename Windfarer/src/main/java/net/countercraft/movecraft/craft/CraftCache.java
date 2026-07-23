@@ -9,7 +9,9 @@ import net.countercraft.movecraft.util.hitboxes.HitBox;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -62,18 +64,18 @@ public class CraftCache {
 
     }
 
-    protected final Map<ChunkPos, List<WeakReference<Craft>>> chunkMap = new ConcurrentHashMap<>();
-    protected static final CraftDataTagKey<Set<WeakReference<List<WeakReference<Craft>>>>> positionCaches = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Movecraft.getInstance(), "chunkpos-references"), c -> Collections.synchronizedSet(new HashSet<>()));
+    protected final Map<ChunkPos, List<CraftEntry>> chunkMap = new ConcurrentHashMap<>();
+    protected static final CraftDataTagKey<Set<WeakReference<List<CraftEntry>>>> positionCaches = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Movecraft.getInstance(), "chunkpos-references"), c -> Collections.synchronizedSet(new HashSet<>()));
 
     protected void cleanup() {
         this.chunkMap.entrySet().removeIf(e -> {
             // TODO: Replace that contains clause!
-            e.getValue().removeIf(ref -> ref.get() == null || !CraftManager.getInstance().getCrafts().contains(ref.get()));
+            e.getValue().removeIf(ref -> !ref.craftIsValid() || !CraftManager.getInstance().getCrafts().contains(ref.getCraft()));
             return e.getValue().isEmpty();
         });
     }
 
-    protected static Set<WeakReference<List<WeakReference<Craft>>>> getSetsOfCraft(final Craft craft) {
+    protected static Set<WeakReference<List<CraftEntry>>> getSetsOfCraft(final Craft craft) {
         return craft.getDataTag(positionCaches);
     }
 
@@ -82,9 +84,8 @@ public class CraftCache {
     }
 
     protected void removeCraftInternal(final Craft craft) {
-        final WeakReference<Craft> reference = new WeakReference<>(craft);
-        for (List<WeakReference<Craft>> list : this.chunkMap.values()) {
-            list.remove(reference);
+        for (List<CraftEntry> list : this.chunkMap.values()) {
+            list.remove(craft);
         }
         this.cleanup();
     }
@@ -97,10 +98,13 @@ public class CraftCache {
         // Very important: Cleanup first!
         this.cleanup();
 
-        List<WeakReference<Craft>> list = this.chunkMap.getOrDefault(chunkPos, null);
+        List<CraftEntry> list = this.chunkMap.getOrDefault(chunkPos, null);
         if (list != null) {
-            for (WeakReference<Craft> reference : list) {
-                Craft deReferenced = reference.get();
+            for (CraftEntry reference : list) {
+                if (!reference.craftIsValid())
+                    continue;
+
+                Craft deReferenced = reference.getCraft();
                 if (deReferenced != null) {
                     result.add(deReferenced);
                 }
@@ -114,11 +118,14 @@ public class CraftCache {
     protected Optional<Craft> getCraftAtInternal(MovecraftLocation blockCoordinate) {
         Set<Craft> craftsInChunk = this.getCraftsAtChunkInternal(blockCoordinate);
         Craft result = null;
-        if (!craftsInChunk.isEmpty()) {
-            for (Craft craft : craftsInChunk) {
-                if (craft.getHitBox().inBounds(blockCoordinate) && craft.getHitBox().contains(blockCoordinate)) {
-                    result = craft;
-                    break;
+        // Access can happen ASYNCHRONOUSLY!
+        synchronized (craftsInChunk) {
+            if (!craftsInChunk.isEmpty()) {
+                for (Craft craft : craftsInChunk) {
+                    if (craft.getHitBox().inBounds(blockCoordinate) && craft.getHitBox().contains(blockCoordinate)) {
+                        result = craft;
+                        break;
+                    }
                 }
             }
         }
@@ -127,7 +134,7 @@ public class CraftCache {
 
     // TODO: Change to repeating AsyncTask that works down a queue
     protected void onCraftFinishedMovementInternal(final Craft craft, final HitBox hitBox) {
-        Set<WeakReference<List<WeakReference<Craft>>>> setsOfCraft = getSetsOfCraft(craft);
+        Set<WeakReference<List<CraftEntry>>> setsOfCraft = getSetsOfCraft(craft);
         if (!setsOfCraft.isEmpty()) {
             // First, remove all no longer existing lists
             setsOfCraft.removeIf(ref -> ref.get() == null);
@@ -148,13 +155,13 @@ public class CraftCache {
         final int maxChunkY = hitBox.getMaxY() >> 4;
         final int maxChunkZ = hitBox.getMaxZ() >> 4;
 
-        final WeakReference<Craft> craftWeakReference = new WeakReference<>(craft);
+        final CraftEntry entry = new CraftEntry(craft.getUUID(), hitBox);
         for (int iX = minChunkX; iX <= maxChunkX; iX++) {
             for (int iY = minChunkY; iY <= maxChunkY; iY++) {
                 for (int iZ = minChunkZ; iZ <= maxChunkZ; iZ++) {
                     ChunkPos chunkPos = new ChunkPos(iX, iY, iZ);
-                    List<WeakReference<Craft>> craftList = chunkMap.computeIfAbsent(chunkPos, k -> Collections.synchronizedList(new ArrayList<>()));
-                    craftList.add(craftWeakReference);
+                    List<CraftEntry> craftList = chunkMap.computeIfAbsent(chunkPos, k -> Collections.synchronizedList(new ArrayList<>()));
+                    craftList.add(entry);
                     setsOfCraft.add(new WeakReference<>(craftList));
                 }
             }
@@ -188,6 +195,32 @@ public class CraftCache {
         @Override
         public void run() {
             of(worldUUID).onCraftFinishedMovementInternal(craft, hitBox);
+        }
+    }
+
+    protected record CraftEntry(@NotNull UUID craftUUID, HitBox hitBoxSnapshot) {
+
+        public boolean craftIsValid() {
+            return Craft.getCraftByUUID(this.craftUUID) != null;
+        }
+
+        @Nullable
+        public Craft getCraft() {
+            return Craft.getCraftByUUID(this.craftUUID);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) {
+                return true;
+            }
+            if (obj instanceof CraftEntry ce) {
+                return ce.craftUUID.equals(this.craftUUID);
+            }
+            if (obj instanceof Craft craft) {
+                return craft.getUUID() != null && craft.getUUID().equals(this.craftUUID);
+            }
+            return false;
         }
     }
 
