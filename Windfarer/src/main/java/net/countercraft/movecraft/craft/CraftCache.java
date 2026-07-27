@@ -124,18 +124,20 @@ public class CraftCache {
         List<CraftEntry> craftsInChunk = this.getEntriesAtChunk(blockCoordinate);
         Craft result = null;
         // Access can happen ASYNCHRONOUSLY!
-        synchronized (craftsInChunk) {
-            if (!craftsInChunk.isEmpty()) {
-                for (CraftEntry craftEntry : craftsInChunk) {
-                    if (!craftEntry.craftIsValid())
-                        continue;
+        if (craftsInChunk != null) {
+            synchronized (craftsInChunk) {
+                if (!craftsInChunk.isEmpty()) {
+                    for (CraftEntry craftEntry : craftsInChunk) {
+                        if (!craftEntry.craftIsValid())
+                            continue;
 
-                    if (craftEntry.hitBoxSnapshot().isEmpty())
-                        continue;
+                        if (craftEntry.hitBoxSnapshot().isEmpty())
+                            continue;
 
-                    if (craftEntry.hitBoxSnapshot().inBounds(blockCoordinate) && craftEntry.hitBoxSnapshot().contains(blockCoordinate)) {
-                        result = craftEntry.getCraft();
-                        break;
+                        if (craftEntry.hitBoxSnapshot().inBounds(blockCoordinate) && craftEntry.hitBoxSnapshot().contains(blockCoordinate)) {
+                            result = craftEntry.getCraft();
+                            break;
+                        }
                     }
                 }
             }
