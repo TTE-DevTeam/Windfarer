@@ -155,4 +155,9 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
 
         return result;
     }
+
+    @Override
+    protected long defaultCooldown() {
+        return 0L;
+    }
 }

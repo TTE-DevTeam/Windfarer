@@ -37,8 +37,12 @@ public abstract class AbstractDirectControlSlot implements ConfigurationSerializ
         this.cooldown = cooldown;
     }
 
+    protected long defaultCooldown() {
+        return 200L;
+    }
+
     public AbstractDirectControlSlot(final Map<String, Object> yamlData) {
-        this.cooldown = NumberConversions.toLong(yamlData.getOrDefault("cooldown", 200L));
+        this.cooldown = NumberConversions.toLong(yamlData.getOrDefault("cooldown", this.defaultCooldown()));
     }
 
     protected boolean isReady(final Craft craft) {
@@ -114,6 +118,9 @@ public abstract class AbstractDirectControlSlot implements ConfigurationSerializ
     }
 
     protected void setCooldown(final Craft craft) {
+        if (this.cooldown <= 0) {
+            return;
+        }
         craft.getDataTag(COOLDOWN_MAP).put(this, System.currentTimeMillis() + this.cooldown);
     }
 
