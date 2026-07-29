@@ -1,5 +1,4 @@
 rootProject.name = "windfarer-parent"
-include(":windfarer-v1_20_6")
 include(":windfarer-v1_21_1")
 include(":windfarer-v1_21_4")
 include(":windfarer-v1_21_5")
@@ -11,7 +10,6 @@ include(":windfarer-v26_2")
 include(":windfarer-api")
 include(":windfarer-datapack")
 include(":windfarer")
-project(":windfarer-v1_20_6").projectDir = file("v1_20_6")
 project(":windfarer-v1_21_1").projectDir = file("v1_21_1")
 project(":windfarer-v1_21_4").projectDir = file("v1_21_4")
 project(":windfarer-v1_21_5").projectDir = file("v1_21_5")
