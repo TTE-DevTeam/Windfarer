@@ -42,8 +42,6 @@ tasks.shadowJar {
 
 tasks.processResources {
     from(rootProject.file("LICENSE.md"))
-    from(project(":windfarer-datapack").file("build/zip/windfarer-data.zip"))
-    dependsOn(project(":windfarer-datapack").tasks.build)
     filesMatching("*.yml") {
         expand(mapOf("projectVersion" to project.version))
     }
