@@ -57,8 +57,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -361,61 +359,15 @@ public class Movecraft extends JavaPlugin {
         saveDefaultConfig();
 
         TypeSafeCraftType.init();
+
+        if (!this.isDatapackEnabled()) {
+            logger.severe("Failed to automatically load windfarer datapack. Check if it exists.");
+            this.setEnabled(false);
+        }
     }
 
     private boolean initializeDatapack() {
-        File datapackDirectory = null;
-        for(var world : getServer().getWorlds()) {
-            datapackDirectory = new File(world.getWorldFolder(), "datapacks");
-            if(datapackDirectory.exists())
-                break;
-        }
-        if(datapackDirectory == null) {
-            logger.severe("Failed to initialize Movecraft data pack due to first time world initialization.");
-            return false;
-        }
-        if(!datapackDirectory.exists()) {
-            logger.info("Creating a datapack directory at " + datapackDirectory.getPath());
-            if(!datapackDirectory.mkdir()) {
-                logger.severe("Failed to create datapack directory!");
-                return false;
-            }
-        }
-        else if(new File(datapackDirectory, "movecraft-data.zip").exists()) {
-            logger.warning("Conflicting datapack already exists in " + datapackDirectory.getPath() + ". If you would like to regenerate the datapack, delete the existing one.");
-            return false;
-        }
-        if(!datapackDirectory.canWrite()) {
-            logger.warning("Missing permissions to write to world directory.");
-            return false;
-        }
-
-        try(var stream = new FileOutputStream(new File(datapackDirectory, "movecraft-data.zip"));
-                var pack = getResource("movecraft-data.zip")) {
-            if(pack == null) {
-                logger.severe("No internal datapack found, report this.");
-                return false;
-            }
-            pack.transferTo(stream);
-        }
-        catch(IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-        logger.info("Saved default Movecraft datapack.");
-
-        getServer().dispatchCommand(getServer().createCommandSender(response -> {}), "datapack list"); // list datapacks to trigger the server to check
-        for (Datapack datapack : getServer().getDatapackManager().getPacks()) {
-            if (!datapack.getName().equals("file/movecraft-data.zip"))
-                continue;
-
-            if (!datapack.isEnabled()) {
-                datapack.setEnabled(true);
-                logger.info("Datapack enabled.");
-            }
-            break;
-        }
-
+        // Logic handled in PluginBootstrap now!
         if (!isDatapackEnabled()) {
             logger.severe("Failed to automatically load movecraft datapack. Check if it exists.");
             setEnabled(false);
@@ -425,13 +377,15 @@ public class Movecraft extends JavaPlugin {
     }
 
     private boolean isDatapackEnabled() {
-        getServer().dispatchCommand(getServer().createCommandSender(response -> {}), "datapack list"); // list datapacks to trigger the server to check
-        for (Datapack datapack : getServer().getDatapackManager().getPacks()) {
-            if (!datapack.getName().equals("file/movecraft-data.zip"))
-                continue;
-
-            return datapack.isEnabled();
+        Datapack pack = this.getServer().getDatapackManager().getPack(getPluginMeta().getName() + "/provided");
+        if (pack != null) {
+            if (pack.isEnabled()) {
+                return true;
+            } else {
+                return false;
+            }
         }
+        logger.severe("Datapack not found!");
         return false;
     }
 
