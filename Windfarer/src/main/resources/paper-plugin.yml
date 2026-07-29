@@ -1,0 +1,55 @@
+name: Windfarer
+version: ${projectVersion}
+api-version: 1.21.4
+description: Previous movecraft fork, now split from mainstream! Basically movecraft with QoL, reworks and additional features!
+authors:
+  - DerToaster
+  - goodroach
+  - original work made by the APDevTeam
+website: https://github.com/TTE-DevTeam/Windfarer
+main: net.countercraft.movecraft.Movecraft
+bootstrapper: net.countercraft.movecraft.WindfarerBootstrapper
+loader: net.countercraft.movecraft.WindfarerPluginLoader
+database: false
+provides:
+  server:
+    - Movecraft
+#commands:
+#  movecraft:
+#    description: base movecraft command
+#    usage: /movecraft [reloadtypes]
+#  release:
+#    description: Releases your craft
+#    usage: /release
+#  pilot:
+#    description: Pilots the craft at your feet
+#    usage: /pilot [crafttypename]
+#  ignorecontact:
+#    description: Ignore a specific craft in contacts
+#    usage: /ignorecontact <base craft> <craft to ignore>
+#  contacts:
+#    description: reports on all crafts within detection range
+#    usage: /contacts <page>
+#  craftreport:
+#    description: reports on all active craft in the world you are in
+#    usage: /craftreport <page>
+#  cruise:
+#    description: Starts your craft cruising
+#    usage: /cruise [north|south|east|west|on|off]
+#  rotate:
+#    description: Rotates your craft
+#    usage: /rotate [right|left]
+#  manoverboard:
+#    description: If enabled, returns you to a craft you have fallen out of
+#    usage: /manoverboard
+#  scuttle:
+#    description: Sinks piloted craft
+#    usage: /scuttle
+#  crafttype:
+#    description: Get information on a specifc craft type
+#    usage: /crafttype [type] [page]
+#  craftinfo:
+#    description: Get information on a piloted craft
+#    usage: /craftinfo [player] [page]
+#libraries:
+#  - org.roaringbitmap:RoaringBitmap:1.0.6
