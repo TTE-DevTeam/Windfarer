@@ -8,7 +8,6 @@ plugins {
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 dependencies {
-    runtimeOnly(project(":windfarer-v1_21_1"))
     runtimeOnly(project(":windfarer-v1_21_4"))
     runtimeOnly(project(":windfarer-v1_21_5"))
     runtimeOnly(project(":windfarer-v1_21_8"))
@@ -27,7 +26,6 @@ tasks.shadowJar {
 
     dependencies {
         include(project(":windfarer-api"))
-        include(project(":windfarer-v1_21_1"))
         include(project(":windfarer-v1_21_4"))
         include(project(":windfarer-v1_21_5"))
         include(project(":windfarer-v1_21_8"))
@@ -82,7 +80,7 @@ hangarPublish {
         platforms {
             register(io.papermc.hangarpublishplugin.model.Platforms.PAPER) {
                 jar.set(tasks.shadowJar.flatMap { it.archiveFile })
-                platformVersions.set(listOf("1.21.1", "1.21.4", "1.21.5", "1.21.8", "1.21.10", "1.21.11", "26.1.2", "26.2"))
+                platformVersions.set(listOf("1.21.4", "1.21.5", "1.21.8", "1.21.10", "1.21.11", "26.1.2", "26.2"))
             }
         }
     }
