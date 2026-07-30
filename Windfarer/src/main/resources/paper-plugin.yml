@@ -1,6 +1,6 @@
 name: Windfarer
 version: ${projectVersion}
-api-version: 1.21.4
+api-version: '1.21.8'
 description: Previous movecraft fork, now split from mainstream! Basically movecraft with QoL, reworks and additional features!
 authors:
   - DerToaster
