@@ -33,8 +33,8 @@ import static net.countercraft.movecraft.features.fuel.FuelDataTags.FUEL_PERCENT
 
 public class UpdateFuelBurnersTask implements Supplier<Effect> {
 
-    private final Craft craft;
-    private final boolean burnersActive;
+    protected final Craft craft;
+    protected boolean burnersActive;
 
     public UpdateFuelBurnersTask(Craft craft, boolean burnersActive) {
         this.craft = craft;
