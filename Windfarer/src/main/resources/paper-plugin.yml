@@ -10,10 +10,7 @@ website: https://github.com/TTE-DevTeam/Windfarer
 main: net.countercraft.movecraft.Movecraft
 bootstrapper: net.countercraft.movecraft.WindfarerBootstrapper
 loader: net.countercraft.movecraft.WindfarerPluginLoader
-database: false
-provides:
-  server:
-    - Movecraft
+provides: [Movecraft]
 #commands:
 #  movecraft:
 #    description: base movecraft command
