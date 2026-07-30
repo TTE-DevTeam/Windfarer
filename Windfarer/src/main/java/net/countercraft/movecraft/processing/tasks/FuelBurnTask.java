@@ -43,13 +43,12 @@ import static net.countercraft.movecraft.features.fuel.FuelDataTags.IS_FUELED;
 // Problematic methods (highest to lowest9:
 //   - updateFurnaces (getBlockState(), BlockState.update())
 //   - burnFuel()
-public class FuelBurnTask implements Supplier<Effect> {
+public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effect> {
 
-    private final Craft craft;
     private final double fuelBurnRate;
 
     public FuelBurnTask(Craft craft, double fuelBurnRate) {
-        this.craft = craft;
+        super(craft, false);
         this.fuelBurnRate = fuelBurnRate;
     }
 
@@ -159,10 +158,9 @@ public class FuelBurnTask implements Supplier<Effect> {
 
         additionalSteps.add(new SinkOutOfFuelCraftsAndApplyIsFueled(craft, hasFuel));
         // Update burner effect at last
-        additionalSteps.add(() -> {
-            boolean fueled = craft.getDataTag(IS_FUELED);
-            WorldManager.INSTANCE.submit(new UpdateFuelBurnersTask(craft, fueled));
-        });
+        this.burnersActive = hasFuel;
+        Effect updateBurnersEffect = super.get();
+        additionalSteps.add(updateBurnersEffect);
         if (Settings.Debug)
             Movecraft.getInstance().getLogger().info(String.format("Finished fuel burn task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
         return new Effect.AndEffect(additionalSteps);
