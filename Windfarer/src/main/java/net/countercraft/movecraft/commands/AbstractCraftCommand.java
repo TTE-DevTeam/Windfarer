@@ -31,11 +31,13 @@ import java.util.function.Function;
 
 public abstract class AbstractCraftCommand {
 
+    protected final String commandLiteral;
     protected final String permissionNode;
     protected final String description;
     protected final Collection<String> aliasList;
 
-    protected AbstractCraftCommand(String permissionNode, String description, Collection<String> aliasList) {
+    protected AbstractCraftCommand(String commandLiteral, String permissionNode, String description, Collection<String> aliasList) {
+        this.commandLiteral = commandLiteral;
         this.permissionNode = permissionNode;
         this.description = description;
         this.aliasList = aliasList;
@@ -54,7 +56,7 @@ public abstract class AbstractCraftCommand {
 
     public void register(final Commands commands) {
         ArgumentBuilder<CommandSourceStack, ?> literal =
-                Commands.literal("teleportcraft")
+                Commands.literal(this.commandLiteral)
                         .requires(this::requiresCheck)
                         // By Pilot entity
                         .then(

@@ -14,7 +14,7 @@ import java.util.List;
 public class TeleportCraftCommand extends AbstractCraftCommand {
 
     protected TeleportCraftCommand() {
-        super("movecraft.commands.teleportcraft", "Command to rotate your craft", List.of("tpc", "tpcraft"));
+        super("teleportcraft", "movecraft.commands.teleportcraft", "Command to rotate your craft", List.of("tpc", "tpcraft"));
     }
 
     @Nullable
