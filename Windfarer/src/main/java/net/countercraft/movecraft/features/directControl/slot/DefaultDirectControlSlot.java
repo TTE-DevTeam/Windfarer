@@ -63,7 +63,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
         if (!this.clickToAscendOrDescend) {
             return false;
         }
-        if (itemStack.getType() != Settings.PilotTool && this.requirePilotToolForAscendOrDescend) {
+        if ((itemStack == null || itemStack.getType() != Settings.PilotTool) && this.requirePilotToolForAscendOrDescend) {
             return false;
         }
 
