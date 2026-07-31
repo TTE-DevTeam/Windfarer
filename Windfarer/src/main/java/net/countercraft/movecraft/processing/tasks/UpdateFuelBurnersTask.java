@@ -101,7 +101,7 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
         int burnTime = 0;
         int totalBurnTime = 0;
         final World worldWorkaround = Bukkit.getWorld(craft.getMovecraftWorld().getWorldUUID());
-        if (fuelItem != null && !fuelItem.isEmpty() && Movecraft.getInstance().getNMSHelper().isFuel(fuelItem, worldWorkaround)) {
+        if (worldWorkaround != null && fuelItem != null && !fuelItem.isEmpty() && Movecraft.getInstance().getNMSHelper().isFuel(fuelItem, worldWorkaround)) {
             totalBurnTime = (Movecraft.getInstance().getNMSHelper().getBurnDuration(fuelItem, worldWorkaround));
             double burnDuration = totalBurnTime;
             burnTime = (int) (burnDuration * burnPercentage);
