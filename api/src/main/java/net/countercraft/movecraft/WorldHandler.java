@@ -15,13 +15,11 @@ public abstract class WorldHandler {
     public static @NotNull String[] getPackageNames(@NotNull String minecraftVersion) {
         String[] parts = minecraftVersion.split("\\.");
         String[] result = new String[parts.length];
-        String workingStr = "";
+        String workingStr = "v";
         for (int i = 0; i < parts.length; i++) {
-            if (i > 0) {
-                workingStr += "_";
-            }
             workingStr += parts[i];
             result[parts.length - 1 - i] = workingStr;
+            workingStr += "_";
         }
         return result;
     }
