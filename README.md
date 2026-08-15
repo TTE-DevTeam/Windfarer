@@ -6,8 +6,8 @@ Features long overdue overhauls and rewrites of multiple systems (e.g. Signs, Cr
 
 Focus lies on the demands of the TTE server!
 
-**You are free to use this version of Movecraft as long as you give credit to us.**
-**Usage on pay-2-win servers or servers that sell overpriced ranks is not allowed.**
+**You are free to use this version of Movecraft as long as you stick to the provided license!**
+**Usage on pay-2-win servers or servers that sell overpriced ranks is not heavily looked down upon. The same applies for taking credit for the software that is Windfarer!**
 However, there is no guarantee given that this 100% fits your needs and demands.
 
 **Windfarer requires at least Java 17**
