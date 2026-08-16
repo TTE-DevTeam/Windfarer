@@ -11,6 +11,7 @@ import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.processing.functions.Result;
+import net.countercraft.movecraft.util.ChatUtils;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.Pair;
 import org.bukkit.World;
@@ -19,8 +20,6 @@ import org.bukkit.entity.Player;
 
 import java.util.List;
 
-import static net.countercraft.movecraft.util.ChatUtils.MOVECRAFT_COMMAND_PREFIX;
-
 public class PilotCommand {
 
     public static void register(final Commands commands) {
@@ -28,7 +27,7 @@ public class PilotCommand {
                 Commands.literal("pilot")
                         .requires(source -> {
                             if (!(source.getExecutor() instanceof Entity)) {
-                                source.getSender().sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Pilot - Must Be Entity"));
+                                source.getSender().sendMessage(ChatUtils.commandPrefix().append(I18nSupport.getInternationalisedComponent("Pilot - Must Be Entity")));
                                 return false;
                             }
                             if (!source.getSender().hasPermission("movecraft.commands")) {
@@ -37,7 +36,7 @@ public class PilotCommand {
                             return source.getSender().hasPermission("movecraft.commands.pilot");
                         })
                         .executes(context -> {
-                            context.getSource().getSender().sendMessage(MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Pilot - No Craft Type"));
+                            context.getSource().getSender().sendMessage(ChatUtils.commandPrefix().append(I18nSupport.getInternationalisedComponent("Pilot - No Craft Type")));
                             return com.mojang.brigadier.Command.SINGLE_SUCCESS;
                         })
                         .then(Commands.argument("type", new CraftTypeArgumentType())
@@ -63,7 +62,7 @@ public class PilotCommand {
                 craftType, (type, w, p, parents) -> {
                     assert p != null; // Note: This only passes in a non-null player.
                     if (parents.size() > 0)
-                        return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedString(
+                        return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedComponent(
                                 "Detection - Failed - Already commanding a craft")), null);
 
                     if (p instanceof Player player) {
