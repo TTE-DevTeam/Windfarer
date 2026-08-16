@@ -51,7 +51,7 @@ public abstract class AbstractCraftCommand {
     }
 
     protected boolean specialArgsPredicate(CommandSourceStack sourceStack) {
-        return sourceStack.getSender().hasPermission("movecraft.commands.selector-arguments");
+        return sourceStack.getSender().hasPermission(this.permissionNode + ".selector-arguments");
     }
 
     public void register(final Commands commands) {
