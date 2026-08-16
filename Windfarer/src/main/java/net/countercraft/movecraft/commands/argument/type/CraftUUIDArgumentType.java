@@ -35,7 +35,10 @@ public class CraftUUIDArgumentType implements CustomArgumentType.Converted<UUID,
             // Squadrons uses Subcraft implementations
             if (craft instanceof SubCraftImpl)
                 continue;
-            builder.suggest(craft.getUUID().toString());
+
+            final String uuidString = craft.getUUID().toString().toLowerCase();
+            if (uuidString.startsWith(builder.getRemainingLowerCase()))
+                builder.suggest(craft.getUUID().toString());
         }
         return builder.buildFuture();
     }

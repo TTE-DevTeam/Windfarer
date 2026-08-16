@@ -38,7 +38,7 @@ public class EnumArgumentType<E extends Enum<E>> implements CustomArgumentType.C
 
     @Override
     public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-        EnumSet.allOf(enumInner).forEach(entry -> builder.suggest(entry.name()));
+        EnumSet.allOf(enumInner).stream().filter(entry -> entry.name().toLowerCase().startsWith(builder.getRemainingLowerCase())).forEach(entry -> builder.suggest(entry.name()));
         return builder.buildFuture();
     }
 

@@ -42,7 +42,9 @@ public class CraftTypeArgumentType implements CustomArgumentType.Converted<TypeS
             checkFunction = Predicates.alwaysTrue();
         }
         CraftManager.getInstance().getTypesafeCraftTypes().forEach(ct -> {
-            if (checkFunction.test(ct)) {
+            boolean hasPerm = checkFunction.test(ct);
+            String ctNameLowerCase = ct.getName().toLowerCase();
+            if (hasPerm && ctNameLowerCase.startsWith(builder.getRemainingLowerCase())) {
                 builder.suggest(ct.getName());
             }
         });
