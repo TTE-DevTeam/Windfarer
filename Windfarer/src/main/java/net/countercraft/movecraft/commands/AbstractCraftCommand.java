@@ -97,7 +97,10 @@ public abstract class AbstractCraftCommand {
                                                         if (nameStr.indexOf(' ') >= 0) {
                                                             nameStr = '"' + nameStr + '"';
                                                         }
-                                                        builder.suggest(nameStr);
+
+                                                        if (nameStr.toLowerCase().startsWith(builder.getRemainingLowerCase())) {
+                                                            builder.suggest(nameStr);
+                                                        }
                                                     }
                                                     return builder.buildFuture();
                                                 }
