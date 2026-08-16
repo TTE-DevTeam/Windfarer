@@ -89,7 +89,7 @@ public abstract class AbstractMovecraftSign {
         this.permissionString = permissionNode;
     }
 
-    // Utility function to retrieve the ident of a a given sign instance
+    // Utility function to retrieve the ident of a given sign instance
     // DO NOT call this for unregistered instances!
     // It is a good idea to cache the return value of this function cause otherwise a loop over all registered sign instances will be necessary
     public static String findIdent(AbstractMovecraftSign instance) {

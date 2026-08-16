@@ -194,7 +194,6 @@ public class Movecraft extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new InteractListener(), this);
         getServer().getPluginManager().registerEvents(new DirectControlInteractListener(), this);
 
-        getCommand("movecraft").setExecutor(new MovecraftCommand());
         getCommand("release").setExecutor(new ReleaseCommand());
         getCommand("manoverboard").setExecutor(new ManOverboardCommand());
         getCommand("scuttle").setExecutor(new ScuttleCommand());
@@ -210,6 +209,7 @@ public class Movecraft extends JavaPlugin {
             CruiseCommand.register(commands);
             CraftReportCommand.register(commands);
             ToggleDirectControl.register(commands);
+            WindfarerCommand.register(commands);
         });
 
         // Naming scheme: If it has parameters, append a double colon except if it is a subcraft
