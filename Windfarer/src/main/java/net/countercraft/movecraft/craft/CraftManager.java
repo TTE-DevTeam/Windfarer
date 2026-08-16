@@ -397,6 +397,11 @@ public class CraftManager implements Iterable<Craft>{
     }
 
     @NotNull
+    public Collection<PlayerCraft> getPlayerCrafts() {
+        return Collections.unmodifiableCollection(playerCrafts.values());
+    }
+
+    @NotNull
     public Set<Craft> getCraftsInWorld(@NotNull World w) {
         Set<Craft> crafts = new HashSet<>(this.crafts.size(), 1); // never has to resize
         for (Craft c : this.crafts) {
