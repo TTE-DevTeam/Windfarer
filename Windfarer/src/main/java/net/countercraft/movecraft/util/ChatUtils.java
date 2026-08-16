@@ -15,7 +15,7 @@ public class ChatUtils {
     public static @NotNull Component commandPrefix() {
         return Component.empty()
                 .append(Component.text("[", NamedTextColor.GOLD))
-                .append(Component.text("Movecraft", (NamedTextColor.WHITE)))
+                .append(Component.text("Windfarer", (NamedTextColor.WHITE)))
                 .append(Component.text("] ", NamedTextColor.GOLD));
     }
 
