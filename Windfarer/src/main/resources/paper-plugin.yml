@@ -11,6 +11,43 @@ main: net.countercraft.movecraft.Movecraft
 bootstrapper: net.countercraft.movecraft.WindfarerBootstrapper
 loader: net.countercraft.movecraft.WindfarerPluginLoader
 provides: [Movecraft]
+permissions:
+  movecraft.commands:
+    default: true
+    description: "Base permission for all commands"
+  movecraft.commands.movecraft:
+    default: op
+    description: "Debug command for Windfarer, used to reload types among other things"
+  movecraft.commands.directcontrol:
+    default: true
+    description: "Allows to toggle direct control on and off"
+  movecraft.commands.scuttle.others:
+    default: op
+    description: "Allows to scuttle any craft"
+  movecraft.commands.scuttle.self:
+    default: true
+    description: "Allows scuttling your own craft"
+  movecraft.commands.release:
+    default: true
+    description: "Allows to release your own craft"
+  movecraft.commands.release.others:
+    default: op
+    description: "Allows to release any craft"
+  movecraft.manoverboard:
+    default: true
+    description: "Allows usage of the manoverboard command"
+  movecraft.commands.pilot:
+    default: op
+    description: "Command to pilot crafts"
+  movecraft.commands.rotate:
+    default: op
+    description: "Command to mimic helm-sign interactions"
+  movecraft.commands.cruise:
+    default: op
+    description: "Command to mimic cruise-sign interactions"
+  movecraft.commands.craftreport:
+    default: op
+    description: "Debug command to show active crafts"
 #commands:
 #  movecraft:
 #    description: base movecraft command
