@@ -132,9 +132,9 @@ public abstract class AbstractCraftCommand {
     }
 
     protected abstract @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> arguments();
-    protected abstract int processCommand(final CommandContext context, final Craft craft);
+    protected abstract int processCommand(final CommandContext context, final Set<Craft> craft);
 
-    protected ArgumentBuilder<CommandSourceStack, ?> processRest(final ArgumentBuilder<CommandSourceStack, ?> literal, final Function<CommandContext<CommandSourceStack>, Craft> craftSupplier) {
+    protected ArgumentBuilder<CommandSourceStack, ?> processRest(final ArgumentBuilder<CommandSourceStack, ?> literal, final Function<CommandContext<CommandSourceStack>, Set<Craft>> craftSupplier) {
         RequiredArgumentBuilder<CommandSourceStack, ?> addArgument = this.arguments();
         final Function<Command<CommandSourceStack>, ArgumentBuilder<CommandSourceStack, ?>> actualCommand;
         if (addArgument == null) {
@@ -143,20 +143,25 @@ public abstract class AbstractCraftCommand {
             actualCommand = addArgument::executes;
         }
         return actualCommand.apply(context -> {
-            final Craft craft = craftSupplier.apply(context);
+            final Set<Craft> craft = craftSupplier.apply(context);
             return processCommand(context, craft);
         });
     }
 
-    protected Craft getCraftByExecutor(CommandContext<CommandSourceStack> context) {
+    protected Set<Craft> getCraftByExecutor(CommandContext<CommandSourceStack> context) {
         final CommandSourceStack css = context.getSource();
         if (css.getExecutor() == null) {
             return null;
         }
-        return CraftManager.getInstance().getCraftByEntity(css.getExecutor());
+        final Craft obj = CraftManager.getInstance().getCraftByEntity(css.getExecutor());
+        if (obj == null) {
+            return null;
+        } else {
+            return Set.of(obj);
+        }
     }
 
-    protected Craft getCraftByPilot(CommandContext<CommandSourceStack> context) {
+    protected Set<Craft> getCraftByPilot(CommandContext<CommandSourceStack> context) {
         final EntitySelectorArgumentResolver entitySelectorArgumentResolver = (EntitySelectorArgumentResolver) context.getArgument("pilot", EntitySelectorArgumentResolver.class);
         try {
             final List<Entity> entities = entitySelectorArgumentResolver.resolve((CommandSourceStack) context.getSource());
@@ -166,36 +171,47 @@ public abstract class AbstractCraftCommand {
             }
 
             Entity entityToUse = entities.getFirst();
-            return CraftManager.getInstance().getCraftByEntity(entityToUse);
+            Craft obj = CraftManager.getInstance().getCraftByEntity(entityToUse);
+            if (obj != null) {
+                return Set.of(obj);
+            } else {
+                return null;
+            }
         } catch(CommandSyntaxException cse) {
             context.getSource().getSender().sendMessage(cse.getMessage());
             return null;
         }
     }
-    protected Craft getByCraftUUID(CommandContext<CommandSourceStack> context) {
+    protected Set<Craft> getByCraftUUID(CommandContext<CommandSourceStack> context) {
         final UUID uuid = (UUID) context.getArgument("uuid", UUID.class);
         if (uuid == null) {
             return null;
         }
-        return Craft.getCraftByUUID(uuid);
+        final Craft obj = Craft.getCraftByUUID(uuid);
+        if (obj == null) {
+            return null;
+        } else {
+            return Set.of(obj);
+        }
     }
-    protected Craft getCraftByName(CommandContext<CommandSourceStack> context) {
+    protected Set<Craft> getCraftByName(CommandContext<CommandSourceStack> context) {
         final String name = (String) context.getArgument("name", String.class);
         if (name == null) {
             return null;
         }
+        Set<Craft> result = new HashSet<>();
         for (Craft craft : CraftManager.getInstance().getCrafts()) {
             String craftName = craft.getNameRaw();
             if (craftName == null) {
                 continue;
             }
             if (name.equalsIgnoreCase(craftName)) {
-                return craft;
+                result.add(craft);
             }
         }
-        return null;
+        return result.isEmpty() ? null : result;
     }
-    protected Craft getCraftByPosition(CommandContext<CommandSourceStack> context) {
+    protected Set<Craft> getCraftByPosition(CommandContext<CommandSourceStack> context) {
         final World world = (World) context.getArgument("positionWorld", World.class);
         final BlockPositionResolver blockPositionResolver = (BlockPositionResolver) context.getArgument("position", BlockPositionResolver.class);
 
@@ -228,7 +244,7 @@ public abstract class AbstractCraftCommand {
                         }
                     });
                 }
-                return craftsWithPos.getFirst();
+                return new HashSet<>(craftsWithPos);
             }
         } catch(CommandSyntaxException cse) {
             context.getSource().getSender().sendMessage(cse.getMessage());

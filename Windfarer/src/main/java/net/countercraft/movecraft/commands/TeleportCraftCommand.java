@@ -10,6 +10,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
 public class TeleportCraftCommand extends AbstractCraftCommand {
 
@@ -27,7 +28,7 @@ public class TeleportCraftCommand extends AbstractCraftCommand {
     }
 
     @Override
-    protected int processCommand(CommandContext context, Craft craft) {
+    protected int processCommand(CommandContext context, Set<Craft> craft) {
         throw new NotImplementedException();
     }
 }
