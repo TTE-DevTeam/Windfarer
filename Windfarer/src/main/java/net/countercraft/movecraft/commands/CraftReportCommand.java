@@ -22,6 +22,7 @@ import net.countercraft.movecraft.util.hitboxes.HitBox;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.World;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Entity;
 
 import java.lang.reflect.Field;
@@ -33,8 +34,8 @@ public class CraftReportCommand {
         commands.register(
                 Commands.literal("craftreport")
                         .requires(source -> {
-                            // TODO: Add explicit support for consolesender!
-                            if (!(source.getExecutor() instanceof Entity)) {
+                            // DONE: Add explicit support for consolesender!
+                            if (!(source.getExecutor() instanceof Entity || source.getSender() instanceof ConsoleCommandSender)) {
                                 return false;
                             }
                             if (!source.getSender().hasPermission("movecraft.commands")) {
