@@ -72,7 +72,7 @@ public abstract class AbstractCraftCommand {
     }
 
     protected ArgumentBuilder<CommandSourceStack, ?> attachCraftSelectorTree(final ArgumentBuilder<CommandSourceStack, ?> literal) {
-        literal
+        return literal
                 // By Pilot entity
                 .then(
                         this.processRest(
@@ -134,12 +134,10 @@ public abstract class AbstractCraftCommand {
                                 this::getCraftByPosition
                         )
                 );
-
-        return literal;
     }
 
     protected abstract @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> arguments();
-    protected abstract int processCommand(final CommandContext context, final Set<Craft> craft);
+    protected abstract int processCommand(final CommandContext<CommandSourceStack> context, final Set<Craft> craft);
 
     protected ArgumentBuilder<CommandSourceStack, ?> processRest(final ArgumentBuilder<CommandSourceStack, ?> literal, final Function<CommandContext<CommandSourceStack>, Set<Craft>> craftSupplier) {
         RequiredArgumentBuilder<CommandSourceStack, ?> addArgument = this.arguments();

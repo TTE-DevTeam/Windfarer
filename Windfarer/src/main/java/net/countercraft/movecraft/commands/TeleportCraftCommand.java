@@ -28,7 +28,7 @@ public class TeleportCraftCommand extends AbstractCraftCommand {
     }
 
     @Override
-    protected int processCommand(CommandContext context, Set<Craft> craft) {
+    protected int processCommand(CommandContext<CommandSourceStack> context, Set<Craft> craft) {
         throw new NotImplementedException();
     }
 }
