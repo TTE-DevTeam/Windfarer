@@ -57,68 +57,8 @@ public abstract class AbstractCraftCommand {
     public void register(final Commands commands) {
         ArgumentBuilder<CommandSourceStack, ?> literal =
                 Commands.literal(this.commandLiteral)
-                        .requires(this::requiresCheck)
-                        // By Pilot entity
-                        .then(
-                                this.processRest(
-                                    Commands.literal("--pilot")
-                                        .requires(this::specialArgsPredicate)
-                                        .then(Commands.argument("pilot", ArgumentTypes.entity())),
-                                    this::getCraftByPilot
-                                )
-                        )
-                        // By Craft UUID
-                        .then(
-                                this.processRest(
-                                    Commands.literal("--uuid")
-                                        .requires(this::specialArgsPredicate)
-                                        .then(Commands.argument("uuid", new CraftUUIDArgumentType())),
-                                    this::getByCraftUUID
-                                )
-                        )
-                        // By Craft name
-                        .then(
-                                this.processRest(
-                                    Commands.literal("--name")
-                                        .requires(this::specialArgsPredicate)
-                                        .then(Commands.argument("name", StringArgumentType.string())
-                                            .suggests(
-                                                (provider, builder) -> {
-                                                    for (Craft craft : CraftManager.getInstance().getCrafts()) {
-                                                        if (craft instanceof SinkingCraft)
-                                                            continue;
-                                                        if (craft instanceof SubCraftImpl)
-                                                            continue;
-                                                        if (craft.getName() == null)
-                                                            continue;
-                                                        String nameStr = PlainTextComponentSerializer.plainText().serialize(craft.getName());
-                                                        if (nameStr.isEmpty() || nameStr.isBlank())
-                                                            continue;
-                                                        if (nameStr.indexOf(' ') >= 0) {
-                                                            nameStr = '"' + nameStr + '"';
-                                                        }
-
-                                                        if (nameStr.toLowerCase().startsWith(builder.getRemainingLowerCase())) {
-                                                            builder.suggest(nameStr);
-                                                        }
-                                                    }
-                                                    return builder.buildFuture();
-                                                }
-                                            )
-                                        ),
-                                    this::getCraftByName
-                                )
-                        )
-                        // By position
-                        .then(
-                                this.processRest(
-                                    Commands.literal("--position")
-                                        .requires(this::specialArgsPredicate)
-                                        .then(Commands.argument("positionWorld", ArgumentTypes.world()))
-                                        .then(Commands.argument("position", ArgumentTypes.blockPosition())),
-                                    this::getCraftByPosition
-                                )
-                        );
+                        .requires(this::requiresCheck);
+        literal = this.attachCraftSelectorTree(literal);
 
         // Append our additional logic => fallback logic, uses the executor's craft
         literal = processRest(literal, this::getCraftByExecutor);
@@ -129,6 +69,73 @@ public abstract class AbstractCraftCommand {
                 this.description,
                 this.aliasList
         );
+    }
+
+    protected ArgumentBuilder<CommandSourceStack, ?> attachCraftSelectorTree(final ArgumentBuilder<CommandSourceStack, ?> literal) {
+        literal
+                // By Pilot entity
+                .then(
+                        this.processRest(
+                                Commands.literal("--pilot")
+                                        .requires(this::specialArgsPredicate)
+                                        .then(Commands.argument("pilot", ArgumentTypes.entity())),
+                                this::getCraftByPilot
+                        )
+                )
+                // By Craft UUID
+                .then(
+                        this.processRest(
+                                Commands.literal("--uuid")
+                                        .requires(this::specialArgsPredicate)
+                                        .then(Commands.argument("uuid", new CraftUUIDArgumentType())),
+                                this::getByCraftUUID
+                        )
+                )
+                // By Craft name
+                .then(
+                        this.processRest(
+                                Commands.literal("--name")
+                                        .requires(this::specialArgsPredicate)
+                                        .then(Commands.argument("name", StringArgumentType.string())
+                                                .suggests(
+                                                        (provider, builder) -> {
+                                                            for (Craft craft : CraftManager.getInstance().getCrafts()) {
+                                                                if (craft instanceof SinkingCraft)
+                                                                    continue;
+                                                                if (craft instanceof SubCraftImpl)
+                                                                    continue;
+                                                                if (craft.getName() == null)
+                                                                    continue;
+                                                                String nameStr = PlainTextComponentSerializer.plainText().serialize(craft.getName());
+                                                                if (nameStr.isEmpty() || nameStr.isBlank())
+                                                                    continue;
+                                                                if (nameStr.indexOf(' ') >= 0) {
+                                                                    nameStr = '"' + nameStr + '"';
+                                                                }
+
+                                                                if (nameStr.toLowerCase().startsWith(builder.getRemainingLowerCase())) {
+                                                                    builder.suggest(nameStr);
+                                                                }
+                                                            }
+                                                            return builder.buildFuture();
+                                                        }
+                                                )
+                                        ),
+                                this::getCraftByName
+                        )
+                )
+                // By position
+                .then(
+                        this.processRest(
+                                Commands.literal("--position")
+                                        .requires(this::specialArgsPredicate)
+                                        .then(Commands.argument("positionWorld", ArgumentTypes.world()))
+                                        .then(Commands.argument("position", ArgumentTypes.blockPosition())),
+                                this::getCraftByPosition
+                        )
+                );
+
+        return literal;
     }
 
     protected abstract @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> arguments();
