@@ -340,6 +340,7 @@ public class RotationTask extends FuelAwareAsyncTask {
             if (e.isCancelled())
                 continue;
 
+            // TODO: Add option to prevent pilot rotation changes on craft rotation
             EntityUpdateCommand eUp = new EntityUpdateCommand(entity,
                     rotatedCoords[0] + tOP.getX() - entity.getLocation().getX(),
                     0,
