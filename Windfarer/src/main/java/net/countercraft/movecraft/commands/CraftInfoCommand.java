@@ -26,7 +26,7 @@ public class CraftInfoCommand extends AbstractCraftCommand {
     private static final List<Function<Craft, ? extends Iterable<Component>>> componentProviders = new ArrayList<>();
     static {
         final Function<String, Component> createTitle = (heading) -> {
-            return Component.text(heading).style(Style.style(TextDecoration.UNDERLINED)).appendSpace()
+            return Component.text(heading).style(Style.style(TextDecoration.UNDERLINED)).appendSpace();
         };
         final Component notApplicable = Component.text("n/a").style(Style.style().color(TextColor.color(1.0F, 0.0F, 0.0F)).decorate(TextDecoration.BOLD));
 
