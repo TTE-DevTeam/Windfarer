@@ -15,6 +15,9 @@ permissions:
   movecraft.commands:
     default: true
     description: "Base permission for all commands"
+  movecraft.commands.contacts:
+    default: true
+    description: "/Contacts permission"
   movecraft.commands.movecraft:
     default: op
     description: "Debug command for Windfarer, used to reload types among other things"

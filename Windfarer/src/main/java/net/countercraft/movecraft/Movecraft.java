@@ -210,6 +210,7 @@ public class Movecraft extends JavaPlugin {
             ManOverboardCommand.register(commands);
             new ScuttleCommand().register(commands);
             new ReleaseCommand().register(commands);
+            ContactsCommand.register(commands);
         });
 
         // Naming scheme: If it has parameters, append a double colon except if it is a subcraft
@@ -254,7 +255,6 @@ public class Movecraft extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CraftTypeListener(), this);
         getServer().getPluginManager().registerEvents(new CraftTranslateListener(), this);
         getServer().getPluginManager().registerEvents(new WorldListener(), this);
-        getCommand("contacts").setExecutor(new ContactsCommand());
         getCommand("ignorecontact").setExecutor(new IgnoreContactCommand());
 
         var statusManager = new StatusManager();
