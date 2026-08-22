@@ -28,7 +28,7 @@ import org.bukkit.entity.Entity;
 import java.lang.reflect.Field;
 import java.util.*;
 
-public class CraftReportCommand {
+public class CraftReportCommand implements IBrigadierCommandHelper {
 
     public static void register(final Commands commands) {
         commands.register(
@@ -84,26 +84,15 @@ public class CraftReportCommand {
         );
     }
 
-    static final Field ARGUMENT_FIELD;
 
-    static {
-        try {
-            ARGUMENT_FIELD = CommandContext.class.getDeclaredField("arguments");
-            ARGUMENT_FIELD.setAccessible(true);
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     // TODO: Janky, find a better solution!
     static int process(final CommandContext<CommandSourceStack> context) {
-        Map<String, ParsedArgument> arguments;
-        try {
-            arguments = (Map<String, ParsedArgument>) ARGUMENT_FIELD.get(context);
-        } catch(Exception ex) {
-            ex.printStackTrace();
+        Optional<Map<String, ParsedArgument>> optArguments = IBrigadierCommandHelper.arguments(context);
+        if (optArguments.isEmpty()) {
             return -1;
         }
+        final Map<String, ParsedArgument> arguments = optArguments.get();
 
         int page = 1;
         boolean reportSunk = true;
