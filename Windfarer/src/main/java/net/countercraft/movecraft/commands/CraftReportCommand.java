@@ -129,9 +129,12 @@ public class CraftReportCommand {
         }
         if (arguments.containsKey("page")) {
             page = context.getArgument("page", Integer.class);
+            page = Math.abs(page);
+            if (page < 0) {
+                page = 1;
+            }
         }
 
-        final int fPage = page;
         final boolean fReportSunk = reportSunk;
         final boolean fReportDisabled = reportDisabled;
         final boolean fReportNormal = reportNormal;
