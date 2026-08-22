@@ -1,113 +1,125 @@
 package net.countercraft.movecraft.commands;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.context.ParsedArgument;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.command.brigadier.Commands;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.Craft;
-import net.countercraft.movecraft.craft.CraftManager;
-import net.countercraft.movecraft.util.MathUtils;
-import net.countercraft.movecraft.util.TopicPaginator;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabExecutor;
-import org.bukkit.entity.Player;
+import net.countercraft.movecraft.localisation.I18nSupport;
+import net.countercraft.movecraft.util.ComponentPaginator;
+import net.countercraft.movecraft.util.hitboxes.HitBox;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.OptionalInt;
+import java.util.*;
 import java.util.function.Function;
 
-public class CraftInfoCommand implements TabExecutor {
-    private static final List<Function<Craft,? extends Iterable<String>>> providers = new ArrayList<>();
+public class CraftInfoCommand extends AbstractCraftCommand {
+    private static final List<Function<Craft, ? extends Iterable<Component>>> componentProviders = new ArrayList<>();
     static {
-        registerMultiProvider(CraftInfoCommand::allowedBlockProvider);
-        registerProvider((craft -> "Craft size: " + craft.getHitBox().size()));
-        registerProvider((craft -> "Craft midpoint: " + craft.getHitBox().getMidPoint()));
-        registerProvider((craft -> "Craft min bound: " + new MovecraftLocation(craft.getHitBox().getMinX(), craft.getHitBox().getMinY(), craft.getHitBox().getMinZ())));
-        registerProvider((craft -> "Craft max bound: " + new MovecraftLocation(craft.getHitBox().getMaxX(), craft.getHitBox().getMaxY(), craft.getHitBox().getMaxZ())));
-        registerProvider((craft -> "Craft world: " + craft.getWorld().getName()));
-        registerProvider((craft -> "Craft type: " + craft.getCraftProperties().getName()));
-        registerProvider((craft -> "Craft name: " + craft.getName()));
-        registerProvider((craft -> "Is cruising: " + craft.getCruising()));
-        registerProvider((craft -> "Cruise direction: " + craft.getCruiseDirection()));
-        registerProvider((craft -> "Craft speed: " + craft.getSpeed()));
-        registerProvider((craft -> "Mean cruise time: " + craft.getMeanCruiseTime()));
-        registerProvider((craft -> "Is disabled: " + craft.getDisabled()));
-        registerProvider((craft -> "Current gear: " + craft.getCurrentGear()));
+        final Function<String, Component> createTitle = (heading) -> {
+            return Component.text(heading).style(Style.style(TextDecoration.UNDERLINED)).appendSpace()
+        };
+        final Component notApplicable = Component.text("n/a").style(Style.style().color(TextColor.color(1.0F, 0.0F, 0.0F)).decorate(TextDecoration.BOLD));
+
+        registerComponentProvider(craft -> createTitle.apply("Craft Name:").append(craft.getName()));
+        registerComponentProvider(craft -> {
+            final HitBox hitBox = craft.getHitBox();
+            return createTitle.apply("Craft midpoint:").append(hitBox.isEmpty() ? notApplicable : Component.text("[" + hitBox.getMidPoint().toString() + "]").clickEvent(ClickEvent.runCommand("/tp " + hitBox.getMidPoint().getX() + " " + hitBox.getMidPoint().getY() + " " + hitBox.getMidPoint().getZ())));
+        });
+        registerComponentProvider(craft -> {
+            final HitBox hitBox = craft.getHitBox();
+            final MovecraftLocation point = hitBox.isEmpty() ? MovecraftLocation.zero() : new MovecraftLocation(hitBox.getMinX(), hitBox.getMinY(), hitBox.getMinZ());
+            return createTitle.apply("Craft min bound:").append(hitBox.isEmpty() ? notApplicable : Component.text("[" + point.toString() + "]").clickEvent(ClickEvent.runCommand("/tp " + point.getX() + " " + point.getY() + " " + point.getZ())));
+        });
+        registerComponentProvider(craft -> {
+            final HitBox hitBox = craft.getHitBox();
+            final MovecraftLocation point = hitBox.isEmpty() ? MovecraftLocation.zero() : new MovecraftLocation(hitBox.getMaxX(), hitBox.getMaxY(), hitBox.getMaxZ());
+            return createTitle.apply("Craft max bound:").append(hitBox.isEmpty() ? notApplicable : Component.text("[" + point.toString() + "]").clickEvent(ClickEvent.runCommand("/tp " + point.getX() + " " + point.getY() + " " + point.getZ())));
+        });
+        registerComponentProvider(craft -> createTitle.apply("Craft world:").append(Component.text(craft.getWorld().getName())));
+        registerComponentProvider(craft -> createTitle.apply("Craft type:").append(Component.text(craft.getCraftProperties().getName()).clickEvent(ClickEvent.runCommand("/crafttype " + craft.getCraftProperties().getName()))));
+        registerComponentProvider(craft -> createTitle.apply("Craft size:").append(craft.getHitBox().isEmpty() ? notApplicable : Component.text(craft.getHitBox().size())));
+        registerComponentProvider(craft -> createTitle.apply("Is cruising:").append(Component.text(craft.getCruising())));
+        registerComponentProvider(craft -> createTitle.apply("Cruise direction:").append(craft.getCruising() ? Component.text(craft.getCruiseDirection().toString()) : notApplicable));
+        registerComponentProvider(craft -> createTitle.apply("Cruise speed:").append(Component.text(craft.getSpeed())));
+        registerComponentProvider(craft -> createTitle.apply("Mean cruise time:").append(Component.text(craft.getMeanCruiseTime())));
+        registerComponentProvider(craft -> createTitle.apply("Is disabled:").append(Component.text(craft.getDisabled())));
+        registerComponentProvider(craft -> createTitle.apply("Current gear:").append(Component.text(craft.getCurrentGear())));
     }
 
-    private static @NotNull List<String> allowedBlockProvider(@NotNull Craft craft){
-        return List.of();
+    public CraftInfoCommand() {
+        super("craftinfo", "movecraft.commands.craftinfo", "Get information on a piloted craft", List.of());
     }
 
+    @Deprecated(forRemoval = true)
     public static void registerMultiProvider(@NotNull Function<Craft, ? extends Iterable<String>> provider){
-        providers.add(provider);
+        return;
     }
 
+    @Deprecated(forRemoval = true)
     public static void registerProvider(@NotNull Function<Craft, String> provider){
-        providers.add(provider.andThen(List::of));
+        registerComponentProvider(craft -> Component.text(provider.apply(craft)));
     }
 
+    public static void registerComponentProvider(@NotNull Function<Craft, Component> provider){
+        componentProviders.add(provider.andThen(List::of));
+    }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if(args.length == 0){
-            if (!(sender instanceof Player)){
-                sender.sendMessage("Supply a parameter.");
-                return true;
-            }
-            Craft craft = CraftManager.getInstance().getCraftByPlayer(((Player) sender));
-            if(craft == null){
-                sender.sendMessage("You must be piloting a craft.");
-                return true;
-            }
-            craftInfo(sender, craft, 1);
-            return true;
-        }
-        OptionalInt pageQuery;
-        if (sender instanceof  Player && (pageQuery = MathUtils.parseInt(args[0])).isPresent()){
-            Craft craft = CraftManager.getInstance().getCraftByPlayer(((Player) sender));
-            if(craft == null){
-                sender.sendMessage("You must be piloting a craft.");
-                return true;
-            }
-            craftInfo(sender, craft, pageQuery.getAsInt());
-            return true;
-        }
-        var craft = CraftManager.getInstance().getCraftByPlayerName(args[0]);
-        if (craft == null) {
-            sender.sendMessage("No player found");
-            return true;
-        }
-        if(args.length > 1){
-            pageQuery = MathUtils.parseInt(args[1]);
-            if(pageQuery.isEmpty()){
-                sender.sendMessage("Parameter " + args[1] + " must be a page number.");
-                return true;
-            }
-        } else {
-            pageQuery = OptionalInt.of(1);
-        }
-        craftInfo(sender, craft, pageQuery.getAsInt());
-        return true;
+    protected @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> arguments() {
+        return Commands.argument("page", IntegerArgumentType.integer(1));
     }
 
-    public void craftInfo(@NotNull CommandSender commandSender, @NotNull Craft craft, int page){
-        TopicPaginator paginator = new TopicPaginator("Craft Info");
-        for(var provider : providers){
-            for(var line : provider.apply(craft)){
-                paginator.addLine(line);
+    @Override
+    protected int processCommand(CommandContext<CommandSourceStack> context, Set<Craft> crafts) {
+        Optional<Map<String, ParsedArgument>> optArguments = IBrigadierCommandHelper.arguments(context);
+        if (optArguments.isEmpty()) {
+            return -1;
+        }
+        final Map<String, ParsedArgument> arguments = optArguments.get();
+
+        int page = 1;
+
+        if (arguments.containsKey("page")) {
+            page = context.getArgument("page", Integer.class);
+            page = Math.abs(page);
+            if (page < 0) {
+                page = 1;
+            }
+        }
+
+        // TODO: Properly list all the other arguments as well!
+        ComponentPaginator paginator = new ComponentPaginator(I18nSupport.getInternationalisedComponent("Craft Info"), (pageNumber) -> "/craftinfo " + pageNumber);
+        for (Craft craft : crafts) {
+            for(var provider : componentProviders){
+                for(var line : provider.apply(craft)){
+                    if (line == null)
+                        continue;
+                    paginator.addLine(line);
+                }
+            }
+            // Add pages so we have a clear delimiter between each craft
+            int pageCountNow = paginator.getPageCount();
+            while (paginator.getPageCount() == pageCountNow) {
+                paginator.addLine(Component.empty());
             }
         }
         if(!paginator.isInBounds(page)){
-            commandSender.sendMessage(String.format("Page %d is out of bounds.", page));
-            return;
+            page = paginator.getPageCount();
         }
-        for(String line : paginator.getPage(page))
-            commandSender.sendMessage(line);
+        for(Component line : paginator.getPage(page))
+            context.getSource().getSender().sendMessage(line);
+
+        return 0;
     }
 
-    @Override
-    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        return null;
-    }
 }

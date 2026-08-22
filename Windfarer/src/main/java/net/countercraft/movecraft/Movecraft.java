@@ -195,7 +195,6 @@ public class Movecraft extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new DirectControlInteractListener(), this);
 
         getCommand("crafttype").setExecutor(new CraftTypeCommand());
-        getCommand("craftinfo").setExecutor(new CraftInfoCommand());
 
         LifecycleEventManager<Plugin> manager = this.getLifecycleManager();
         manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
@@ -210,6 +209,7 @@ public class Movecraft extends JavaPlugin {
             ManOverboardCommand.register(commands);
             new ScuttleCommand().register(commands);
             new ReleaseCommand().register(commands);
+            new CraftInfoCommand().register(commands);
             ContactsCommand.register(commands);
         });
 

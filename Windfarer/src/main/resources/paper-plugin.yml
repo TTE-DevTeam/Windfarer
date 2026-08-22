@@ -57,6 +57,9 @@ permissions:
   movecraft.scuttle.others:
     default: op
     description: "Command to scuttle other crafts than your own"
+  movecraft.commands.craftinfo:
+    default: true
+    description: "Access to /craftinfo command"
 #commands:
 #  movecraft:
 #    description: base movecraft command
