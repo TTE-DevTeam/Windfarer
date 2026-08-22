@@ -418,6 +418,13 @@ public class PropertyKeys {
                             AbstractRotationController::clone
                     )
             );
+    public static final PropertyKey<Boolean> MODIFY_ENTITY_YAW_ON_ROTATION =
+            register(
+                    PropertyKeyTypes.boolPropertyKey(
+                            key("movement/modify_entity_yaw_on_rotation"),
+                            true
+                    ).immutable()
+            );
     // endregion movement controllers
     // region serialization
     public static final PropertyKey<PerWorldData<Boolean>> SAVE_TO_DISK =

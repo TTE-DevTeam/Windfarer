@@ -333,14 +333,14 @@ public class RotationTask extends FuelAwareAsyncTask {
 
             double[] rotatedCoords = MathUtils.rotateVecNoRound(rotation,
                     adjustedPLoc.getX(), adjustedPLoc.getZ());
-            float newYaw = rotation == MovecraftRotation.CLOCKWISE ? 90F : -90F;
+            float newYaw = this.craft.getCraftProperties().get(PropertyKeys.MODIFY_ENTITY_YAW_ON_ROTATION) ? rotation == MovecraftRotation.CLOCKWISE ? 90F : -90F : 0F;
 
             CraftTeleportEntityEvent e = new CraftTeleportEntityEvent(craft, entity);
             Bukkit.getServer().getPluginManager().callEvent(e);
             if (e.isCancelled())
                 continue;
 
-            // TODO: Add option to prevent pilot rotation changes on craft rotation
+            // DONE: Add option to prevent pilot rotation changes on craft rotation
             EntityUpdateCommand eUp = new EntityUpdateCommand(entity,
                     rotatedCoords[0] + tOP.getX() - entity.getLocation().getX(),
                     0,
