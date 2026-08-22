@@ -1,5 +1,8 @@
 package net.countercraft.movecraft.commands;
 
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SinkingCraft;
@@ -7,71 +10,59 @@ import net.countercraft.movecraft.events.CraftScuttleEvent;
 import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
+import net.countercraft.movecraft.util.ChatUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
-import static net.countercraft.movecraft.util.ChatUtils.MOVECRAFT_COMMAND_PREFIX;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
-public class ScuttleCommand implements CommandExecutor {
+public class ScuttleCommand extends AbstractCraftCommand {
 
+    public ScuttleCommand() {
+        super("scuttle", "movecraft.scuttle", "Sinks piloted craft", List.of());
+    }
 
     @Override
-    public boolean onCommand(CommandSender commandSender, Command command, String s, String[] strings) {
-
-        if (!command.getName().equalsIgnoreCase("scuttle")) {
-            return false;
-        }
-
-        Craft craft = null;
-        // Scuttle other player
-        if (commandSender.hasPermission("movecraft.commands.scuttle.others") && strings.length >= 1) {
-            Player player = Bukkit.getPlayer(strings[0]);
-            if (player == null) {
-                commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX
-                        + I18nSupport.getInternationalisedString("Scuttle - Must Be Online"));
-                return true;
-            }
-            craft = CraftManager.getInstance().getCraftByPlayer(player);
-        }
-        else if (commandSender.hasPermission("movecraft.commands.scuttle.self") && strings.length == 0) {
-            if (!(commandSender instanceof Player)) {
-                commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX
-                        + I18nSupport.getInternationalisedString("Scuttle - Must Be Player"));
-                return true;
-            }
-            craft = CraftManager.getInstance().getCraftByPlayer(Bukkit.getPlayer(commandSender.getName()));
-        }
-        if (craft == null) {
-            commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX
-                    + I18nSupport.getInternationalisedString("You must be piloting a craft"));
-            return true;
-        }
-        if (craft instanceof SinkingCraft) {
-            commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX
-                    + I18nSupport.getInternationalisedString("Scuttle - Craft Already Sinking"));
-            return true;
-        }
-        if (!commandSender.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase()
-                + ".scuttle")) {
-            commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX
-                    + I18nSupport.getInternationalisedString("Insufficient Permissions"));
-            return true;
-        }
-
-        CraftScuttleEvent e = new CraftScuttleEvent(craft, (Player) commandSender);
-        Bukkit.getServer().getPluginManager().callEvent(e);
-        if (e.isCancelled())
-            return true;
-
-        craft.setCruising(false, CraftStopCruiseEvent.Reason.CRAFT_SUNK);
-        CraftManager.getInstance().sink(craft, CraftSinkEvent.SIMPLE_SINK_REASONS.SCUTTLE);
-        commandSender.sendMessage(MOVECRAFT_COMMAND_PREFIX
-                + I18nSupport.getInternationalisedString("Scuttle - Scuttle Activated"));
-        return true;
-
+    protected boolean specialArgsPredicate(CommandSourceStack sourceStack) {
+        return sourceStack.getSender().hasPermission(this.permissionNode + ".others");
     }
+
+    @Override
+    protected @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> arguments() {
+        return null;
+    }
+
+    @Override
+    protected boolean requiresCheck(CommandSourceStack sourceStack) {
+        return sourceStack.getSender().hasPermission(this.permissionNode);
+    }
+
+    @Override
+    protected int processCommand(CommandContext<CommandSourceStack> context, Set<Craft> crafts) {
+        int scuttled = 0;
+        for (Craft craft : crafts) {
+            if (!context.getSource().getSender().hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".scuttle")) {
+                context.getSource().getSender().sendMessage(ChatUtils.errorPrefix().append(I18nSupport.getInternationalisedComponent("Insufficient Permissions")));
+            } else {
+                if (craft instanceof SinkingCraft) {
+                    context.getSource().getSender().sendMessage(ChatUtils.errorPrefix().append(I18nSupport.getInternationalisedComponent("Scuttle - Craft Already Sinking")));
+                } else {
+                    CraftScuttleEvent e = new CraftScuttleEvent(craft, context.getSource().getExecutor());
+                    Bukkit.getServer().getPluginManager().callEvent(e);
+                    if (e.isCancelled())
+                        continue;
+
+                    craft.setCruising(false, CraftStopCruiseEvent.Reason.CRAFT_SUNK);
+                    CraftManager.getInstance().sink(craft, CraftSinkEvent.SIMPLE_SINK_REASONS.SCUTTLE);
+                    context.getSource().getSender().sendMessage(ChatUtils.errorPrefix().append(I18nSupport.getInternationalisedComponent("Scuttle - Scuttle Activated")));
+                    scuttled++;
+                }
+            }
+        }
+        return scuttled > 0 ? 0 : -1;
+    }
+
 }
 

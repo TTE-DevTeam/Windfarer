@@ -48,6 +48,12 @@ permissions:
   movecraft.commands.craftreport:
     default: op
     description: "Debug command to show active crafts"
+  movecraft.scuttle:
+    default: op
+    description: "Command to scuttle crafts"
+  movecraft.scuttle.others:
+    default: op
+    description: "Command to scuttle other crafts than your own"
 #commands:
 #  movecraft:
 #    description: base movecraft command
