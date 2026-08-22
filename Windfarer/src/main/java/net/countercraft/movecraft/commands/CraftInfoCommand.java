@@ -107,10 +107,12 @@ public class CraftInfoCommand extends AbstractCraftCommand {
                     paginator.addLine(line);
                 }
             }
-            // Add pages so we have a clear delimiter between each craft
-            int pageCountNow = paginator.getPageCount();
-            while (paginator.getPageCount() == pageCountNow) {
-                paginator.addLine(Component.empty());
+            if (crafts.size() > 1) {
+                // Add pages so we have a clear delimiter between each craft
+                int pageCountNow = paginator.getPageCount();
+                while (paginator.getPageCount() == pageCountNow) {
+                    paginator.addLine(Component.empty());
+                }
             }
         }
         if(!paginator.isInBounds(page)){
