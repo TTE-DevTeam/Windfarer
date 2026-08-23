@@ -25,7 +25,6 @@ import org.bukkit.World;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Entity;
 
-import java.lang.reflect.Field;
 import java.util.*;
 
 public class CraftReportCommand implements IBrigadierCommandHelper {
