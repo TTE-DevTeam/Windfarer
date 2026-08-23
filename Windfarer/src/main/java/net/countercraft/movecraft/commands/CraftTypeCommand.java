@@ -87,7 +87,7 @@ public class CraftTypeCommand implements TabExecutor {
         TopicPaginator paginator = new TopicPaginator("Type Info");
 
         for (var property : TypeSafeCraftType.PROPERTY_REGISTRY.getAllValues()) {
-            if (type.hasInSelfOrAnyParent(property)) {
+            if (type.hasInSelfOrAnyParent(property, true, false)) {
                 var value = type.get(property);
                 var repr = property.key().toString() + ": " + value;
                 if(repr.length() > ChatPaginator.GUARANTEED_NO_WRAP_CHAT_PAGE_WIDTH){
@@ -106,7 +106,7 @@ public class CraftTypeCommand implements TabExecutor {
             commandSender.sendMessage(line);
     }
 
-    private void sendTypeListPage(int page, @NotNull  CommandSender commandSender){
+    private void sendTypeListPage(int page, @NotNull CommandSender commandSender){
         TopicPaginator paginator = new TopicPaginator("Type Info");
         for(var entry : CraftManager.getInstance().getTypesafeCraftTypes()){
             paginator.addLine(entry.getName());
