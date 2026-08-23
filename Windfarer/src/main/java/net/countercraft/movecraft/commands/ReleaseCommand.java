@@ -1,5 +1,6 @@
 package net.countercraft.movecraft.commands;
 
+import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -25,7 +26,7 @@ public class ReleaseCommand extends AbstractCraftCommand {
         return super.attachCraftSelectorTree(literal)
                 // All players
                 .then(
-                        this.processRest(
+                        this.processCommandPath(
                                 Commands.literal("--all-players")
                                         .requires(this::specialArgsPredicate),
                                 this::getAllPlayerCrafts
@@ -33,7 +34,7 @@ public class ReleaseCommand extends AbstractCraftCommand {
                 )
                 // All crafts
                 .then(
-                        this.processRest(
+                        this.processCommandPath(
                                 Commands.literal("--all")
                                         .requires(this::specialArgsPredicate),
                                 this::getAllCrafts
@@ -41,7 +42,7 @@ public class ReleaseCommand extends AbstractCraftCommand {
                 )
                 // Null piloted
                 .then(
-                        this.processRest(
+                        this.processCommandPath(
                                 Commands.literal("--null-piloted")
                                         .requires(this::specialArgsPredicate),
                                 this::getAllNullCrafts
@@ -73,9 +74,9 @@ public class ReleaseCommand extends AbstractCraftCommand {
     }
 
     @Override
-    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> arguments() {
+    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>>[] arguments() {
         // No longer necessary
-        return null;
+        return new ArgumentBuilder[]{};
     }
 
     @Override
@@ -88,7 +89,7 @@ public class ReleaseCommand extends AbstractCraftCommand {
         } else {
             context.getSource().getSender().sendMessage(ChatUtils.commandPrefix().append(I18nSupport.getInternationalisedComponent("Release - No Crafts To Release")));
         }
-        return 0;
+        return Command.SINGLE_SUCCESS;
     }
 }
 

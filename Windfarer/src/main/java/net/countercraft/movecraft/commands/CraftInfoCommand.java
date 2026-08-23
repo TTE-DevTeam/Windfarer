@@ -1,5 +1,6 @@
 package net.countercraft.movecraft.commands;
 
+import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -74,8 +75,10 @@ public class CraftInfoCommand extends AbstractCraftCommand {
     }
 
     @Override
-    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> arguments() {
-        return Commands.argument("page", IntegerArgumentType.integer(1));
+    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>>[] arguments() {
+        return new ArgumentBuilder[] {
+                Commands.argument("page", IntegerArgumentType.integer(1))
+        };
     }
 
     @Override
@@ -125,7 +128,7 @@ public class CraftInfoCommand extends AbstractCraftCommand {
             // TODO: Logging
         }
 
-        return 0;
+        return Command.SINGLE_SUCCESS;
     }
 
 }

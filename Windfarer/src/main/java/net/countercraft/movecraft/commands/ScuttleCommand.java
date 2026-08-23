@@ -1,5 +1,6 @@
 package net.countercraft.movecraft.commands;
 
+import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -28,8 +29,8 @@ public class ScuttleCommand extends AbstractCraftCommand {
     }
 
     @Override
-    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> arguments() {
-        return null;
+    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>>[] arguments() {
+        return new ArgumentBuilder[]{};
     }
 
     @Override
@@ -59,7 +60,7 @@ public class ScuttleCommand extends AbstractCraftCommand {
                 }
             }
         }
-        return scuttled > 0 ? 0 : -1;
+        return scuttled > 0 ? Command.SINGLE_SUCCESS : -1;
     }
 
 }

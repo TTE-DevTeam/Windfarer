@@ -18,11 +18,13 @@ public class TeleportCraftCommand extends AbstractCraftCommand {
     }
 
     @Override
-    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> arguments() {
-        return Commands.argument("destination-world", ArgumentTypes.world())
-                .then(
+    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>>[] arguments() {
+        return new ArgumentBuilder[]{
+                Commands.argument("destination-world", ArgumentTypes.world())
+                        .then(
                         Commands.argument("destination-position", ArgumentTypes.blockPosition())
-                );
+                )
+        };
     }
 
     @Override

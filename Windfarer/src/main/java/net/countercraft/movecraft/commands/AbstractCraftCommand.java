@@ -54,7 +54,7 @@ public abstract class AbstractCraftCommand {
     }
 
     public void register(final Commands commands) {
-        ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> literal = processRest(
+        ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> literal = processCommandPath(
                 Commands.literal(this.commandLiteral)
                         .requires(this::requiresCheck),
                 this::getCraftByExecutor
@@ -77,79 +77,108 @@ public abstract class AbstractCraftCommand {
         return literal
                 // By Pilot entity
                 .then(
-                        this.processRest(
+                        this.processCommandPath(
                                 Commands.literal("--pilot")
-                                        .requires(this::specialArgsPredicate)
-                                        .then(Commands.argument("pilot", ArgumentTypes.entity())),
-                                this::getCraftByPilot
+                                        .requires(this::specialArgsPredicate),
+                                this::getCraftByPilot,
+                                Commands.argument("pilot", ArgumentTypes.entity())
                         )
                 )
                 // By Craft UUID
                 .then(
-                        this.processRest(
+                        this.processCommandPath(
                                 Commands.literal("--uuid")
-                                        .requires(this::specialArgsPredicate)
-                                        .then(Commands.argument("uuid", new CraftUUIDArgumentType())),
-                                this::getByCraftUUID
+                                        .requires(this::specialArgsPredicate),
+                                this::getByCraftUUID,
+                                Commands.argument("uuid", new CraftUUIDArgumentType())
                         )
                 )
                 // By Craft name
                 .then(
-                        this.processRest(
+                        this.processCommandPath(
                                 Commands.literal("--name")
-                                        .requires(this::specialArgsPredicate)
-                                        .then(Commands.argument("name", StringArgumentType.string())
-                                                .suggests(
-                                                        (provider, builder) -> {
-                                                            for (Craft craft : CraftManager.getInstance().getCrafts()) {
-                                                                if (craft instanceof SinkingCraft)
-                                                                    continue;
-                                                                if (craft instanceof SubCraftImpl)
-                                                                    continue;
-                                                                if (craft.getName() == null)
-                                                                    continue;
-                                                                String nameStr = PlainTextComponentSerializer.plainText().serialize(craft.getName());
-                                                                if (nameStr.isEmpty() || nameStr.isBlank())
-                                                                    continue;
-                                                                if (nameStr.indexOf(' ') >= 0) {
-                                                                    nameStr = '"' + nameStr + '"';
-                                                                }
-
-                                                                if (nameStr.toLowerCase().startsWith(builder.getRemainingLowerCase())) {
-                                                                    builder.suggest(nameStr);
-                                                                }
-                                                            }
-                                                            return builder.buildFuture();
+                                        .requires(this::specialArgsPredicate),
+                                this::getCraftByName,
+                                Commands.argument("name", StringArgumentType.string())
+                                        .suggests(
+                                                (provider, builder) -> {
+                                                    for (Craft craft : CraftManager.getInstance().getCrafts()) {
+                                                        if (craft instanceof SinkingCraft)
+                                                            continue;
+                                                        if (craft instanceof SubCraftImpl)
+                                                            continue;
+                                                        if (craft.getName() == null)
+                                                            continue;
+                                                        String nameStr = PlainTextComponentSerializer.plainText().serialize(craft.getName());
+                                                        if (nameStr.isEmpty() || nameStr.isBlank())
+                                                            continue;
+                                                        if (nameStr.indexOf(' ') >= 0) {
+                                                            nameStr = '"' + nameStr + '"';
                                                         }
-                                                )
-                                        ),
-                                this::getCraftByName
+
+                                                        if (nameStr.toLowerCase().startsWith(builder.getRemainingLowerCase())) {
+                                                            builder.suggest(nameStr);
+                                                        }
+                                                    }
+                                                    return builder.buildFuture();
+                                                }
+                                        )
                         )
                 )
                 // By position
                 .then(
-                        this.processRest(
+                        this.processCommandPath(
                                 Commands.literal("--position")
-                                        .requires(this::specialArgsPredicate)
-                                        .then(
-                                                Commands.argument("positionWorld", ArgumentTypes.world())
-                                                .then(
-                                                        Commands.argument("position", ArgumentTypes.blockPosition())
-                                                )
-                                        ),
-                                this::getCraftByPosition
+                                        .requires(this::specialArgsPredicate),
+                                this::getCraftByPosition,
+                                Commands.argument("positionWorld", ArgumentTypes.world()),
+                                Commands.argument("position", ArgumentTypes.blockPosition())
                         )
                 );
     }
 
     // Attention: NEVER implement any EXECUTES functions in there! Whatever is returned will later have a "executes" attached to them
-    protected abstract @Nullable ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> arguments();
+    protected abstract @Nullable ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>>[] arguments();
     protected abstract int processCommand(final CommandContext<CommandSourceStack> context, final Set<Craft> craft);
 
-    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> processRest(final ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> literal, final Function<CommandContext<CommandSourceStack>, Set<Craft>> craftSupplier) {
-        ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> addArgument = this.arguments();
-        //final Function<Command<CommandSourceStack>, ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>>> actualCommand;
-        if (addArgument == null) {
+    // Go up the chain of arguments and adjust the command to run to the innermost node
+    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> constructArgumentChain(final ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>>[] arguments, final Command<CommandSourceStack> command) {
+        ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> chain = null;
+
+        for(int i = arguments.length - 1; i >= 0; i--) {
+            if (chain == null) {
+                chain = arguments[i];
+                chain = chain.executes(command);
+            } else {
+                chain = arguments[i].then(chain);
+            }
+        }
+
+        return chain;
+    }
+
+    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> processCommandPath(final ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> literal, final Function<CommandContext<CommandSourceStack>, Set<Craft>> craftSupplier, final ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>>... pathArguments) {
+        ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>>[] addArguments = this.arguments();
+
+        int chainLength = 0;
+        if (pathArguments != null) {
+            chainLength += pathArguments.length;
+        }
+        if (addArguments != null) {
+            chainLength += addArguments.length;
+        }
+        ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>>[] argumentChain = new ArgumentBuilder[chainLength];
+        if (chainLength > 0) {
+            for (int i = 0; i < chainLength; i++) {
+                if (i < pathArguments.length) {
+                    argumentChain[i] = pathArguments[i];
+                } else {
+                    argumentChain[i] = addArguments[i - pathArguments.length];
+                }
+            }
+        }
+
+        if (chainLength == 0) {
             return literal.executes(context -> {
                 Set<Craft> crafts = craftSupplier.apply(context);
                 if (crafts == null) {
@@ -159,8 +188,7 @@ public abstract class AbstractCraftCommand {
             });
         } else {
             return literal.then(
-                    this.arguments()
-                            .executes(context -> {
+                    this.constructArgumentChain(argumentChain, context -> {
                                 Set<Craft> crafts = craftSupplier.apply(context);
                                 if (crafts == null) {
                                     crafts = Set.of();
