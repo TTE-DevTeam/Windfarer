@@ -33,17 +33,17 @@ public class CraftInfoCommand extends AbstractCraftCommand {
         registerComponentProvider(craft -> createTitle.apply("Craft Name:").append(craft.getName()));
         registerComponentProvider(craft -> {
             final HitBox hitBox = craft.getHitBox();
-            return createTitle.apply("Craft midpoint:").append(hitBox.isEmpty() ? notApplicable : Component.text("[" + hitBox.getMidPoint().toString() + "]").clickEvent(ClickEvent.runCommand("/tp " + hitBox.getMidPoint().getX() + " " + hitBox.getMidPoint().getY() + " " + hitBox.getMidPoint().getZ())));
+            return createTitle.apply("Craft midpoint:").append(hitBox.isEmpty() ? notApplicable : Component.text(hitBox.getMidPoint().toString()).clickEvent(ClickEvent.runCommand("/tp " + hitBox.getMidPoint().getX() + " " + hitBox.getMidPoint().getY() + " " + hitBox.getMidPoint().getZ())));
         });
         registerComponentProvider(craft -> {
             final HitBox hitBox = craft.getHitBox();
             final MovecraftLocation point = hitBox.isEmpty() ? MovecraftLocation.zero() : new MovecraftLocation(hitBox.getMinX(), hitBox.getMinY(), hitBox.getMinZ());
-            return createTitle.apply("Craft min bound:").append(hitBox.isEmpty() ? notApplicable : Component.text("[" + point.toString() + "]").clickEvent(ClickEvent.runCommand("/tp " + point.getX() + " " + point.getY() + " " + point.getZ())));
+            return createTitle.apply("Craft min bound:").append(hitBox.isEmpty() ? notApplicable : Component.text(point.toString()).clickEvent(ClickEvent.runCommand("/tp " + point.getX() + " " + point.getY() + " " + point.getZ())));
         });
         registerComponentProvider(craft -> {
             final HitBox hitBox = craft.getHitBox();
             final MovecraftLocation point = hitBox.isEmpty() ? MovecraftLocation.zero() : new MovecraftLocation(hitBox.getMaxX(), hitBox.getMaxY(), hitBox.getMaxZ());
-            return createTitle.apply("Craft max bound:").append(hitBox.isEmpty() ? notApplicable : Component.text("[" + point.toString() + "]").clickEvent(ClickEvent.runCommand("/tp " + point.getX() + " " + point.getY() + " " + point.getZ())));
+            return createTitle.apply("Craft max bound:").append(hitBox.isEmpty() ? notApplicable : Component.text(point.toString()).clickEvent(ClickEvent.runCommand("/tp " + point.getX() + " " + point.getY() + " " + point.getZ())));
         });
         registerComponentProvider(craft -> createTitle.apply("Craft world:").append(Component.text(craft.getWorld().getName())));
         registerComponentProvider(craft -> createTitle.apply("Craft type:").append(Component.text(craft.getCraftProperties().getName()).clickEvent(ClickEvent.runCommand("/crafttype " + craft.getCraftProperties().getName()))));
