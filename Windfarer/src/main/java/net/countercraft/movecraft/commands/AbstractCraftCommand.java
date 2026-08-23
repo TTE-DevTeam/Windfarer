@@ -3,10 +3,9 @@ package net.countercraft.movecraft.commands;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
@@ -55,23 +54,26 @@ public abstract class AbstractCraftCommand {
     }
 
     public void register(final Commands commands) {
-        ArgumentBuilder<CommandSourceStack, ?> literal =
+        ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> literal = processRest(
                 Commands.literal(this.commandLiteral)
-                        .requires(this::requiresCheck);
+                        .requires(this::requiresCheck),
+                this::getCraftByExecutor
+        );
         literal = this.attachCraftSelectorTree(literal);
 
         // Append our additional logic => fallback logic, uses the executor's craft
-        literal = processRest(literal, this::getCraftByExecutor);
+        //literal = literal.then(processRest(literal, this::getCraftByExecutor));
 
         // Dirty, but works \o/
+        CommandNode<CommandSourceStack> node = literal.build();
         commands.register(
-                (LiteralCommandNode<CommandSourceStack>) literal.build(),
+                (LiteralCommandNode<CommandSourceStack>) node,
                 this.description,
                 this.aliasList
         );
     }
 
-    protected ArgumentBuilder<CommandSourceStack, ?> attachCraftSelectorTree(final ArgumentBuilder<CommandSourceStack, ?> literal) {
+    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> attachCraftSelectorTree(final ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> literal) {
         return literal
                 // By Pilot entity
                 .then(
@@ -129,28 +131,45 @@ public abstract class AbstractCraftCommand {
                         this.processRest(
                                 Commands.literal("--position")
                                         .requires(this::specialArgsPredicate)
-                                        .then(Commands.argument("positionWorld", ArgumentTypes.world()))
-                                        .then(Commands.argument("position", ArgumentTypes.blockPosition())),
+                                        .then(
+                                                Commands.argument("positionWorld", ArgumentTypes.world())
+                                                .then(
+                                                        Commands.argument("position", ArgumentTypes.blockPosition())
+                                                )
+                                        ),
                                 this::getCraftByPosition
                         )
                 );
     }
 
-    protected abstract @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> arguments();
+    // Attention: NEVER implement any EXECUTES functions in there! Whatever is returned will later have a "executes" attached to them
+    protected abstract @Nullable ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> arguments();
     protected abstract int processCommand(final CommandContext<CommandSourceStack> context, final Set<Craft> craft);
 
-    protected ArgumentBuilder<CommandSourceStack, ?> processRest(final ArgumentBuilder<CommandSourceStack, ?> literal, final Function<CommandContext<CommandSourceStack>, Set<Craft>> craftSupplier) {
-        RequiredArgumentBuilder<CommandSourceStack, ?> addArgument = this.arguments();
-        final Function<Command<CommandSourceStack>, ArgumentBuilder<CommandSourceStack, ?>> actualCommand;
+    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> processRest(final ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> literal, final Function<CommandContext<CommandSourceStack>, Set<Craft>> craftSupplier) {
+        ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> addArgument = this.arguments();
+        //final Function<Command<CommandSourceStack>, ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>>> actualCommand;
         if (addArgument == null) {
-            actualCommand = literal::executes;
+            return literal.executes(context -> {
+                Set<Craft> crafts = craftSupplier.apply(context);
+                if (crafts == null) {
+                    crafts = Set.of();
+                }
+                return processCommand(context, crafts);
+            });
         } else {
-            actualCommand = addArgument::executes;
+            return literal.then(
+                    this.arguments()
+                            .executes(context -> {
+                                Set<Craft> crafts = craftSupplier.apply(context);
+                                if (crafts == null) {
+                                    crafts = Set.of();
+                                }
+                                return processCommand(context, crafts);
+                            }
+                    )
+            );
         }
-        return actualCommand.apply(context -> {
-            final Set<Craft> craft = craftSupplier.apply(context);
-            return processCommand(context, craft);
-        });
     }
 
     protected Set<Craft> getCraftByExecutor(CommandContext<CommandSourceStack> context) {
@@ -167,28 +186,38 @@ public abstract class AbstractCraftCommand {
     }
 
     protected Set<Craft> getCraftByPilot(CommandContext<CommandSourceStack> context) {
-        final EntitySelectorArgumentResolver entitySelectorArgumentResolver = (EntitySelectorArgumentResolver) context.getArgument("pilot", EntitySelectorArgumentResolver.class);
         try {
-            final List<Entity> entities = entitySelectorArgumentResolver.resolve((CommandSourceStack) context.getSource());
+            final EntitySelectorArgumentResolver entitySelectorArgumentResolver = context.getArgument("pilot", EntitySelectorArgumentResolver.class);
+            try {
+                final List<Entity> entities = entitySelectorArgumentResolver.resolve(context.getSource());
 
-            if (entities.isEmpty()) {
+                if (entities.isEmpty()) {
+                    return null;
+                }
+
+                Entity entityToUse = entities.getFirst();
+                Craft obj = CraftManager.getInstance().getCraftByEntity(entityToUse);
+                if (obj != null) {
+                    return Set.of(obj);
+                } else {
+                    return null;
+                }
+            } catch(CommandSyntaxException cse) {
+                context.getSource().getSender().sendMessage(cse.getMessage());
                 return null;
             }
-
-            Entity entityToUse = entities.getFirst();
-            Craft obj = CraftManager.getInstance().getCraftByEntity(entityToUse);
-            if (obj != null) {
-                return Set.of(obj);
-            } else {
-                return null;
-            }
-        } catch(CommandSyntaxException cse) {
-            context.getSource().getSender().sendMessage(cse.getMessage());
+        } catch(IllegalArgumentException illegalArgumentException) {
+            // Ignore, this happens when the argument is not present!
             return null;
         }
     }
     protected Set<Craft> getByCraftUUID(CommandContext<CommandSourceStack> context) {
-        final UUID uuid = (UUID) context.getArgument("uuid", UUID.class);
+        UUID uuid = null;
+        try {
+            uuid = context.getArgument("uuid", UUID.class);
+        } catch(IllegalArgumentException illegalArgumentException) {
+            // Ignore, this happens when the argument is not present!
+        }
         if (uuid == null) {
             return null;
         }
@@ -200,7 +229,12 @@ public abstract class AbstractCraftCommand {
         }
     }
     protected Set<Craft> getCraftByName(CommandContext<CommandSourceStack> context) {
-        final String name = (String) context.getArgument("name", String.class);
+        String name = null;
+        try {
+            name = context.getArgument("name", String.class);
+        } catch(IllegalArgumentException illegalArgumentException) {
+            // Ignore, this happens when the argument is not present!
+        }
         if (name == null) {
             return null;
         }
@@ -217,42 +251,42 @@ public abstract class AbstractCraftCommand {
         return result.isEmpty() ? null : result;
     }
     protected Set<Craft> getCraftByPosition(CommandContext<CommandSourceStack> context) {
-        final World world = (World) context.getArgument("positionWorld", World.class);
-        final BlockPositionResolver blockPositionResolver = (BlockPositionResolver) context.getArgument("position", BlockPositionResolver.class);
-
-        if (world == null || blockPositionResolver == null) {
-            return null;
-        }
-
         try {
-            final BlockPosition blockPosition = blockPositionResolver.resolve((CommandSourceStack) context.getSource());
-            final MovecraftLocation pos = new MovecraftLocation(blockPosition.blockX(), blockPosition.blockY(), blockPosition.blockZ());
+            final World world = context.getArgument("positionWorld", World.class);
+            final BlockPositionResolver blockPositionResolver = context.getArgument("position", BlockPositionResolver.class);
 
-            final List<Craft> craftsWithPos = new ArrayList<>();
-            for (Craft craft : CraftManager.getInstance().getCraftsInWorld(world)) {
-                final HitBox hitBox = craft.getHitBox();
-                if (hitBox.inBounds(pos)) {
-                    if (hitBox.contains(pos)) {
-                        craftsWithPos.add(craft);
+            try {
+                final BlockPosition blockPosition = blockPositionResolver.resolve((CommandSourceStack) context.getSource());
+                final MovecraftLocation pos = new MovecraftLocation(blockPosition.blockX(), blockPosition.blockY(), blockPosition.blockZ());
+
+                final List<Craft> craftsWithPos = new ArrayList<>();
+                for (Craft craft : CraftManager.getInstance().getCraftsInWorld(world)) {
+                    final HitBox hitBox = craft.getHitBox();
+                    if (hitBox.inBounds(pos)) {
+                        if (hitBox.contains(pos)) {
+                            craftsWithPos.add(craft);
+                        }
                     }
                 }
-            }
-            if (!craftsWithPos.isEmpty()) {
-                if (craftsWithPos.size() > 1) {
-                    // Sort list by distance to position => ASCENDING!
-                    craftsWithPos.sort(new Comparator<Craft>() {
-                        @Override
-                        public int compare(Craft o1, Craft o2) {
-                            final int distCraft1 = o1.getHitBox().getMidPoint().distanceSquared(pos);
-                            final int distCraft2 = o2.getHitBox().getMidPoint().distanceSquared(pos);
-                            return Integer.compare(distCraft1, distCraft2);
-                        }
-                    });
+                if (!craftsWithPos.isEmpty()) {
+                    if (craftsWithPos.size() > 1) {
+                        // Sort list by distance to position => ASCENDING!
+                        craftsWithPos.sort(new Comparator<Craft>() {
+                            @Override
+                            public int compare(Craft o1, Craft o2) {
+                                final int distCraft1 = o1.getHitBox().getMidPoint().distanceSquared(pos);
+                                final int distCraft2 = o2.getHitBox().getMidPoint().distanceSquared(pos);
+                                return Integer.compare(distCraft1, distCraft2);
+                            }
+                        });
+                    }
+                    return new HashSet<>(craftsWithPos);
                 }
-                return new HashSet<>(craftsWithPos);
+            } catch(CommandSyntaxException cse) {
+                context.getSource().getSender().sendMessage(cse.getMessage());
             }
-        } catch(CommandSyntaxException cse) {
-            context.getSource().getSender().sendMessage(cse.getMessage());
+        } catch(IllegalArgumentException illegalArgumentException) {
+            // Ignore, this happens when the argument is not present!
         }
         return null;
     }

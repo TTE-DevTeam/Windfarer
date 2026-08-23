@@ -1,7 +1,6 @@
 package net.countercraft.movecraft.commands;
 
 import com.mojang.brigadier.builder.ArgumentBuilder;
-import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
@@ -11,7 +10,6 @@ import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.util.ChatUtils;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -23,7 +21,7 @@ public class ReleaseCommand extends AbstractCraftCommand {
     }
 
     @Override
-    protected ArgumentBuilder<CommandSourceStack, ?> attachCraftSelectorTree(ArgumentBuilder<CommandSourceStack, ?> literal) {
+    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> attachCraftSelectorTree(final ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> literal) {
         return super.attachCraftSelectorTree(literal)
                 // All players
                 .then(
@@ -75,7 +73,7 @@ public class ReleaseCommand extends AbstractCraftCommand {
     }
 
     @Override
-    protected @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> arguments() {
+    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> arguments() {
         // No longer necessary
         return null;
     }

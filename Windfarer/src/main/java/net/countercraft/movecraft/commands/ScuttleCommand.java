@@ -1,6 +1,6 @@
 package net.countercraft.movecraft.commands;
 
-import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import net.countercraft.movecraft.craft.Craft;
@@ -12,9 +12,7 @@ import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.util.ChatUtils;
 import org.bukkit.Bukkit;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -30,7 +28,7 @@ public class ScuttleCommand extends AbstractCraftCommand {
     }
 
     @Override
-    protected @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> arguments() {
+    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> arguments() {
         return null;
     }
 

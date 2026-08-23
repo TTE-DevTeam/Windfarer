@@ -1,7 +1,7 @@
 package net.countercraft.movecraft.commands;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.context.ParsedArgument;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -13,11 +13,10 @@ import net.countercraft.movecraft.util.ComponentPaginator;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.Style;
-import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Function;
@@ -26,9 +25,9 @@ public class CraftInfoCommand extends AbstractCraftCommand {
     private static final List<Function<Craft, ? extends Iterable<Component>>> componentProviders = new ArrayList<>();
     static {
         final Function<String, Component> createTitle = (heading) -> {
-            return Component.text(heading).style(Style.style(TextDecoration.UNDERLINED)).appendSpace();
+            return Component.text(heading).style(Style.style(TextDecoration.UNDERLINED).color(NamedTextColor.GRAY)).appendSpace().style(Style.empty());
         };
-        final Component notApplicable = Component.text("n/a").style(Style.style().color(TextColor.color(1.0F, 0.0F, 0.0F)).decorate(TextDecoration.BOLD));
+        final Component notApplicable = Component.text("n/a").style(Style.style().color(NamedTextColor.RED).decorate(TextDecoration.BOLD));
 
         registerComponentProvider(craft -> createTitle.apply("Craft Name:").append(craft.getName()));
         registerComponentProvider(craft -> {
@@ -75,7 +74,7 @@ public class CraftInfoCommand extends AbstractCraftCommand {
     }
 
     @Override
-    protected @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> arguments() {
+    protected ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> arguments() {
         return Commands.argument("page", IntegerArgumentType.integer(1));
     }
 
@@ -118,8 +117,13 @@ public class CraftInfoCommand extends AbstractCraftCommand {
         if(!paginator.isInBounds(page)){
             page = paginator.getPageCount();
         }
-        for(Component line : paginator.getPage(page))
-            context.getSource().getSender().sendMessage(line);
+        if (!paginator.isEmpty()) {
+            for(Component line : paginator.getPage(page)) {
+                context.getSource().getSender().sendMessage(line);
+            }
+        } else {
+            // TODO: Logging
+        }
 
         return 0;
     }
