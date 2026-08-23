@@ -17,16 +17,12 @@
 
 package net.countercraft.movecraft;
 
-import com.google.common.primitives.UnsignedInteger;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.jetbrains.annotations.NotNull;
 
 import static net.countercraft.movecraft.util.BitMath.mask;
-import static net.countercraft.movecraft.util.BitMath.unpackX;
-import static net.countercraft.movecraft.util.BitMath.unpackY;
-import static net.countercraft.movecraft.util.BitMath.unpackZ;
 
 /**
  * Represents a Block aligned coordinate triplet.
