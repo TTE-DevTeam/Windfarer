@@ -86,7 +86,6 @@ public class ContactsCommand {
                 .findFirst();
         if (optCraft.isEmpty()) {
             context.getSource().getSender().sendMessage(ChatUtils.errorPrefix().append(I18nSupport.getInternationalisedComponent("You must be piloting a craft")));
-            return 0;
         } else {
             final Craft base = optCraft.get();
             ComponentPaginator paginator = new ComponentPaginator(
@@ -119,8 +118,8 @@ public class ContactsCommand {
             for (Component line : paginator.getPage(page)) {
                 context.getSource().getSender().sendMessage(line);
             }
-            return 0;
         }
+        return 0;
     }
 
 }
