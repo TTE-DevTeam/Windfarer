@@ -170,10 +170,10 @@ public abstract class AbstractCraftCommand {
         ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>>[] argumentChain = new ArgumentBuilder[chainLength];
         if (chainLength > 0) {
             for (int i = 0; i < chainLength; i++) {
-                if (i < pathArguments.length) {
+                if (pathArguments != null && i < pathArguments.length) {
                     argumentChain[i] = pathArguments[i];
                 } else {
-                    argumentChain[i] = addArguments[i - pathArguments.length];
+                    argumentChain[i] = addArguments[i - (pathArguments == null ? 0 : pathArguments.length)];
                 }
             }
         }
