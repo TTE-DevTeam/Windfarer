@@ -211,6 +211,7 @@ public class Movecraft extends JavaPlugin {
             new ReleaseCommand().register(commands);
             new CraftInfoCommand().register(commands);
             ContactsCommand.register(commands);
+            IgnoreContactCommand.register(commands);
         });
 
         // Naming scheme: If it has parameters, append a double colon except if it is a subcraft
@@ -255,7 +256,6 @@ public class Movecraft extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CraftTypeListener(), this);
         getServer().getPluginManager().registerEvents(new CraftTranslateListener(), this);
         getServer().getPluginManager().registerEvents(new WorldListener(), this);
-        getCommand("ignorecontact").setExecutor(new IgnoreContactCommand());
 
         var statusManager = new StatusManager();
         statusManager.runTaskTimerAsynchronously(this, 0, 1);
