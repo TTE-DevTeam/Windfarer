@@ -81,7 +81,7 @@ public class ReleaseCommand extends AbstractCraftCommand {
 
     @Override
     protected int processCommand(CommandContext<CommandSourceStack> context, Set<Craft> crafts) {
-        if (crafts == null || crafts.isEmpty()) {
+        if (!(crafts == null || crafts.isEmpty())) {
             for (Craft craft : crafts) {
                 CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.FORCE, false);
             }
