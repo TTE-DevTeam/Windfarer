@@ -93,6 +93,11 @@ public class TypeDependency {
                 final String name = file.getName().substring(0, file.getName().lastIndexOf('.')).toUpperCase();
                 nodes.put(name, new DependencyNode(file, yaml.getString("parent", "").toUpperCase()));
             }
+            // Bukkit throws this exception when it can not dereference objects
+            catch (IllegalArgumentException illegalArgumentException) {
+                Movecraft.getInstance().getLogger().warning("Skipping file <" + file.getName() + "> as it contains unresolvable entries!");
+            }
+            // General IO catcher
             catch (IOException e) {
                 e.printStackTrace();
                 continue;
