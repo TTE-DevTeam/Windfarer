@@ -21,6 +21,8 @@ import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.controller.directControl.HelmsManManager;
 import net.countercraft.movecraft.craft.type.CraftType;
+import net.countercraft.movecraft.craft.type.PropertyKey;
+import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
 import net.countercraft.movecraft.events.CraftSinkEvent;
@@ -56,6 +58,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -126,7 +129,7 @@ public class CraftManager implements Iterable<Craft>{
         Queue<TypeSafeCraftType> loadedTypes = new LinkedList<>();
         while (!queue.isEmpty()) {
             File file = queue.poll();
-            final String name = file.getName().substring(0, file.getName().lastIndexOf('.')).toUpperCase();
+            final String name = file.getAbsolutePath().substring(craftFileFolder.getAbsolutePath().length(), file.getAbsolutePath().lastIndexOf('.'));
             Movecraft.getInstance().getLogger().info(String.format("Loading crafttype file <%s> (type name will be %s>)...", file.getName(), name));
             Optional<TypeSafeCraftType> optTypeSafeCraftType = TypeSafeCraftType.load(file, name, this::getCraftTypeByName, Movecraft.getInstance().getLogger());
 
@@ -134,11 +137,13 @@ public class CraftManager implements Iterable<Craft>{
                 Movecraft.getInstance().getLogger().warning("FAILED to load crafttype file <" + file.getName() + ">! Skipping...");
             } else {
                 final TypeSafeCraftType typeSafeCraftType = optTypeSafeCraftType.get();
-                final TypeSafeCraftType previous = this.craftTypeMap.put(name, typeSafeCraftType);
-                if (previous != null) {
-                    Movecraft.getInstance().getLogger().warning("Overriding crafttype setting with name <" + name + ">! This means there are duplicates!");
-                    loadedTypes.remove(previous);
+
+                this.registerType(name, typeSafeCraftType, loadedTypes::remove);
+                // Allow registering alias's for each type
+                if (typeSafeCraftType.hasInSelfOrAnyParent(PropertyKeys.ALIAS, true, false)) {
+                    this.registerType(typeSafeCraftType.get(PropertyKeys.ALIAS), typeSafeCraftType, (t) -> {});
                 }
+
                 loadedTypes.add(typeSafeCraftType);
             }
         }
@@ -153,6 +158,15 @@ public class CraftManager implements Iterable<Craft>{
             }
         }
         toRemove.forEach(this.craftTypeMap::remove);
+    }
+
+    private void registerType(final String id, final TypeSafeCraftType type, Consumer<TypeSafeCraftType> removeFromLoadListCallback) {
+        final TypeSafeCraftType previous = this.craftTypeMap.put(id, type);
+
+        if (previous != null) {
+            Movecraft.getInstance().getLogger().warning("Overriding crafttype setting with name <" + id + ">! This means there are duplicates!");
+            removeFromLoadListCallback.accept(previous);
+        }
     }
 
     private static void installBaseTypes(File craftFileFolder) {
