@@ -75,6 +75,9 @@ permissions:
   movecraft.commands.teleportcraft:
     default: op
     description: "Command to force teleport or move a craft around relative to its centerpoint"
+  movecraft.commands.deletecraft:
+    default: op
+    description: "Command to release a craft and to delete all of its blocks"
 #commands:
 #  crafttype:
 #    description: Get information on a specifc craft type

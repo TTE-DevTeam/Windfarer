@@ -23,19 +23,30 @@ public class BlockCollectionUtil {
      */
     @Nullable
     public static Set<MovecraftLocation> getLocations(final Craft craft, final TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> checkPredicate) {
-        return getLocations(craft, checkPredicate, (l, w, c) -> {});
+        return getLocations(craft, craft.getHitBox(), craft.getMovecraftWorld(), checkPredicate);
     }
+
+    @Nullable
+    public static Set<MovecraftLocation> getLocations(@Nullable Craft craft, final HitBox hitBox, final MovecraftWorld movecraftWorld, final TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> checkPredicate) {
+        return getLocations(craft, hitBox, movecraftWorld, checkPredicate, (l, w, c) -> {});
+    }
+
     @Nullable
     public static Set<MovecraftLocation> getLocations(final Craft craft, final TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> checkPredicate, TriConsumer<MovecraftLocation, MovecraftWorld, Craft> consumer) {
-        if (craft.getHitBox() == null) {
+        return getLocations(craft, craft.getHitBox(), craft.getMovecraftWorld(), checkPredicate, consumer);
+    }
+
+    @Nullable
+    public static Set<MovecraftLocation> getLocations(@Nullable Craft craft, final HitBox hitBox, final MovecraftWorld movecraftWorld, final TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> checkPredicate, TriConsumer<MovecraftLocation, MovecraftWorld, Craft> consumer) {
+        if (hitBox == null) {
             return new HashSet<>();
         }
-        final HitBox hitbox = new BitmapHitBox(craft.getHitBox());
+        final HitBox hitbox = new BitmapHitBox(hitBox);
         if (hitbox.isEmpty()) {
             return new HashSet<>();
         }
         ArrayList<ForkJoinTask<WorkerData>> workers = new ArrayList<>();
-        new HitBoxSlicer(hitbox).forEach(slice -> workers.add(ForkJoinTask.adapt(new Worker(craft, slice, checkPredicate, consumer, Sets.newConcurrentHashSet()))));
+        new HitBoxSlicer(hitbox).forEach(slice -> workers.add(ForkJoinTask.adapt(new Worker(craft, movecraftWorld, slice, checkPredicate, consumer, Sets.newConcurrentHashSet()))));
 
         Optional<WorkerData> workResult = ForkJoinTask
                 .invokeAll(workers)
@@ -66,6 +77,7 @@ public class BlockCollectionUtil {
     // Goes over a single slice and checks for air
     private record Worker(
             @NotNull Craft craft,
+            @NotNull MovecraftWorld world,
             @NotNull Iterable<MovecraftLocation> slice,
             @NotNull TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> validationRule,
             @NotNull TriConsumer<MovecraftLocation, MovecraftWorld, Craft> consumer,
@@ -75,7 +87,6 @@ public class BlockCollectionUtil {
         @Override
         public WorkerData call() {
             Set<MovecraftLocation> locations = Collections.synchronizedSet(new HashSet<>());
-            final MovecraftWorld world = this.craft.getMovecraftWorld();
 
             for (MovecraftLocation l : this.slice) {
                 if (validationRule().validate(l, world, this.craft).isSucess()) {

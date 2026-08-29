@@ -49,7 +49,7 @@ public interface Effect {
     }
 
     class AndEffect implements Effect {
-        private final List<Effect> effects = new ArrayList<>();
+        protected final List<Effect> effects = new ArrayList<>();
 
         public AndEffect(Effect... effects){
             for (Effect effect : effects) {
