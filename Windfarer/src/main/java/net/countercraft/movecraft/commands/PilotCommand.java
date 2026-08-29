@@ -6,6 +6,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
+import io.papermc.paper.command.brigadier.argument.ArgumentTypes;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.commands.argument.type.CraftTypeArgumentType;
 import net.countercraft.movecraft.craft.*;
@@ -78,6 +79,9 @@ public class PilotCommand implements IBrigadierCommandHelper {
                                         .then(Commands.argument("shouldAutoRelease", BoolArgumentType.bool())
                                                 .executes(PilotCommand::processNPC)
                                         )
+                                        .then(Commands.argument("pilot", ArgumentTypes.entity())
+                                                .executes(PilotCommand::processNPC)
+                                        )
                                 )
                         )
                         .build(),
@@ -115,6 +119,7 @@ public class PilotCommand implements IBrigadierCommandHelper {
     private static int processNPC(CommandContext<CommandSourceStack> commandContext) {
         final long timeOut = Math.abs(IBrigadierCommandHelper.tryGetArgument("lifetime", Long.class, commandContext, 5000L));
         final boolean autoRelease = IBrigadierCommandHelper.tryGetArgument("shouldAutoRelease", Boolean.class, commandContext, false);
+        final Entity pilot = IBrigadierCommandHelper.tryGetArgument("pilot", Entity.class, commandContext, commandContext.getSource().getExecutor());
         final String name = IBrigadierCommandHelper.tryGetArgument("name", String.class, commandContext, "");
         Component nameComponent;
         if (name.length() > 0) {
@@ -128,18 +133,18 @@ public class PilotCommand implements IBrigadierCommandHelper {
                 return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedComponent(
                         "Detection - Failed - Already commanding a craft")), null);
 
-            return new Pair<>(Result.succeed(), new NPCCraft(type, w, autoRelease, timeOut, nameComponent));
+            return new Pair<>(Result.succeed(), new NPCCraft(type, w, autoRelease, timeOut, nameComponent, pilot));
         };
         final Function<Craft, Effect> postDetection = craft -> () -> {
             Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(craft, CraftPilotEvent.Reason.COMMAND));
-            if (commandContext.getSource().getExecutor() instanceof Entity pilot) {
+            if (pilot != null) {
                 // Release old craft if it exists
                 Craft oldCraft = CraftManager.getInstance().getCraftByEntity(pilot);
                 if(oldCraft != null)
                     CraftManager.getInstance().release(oldCraft, CraftReleaseEvent.Reason.PLAYER, false);
             }
         };
-        return process(commandContext, supplier, commandContext.getSource().getExecutor(), commandContext.getSource().getSender(), postDetection);
+        return process(commandContext, supplier, pilot, commandContext.getSource().getSender(), postDetection);
     }
 
     private static int processSinking(CommandContext<CommandSourceStack> commandContext) {
@@ -166,7 +171,7 @@ public class PilotCommand implements IBrigadierCommandHelper {
                 return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedComponent(
                         "Detection - Failed - Already commanding a craft")), null);
 
-            return new Pair<>(Result.succeed(), new NPCCraft(type, w, autoRelease, timeOut));
+            return new Pair<>(Result.succeed(), new NullCraft(type, w, autoRelease, timeOut));
         };
         final Function<Craft, Effect> postDetection = craft -> () -> {
             Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(craft, CraftPilotEvent.Reason.COMMAND));

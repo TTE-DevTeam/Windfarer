@@ -131,7 +131,6 @@ public abstract class AbstractCraftCommand {
                                 Commands.literal("--position")
                                         .requires(this::specialArgsPredicate),
                                 this::getCraftByPosition,
-                                Commands.argument("positionWorld", ArgumentTypes.world()),
                                 Commands.argument("position", ArgumentTypes.blockPosition())
                         )
                 );
@@ -178,8 +177,9 @@ public abstract class AbstractCraftCommand {
             }
         }
 
+        ArgumentBuilder<CommandSourceStack, ? extends ArgumentBuilder<CommandSourceStack, ?>> result;
         if (chainLength == 0) {
-            return literal.executes(context -> {
+            result = literal.executes(context -> {
                 Set<Craft> crafts = craftSupplier.apply(context);
                 if (crafts == null) {
                     crafts = Set.of();
@@ -187,7 +187,7 @@ public abstract class AbstractCraftCommand {
                 return processCommand(context, crafts);
             });
         } else {
-            return literal.then(
+            result = literal.then(
                     this.constructArgumentChain(argumentChain, context -> {
                                 Set<Craft> crafts = craftSupplier.apply(context);
                                 if (crafts == null) {
@@ -198,6 +198,8 @@ public abstract class AbstractCraftCommand {
                     )
             );
         }
+
+        return result;
     }
 
     protected Set<Craft> getCraftByExecutor(CommandContext<CommandSourceStack> context) {
@@ -280,7 +282,7 @@ public abstract class AbstractCraftCommand {
     }
     protected Set<Craft> getCraftByPosition(CommandContext<CommandSourceStack> context) {
         try {
-            final World world = context.getArgument("positionWorld", World.class);
+            final World world = context.getSource().getLocation().getWorld();
             final BlockPositionResolver blockPositionResolver = context.getArgument("position", BlockPositionResolver.class);
 
             try {

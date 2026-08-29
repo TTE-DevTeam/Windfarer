@@ -224,7 +224,10 @@ public class ContactsManager extends BukkitRunnable implements Listener {
     public static @Nullable Component contactMessage(boolean isNew, @NotNull Craft base, @NotNull Craft target) {
 
         if (target instanceof ContactProvider contactProvider) {
-            return contactProvider.getDetectedMessage(isNew, base);
+            Component message = contactProvider.getDetectedMessage(isNew, base);
+            if (message != null) {
+                return message;
+            }
         }
 
         MovecraftLocation baseCenter, targetCenter;
