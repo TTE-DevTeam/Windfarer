@@ -72,6 +72,9 @@ permissions:
   movecraft.commands.craftinfo:
     default: true
     description: "Access to /craftinfo command"
+  movecraft.commands.teleportcraft:
+    default: op
+    description: "Command to force teleport or move a craft around relative to its centerpoint"
 #commands:
 #  crafttype:
 #    description: Get information on a specifc craft type

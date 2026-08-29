@@ -212,6 +212,7 @@ public class Movecraft extends JavaPlugin {
             new CraftInfoCommand().register(commands);
             ContactsCommand.register(commands);
             IgnoreContactCommand.register(commands);
+            new TeleportCraftCommand().register(commands);
         });
 
         // Naming scheme: If it has parameters, append a double colon except if it is a subcraft
