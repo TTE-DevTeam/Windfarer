@@ -45,6 +45,15 @@ permissions:
   movecraft.commands.pilot:
     default: op
     description: "Command to pilot crafts"
+  movecraft.commands.pilot.null:
+    default: op
+    description: "Command to pilot null crafts"
+  movecraft.commands.pilot.sinking:
+    default: op
+    description: "Command to pilot sinking crafts"
+  movecraft.commands.pilot.npc:
+    default: op
+    description: "Command to pilot npc crafts"
   movecraft.commands.rotate:
     default: op
     description: "Command to mimic helm-sign interactions"

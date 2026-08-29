@@ -78,7 +78,7 @@ public abstract class BaseCraft implements Craft {
     @NotNull
     private Audience audience;
     @NotNull
-    private Component name = Component.empty();
+    protected Component name = Component.empty();
     @NotNull
     private MovecraftLocation lastTranslation = new MovecraftLocation(0, 0, 0);
     private Vector bresenhamError = new Vector(0.0, 0.0, 0.0);

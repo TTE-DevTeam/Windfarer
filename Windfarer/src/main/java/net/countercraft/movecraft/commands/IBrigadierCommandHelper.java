@@ -22,7 +22,7 @@ public interface IBrigadierCommandHelper {
         }
     }
 
-    public static Optional<Map<String, ParsedArgument>> arguments(final CommandContext<CommandSourceStack> context) {
+    static Optional<Map<String, ParsedArgument>> arguments(final CommandContext<CommandSourceStack> context) {
         Map<String, ParsedArgument> arguments;
         try {
             arguments = (Map<String, ParsedArgument>) ARGUMENT_FIELD.get(context);
@@ -30,6 +30,21 @@ public interface IBrigadierCommandHelper {
         } catch(Exception ex) {
             ex.printStackTrace();
             return Optional.empty();
+        }
+    }
+
+    static <T> T tryGetArgument(final String argumentName, final Class<T> typeClazz, final CommandContext<CommandSourceStack> commandContext, T fallback) {
+        Optional<Map<String, ParsedArgument>> optArgumentMap = arguments(commandContext);
+        if (optArgumentMap.isPresent()) {
+            Map<String, ParsedArgument> argumentMap = optArgumentMap.get();
+            final ParsedArgument argument = argumentMap.getOrDefault(argumentName, null);
+            if (argument != null) {
+                return commandContext.getArgument(argumentName, typeClazz);
+            } else {
+                return fallback;
+            }
+        } else {
+            return fallback;
         }
     }
 

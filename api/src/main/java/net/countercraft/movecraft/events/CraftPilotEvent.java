@@ -24,7 +24,7 @@ public class CraftPilotEvent extends CraftEvent{
     }
 
     public enum Reason{
-        SUB_CRAFT,PLAYER,FORCE
+        SUB_CRAFT,PLAYER,FORCE, COMMAND
     }
 
     @Override
