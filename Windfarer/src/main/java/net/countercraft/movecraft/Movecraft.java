@@ -194,7 +194,7 @@ public class Movecraft extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new InteractListener(), this);
         getServer().getPluginManager().registerEvents(new DirectControlInteractListener(), this);
 
-        getCommand("crafttype").setExecutor(new CraftTypeCommand());
+//        getCommand("crafttype").setExecutor(new CraftTypeCommand());
 
         LifecycleEventManager<Plugin> manager = this.getLifecycleManager();
         manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
