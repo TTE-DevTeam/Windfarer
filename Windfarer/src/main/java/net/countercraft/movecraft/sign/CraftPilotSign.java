@@ -40,12 +40,13 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
 
     @Override
     protected boolean isSignValid(Action clickType, SignListener.SignWrapper sign, Entity interactor) {
-        String header = sign.getRaw(0).trim();
-        TypeSafeCraftType craftType = CraftManager.getInstance().getCraftTypeByName(header);
-        if (craftType != this.craftType) {
-            return false;
-        }
-        if (craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, interactor.getWorld()) && !interactor.hasPermission("movecraft." + header + ".pilot")) {
+        // Unnecessary, can be ignored
+//        String header = sign.getRaw(0).trim();
+//        TypeSafeCraftType craftType = CraftManager.getInstance().getCraftTypeByName(header);
+//        if (craftType != this.craftType) {
+//            return false;
+//        }
+        if (craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, interactor.getWorld()) && !interactor.hasPermission("movecraft." + this.craftType.getName() + ".pilot")) {
             interactor.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
             return false;
         } else {
@@ -168,14 +169,15 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
 
     @Override
     public boolean processSignChange(SignChangeEvent event, SignListener.SignWrapper sign) {
-        String header = sign.getRaw(0).trim();
-        TypeSafeCraftType craftType = CraftManager.getInstance().getCraftTypeByName(header);
-        if (craftType != this.craftType) {
-            return false;
-        }
+        // Unnecessary, can be ignored
+//        String header = sign.getRaw(0).trim();
+//        TypeSafeCraftType craftType = CraftManager.getInstance().getCraftTypeByName(header);
+//        if (craftType != this.craftType) {
+//            return false;
+//        }
         if (Settings.RequireCreatePerm) {
             Player player = event.getPlayer();
-            if (!player.hasPermission("movecraft." + header + ".create")) {
+            if (!player.hasPermission("movecraft." + this.craftType.getName() + ".create")) {
                 player.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
                 return false;
             } else {
