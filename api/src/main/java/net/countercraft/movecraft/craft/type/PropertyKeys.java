@@ -22,6 +22,10 @@ public class PropertyKeys {
      */
     public static final PropertyKey<String> NAME =
             register(PropertyKeyTypes.stringPropertyKey(key("general/name"), t -> t.getName()).immutable());
+    public static final PropertyKey<String> ALIAS =
+            register(PropertyKeyTypes.stringPropertyKey(key("general/alias"), t -> "").immutable());
+    public static final PropertyKey<String> SIGN_HEADER =
+            register(PropertyKeyTypes.stringPropertyKey(key("general/sign_header"), t -> t.getName()).immutable());
     public static final PropertyKey<Integer> MAX_SIZE =
             register(PropertyKeyTypes.intPropertyKey(key("constraints/size/max")).immutable());
     public static final PropertyKey<Integer> MIN_SIZE =
