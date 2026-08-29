@@ -17,10 +17,7 @@
 
 package net.countercraft.movecraft;
 
-import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.datapack.Datapack;
-import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
-import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import net.countercraft.movecraft.async.AsyncManager;
 import net.countercraft.movecraft.commands.*;
 import net.countercraft.movecraft.config.Settings;
@@ -32,10 +29,8 @@ import net.countercraft.movecraft.craft.type.ConfiguredSound;
 import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
-import net.countercraft.movecraft.features.contacts.ContactsCommand;
 import net.countercraft.movecraft.features.contacts.ContactsManager;
 import net.countercraft.movecraft.features.contacts.ContactsSign;
-import net.countercraft.movecraft.features.contacts.IgnoreContactCommand;
 import net.countercraft.movecraft.features.directControl.slot.BlockInteractDirectControlSlot;
 import net.countercraft.movecraft.features.directControl.slot.CommandDirectControlSlot;
 import net.countercraft.movecraft.features.directControl.slot.DefaultDirectControlSlot;
@@ -52,7 +47,6 @@ import net.countercraft.movecraft.util.Tags;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
@@ -185,7 +179,6 @@ public class Movecraft extends JavaPlugin {
         asyncManager.runTaskTimer(this, 0, 1);
         MapUpdateManager.getInstance().runTaskTimer(this, 0, 1);
 
-
         CraftManager.initialize(datapackInitialized);
         // TODO: Can this run asynchronously? Probably not
         Bukkit.getScheduler().runTaskTimer(this, WorldManager.INSTANCE::run, 0,1);
@@ -195,26 +188,6 @@ public class Movecraft extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new DirectControlInteractListener(), this);
 
 //        getCommand("crafttype").setExecutor(new CraftTypeCommand());
-
-        LifecycleEventManager<Plugin> manager = this.getLifecycleManager();
-        manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
-            final Commands commands = event.registrar();
-
-            PilotCommand.register(commands);
-            RotateCommand.register(commands);
-            CruiseCommand.register(commands);
-            CraftReportCommand.register(commands);
-            ToggleDirectControl.register(commands);
-            WindfarerCommand.register(commands);
-            ManOverboardCommand.register(commands);
-            new ScuttleCommand().register(commands);
-            new ReleaseCommand().register(commands);
-            new CraftInfoCommand().register(commands);
-            ContactsCommand.register(commands);
-            IgnoreContactCommand.register(commands);
-            new TeleportCraftCommand().register(commands);
-            new DeleteCraftCommand().register(commands);
-        });
 
         // Naming scheme: If it has parameters, append a double colon except if it is a subcraft
         // Parameters follow on the following lines
