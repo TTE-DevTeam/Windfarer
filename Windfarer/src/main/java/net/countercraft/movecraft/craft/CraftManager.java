@@ -105,6 +105,10 @@ public class CraftManager implements Iterable<Craft>{
     private void loadCraftTypeSettings() throws IOException {
         this.craftTypeMap.clear();
         File craftFileFolder = new File(Movecraft.getInstance().getDataFolder().getAbsolutePath() + "/types");
+
+        // Install base types
+        installBaseTypes(craftFileFolder);
+
         Set<Path> files = Files.find(
                 craftFileFolder.toPath(),
                 Integer.MAX_VALUE,
@@ -149,6 +153,30 @@ public class CraftManager implements Iterable<Craft>{
             }
         }
         toRemove.forEach(this.craftTypeMap::remove);
+    }
+
+    private static void installBaseTypes(File craftFileFolder) {
+        // Check for directory
+        if (craftFileFolder.isDirectory() && craftFileFolder.exists()) {
+            return;
+        }
+        // Try to create directory
+        if (!craftFileFolder.mkdirs()) {
+            Movecraft.getInstance().getLogger().warning("FAILED to create directory<" + craftFileFolder.getPath() + ">! There WILL be errors!");
+            return;
+        }
+        // Install base types
+        final String[] BASE_TYPES = new String[]{
+                "testtype.crafttype"
+        };
+        Movecraft.getInstance().getLogger().info("Installing <" + BASE_TYPES.length + "> base types...");
+
+        for (String filename : BASE_TYPES) {
+            Movecraft.getInstance().getLogger().info("Installing base type <" + filename + ">...");
+            Movecraft.getInstance().saveResource("types/" + filename, false);
+        }
+
+        Movecraft.getInstance().getLogger().info("Base type installation complete!");
     }
 
     public void reloadCraftTypes() throws IOException {
