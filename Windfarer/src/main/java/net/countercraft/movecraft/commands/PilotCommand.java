@@ -128,7 +128,6 @@ public class PilotCommand implements IBrigadierCommandHelper {
             nameComponent = null;
         }
         final CraftSupplier supplier = (type, w, p, parents) -> {
-            assert p != null; // Note: This only passes in a non-null player.
             if (parents.size() > 0)
                 return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedComponent(
                         "Detection - Failed - Already commanding a craft")), null);
@@ -149,7 +148,6 @@ public class PilotCommand implements IBrigadierCommandHelper {
 
     private static int processSinking(CommandContext<CommandSourceStack> commandContext) {
         final CraftSupplier supplier = (type, w, p, parents) -> {
-            assert p != null; // Note: This only passes in a non-null player.
             if (parents.size() > 0)
                 return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedComponent(
                         "Detection - Failed - Already commanding a craft")), null);
@@ -166,7 +164,6 @@ public class PilotCommand implements IBrigadierCommandHelper {
         final long timeOut = Math.abs(IBrigadierCommandHelper.tryGetArgument("lifetime", Long.class, commandContext, 5000L));
         final boolean autoRelease = IBrigadierCommandHelper.tryGetArgument("shouldAutoRelease", Boolean.class, commandContext, false);
         final CraftSupplier supplier = (type, w, p, parents) -> {
-            assert p != null; // Note: This only passes in a non-null player.
             if (parents.size() > 0)
                 return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedComponent(
                         "Detection - Failed - Already commanding a craft")), null);
