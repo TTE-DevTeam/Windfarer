@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class ChatUtils {
     @Deprecated(forRemoval = true)
-    public static final String MOVECRAFT_COMMAND_PREFIX = ChatColor.GOLD + "[" + ChatColor.WHITE + "Movecraft" + ChatColor.GOLD + "] " + ChatColor.RESET;
+    public static final String MOVECRAFT_COMMAND_PREFIX = ChatColor.GOLD + "[" + ChatColor.WHITE + "Windfarer" + ChatColor.GOLD + "] " + ChatColor.RESET;
     @Deprecated(forRemoval = true)
     public static final String ERROR_PREFIX = ChatColor.RED +"[" + I18nSupport.getInternationalisedString("Error") + "]" + ChatColor.RESET;
 
