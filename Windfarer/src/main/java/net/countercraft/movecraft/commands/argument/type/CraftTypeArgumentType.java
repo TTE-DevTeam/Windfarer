@@ -29,7 +29,7 @@ public class CraftTypeArgumentType implements CustomArgumentType.Converted<TypeS
 
     @Override
     public ArgumentType<String> getNativeType() {
-        return StringArgumentType.word();
+        return StringArgumentType.string();
     }
 
     @Override
