@@ -1,0 +1,119 @@
+parent: ""
+movecraft:
+  general:
+    name: "LaunchBomb"
+    block:
+      allowed:
+        - "minecraft:coal_block"
+      forbidden:
+        - "minecraft:bedrock"
+    can_switch_world: false
+    can_be_named: true
+    release_timeout: 30000
+  movement:
+    speed:
+      speed: 5.00
+    cruise:
+      enabled: true
+      on_pilot:
+        enabled: true
+        vert_move: -3
+        lifetime: 3000
+      skip_blocks: 0
+      vert_skip_blocks: -1
+      speed: 17.0
+    move_break_blocks:
+      - "#minecraft:replaceable"
+      - "#minecraft:leaves"
+    passthrough_blocks:
+      - "#minecraft:air"
+      - "minecraft:water"
+    collision:
+      explosion:
+        focused: true
+        arming_time: 1000
+        strength: 12.0
+        allow_internal: true
+    can_direct_control: false
+    entities:
+      enabled: false
+  teleport:
+    enabled: false
+  constraints:
+    size:
+      max: 3
+      min: 2
+    allow_remote_sign: false
+    must_be_subcraft: false
+    movement:
+      can_fly: false
+      allow_vertical: true
+      allow_horizontal: false
+      static_move:
+        enabled: false
+        max: 0
+      height_limit:
+        min: -64
+        max: 320
+      #max_ground_distance: 0
+      allow_vertical_takeoff_and_landing: true
+    block:
+      flyblocks:
+        - ==: Movecraft_RequiredBlockEntry
+          displayName: "Bomb body"
+          min: 10.0
+          max: 100.0
+          blocks:
+            - "minecraft:coal_block"
+        - ==: Movecraft_RequiredBlockEntry
+          displayName: "Fire"
+          min: 0.0
+          max: 1.0
+          blocks:
+            - "#minecraft:fire"
+      moveblocks:
+  harvester:
+    breakable_blocks:
+      - "minecraft:kelp"
+      - "minecraft:kelp_plant"
+      - "minecraft:bubble_column"
+      - "minecraft:cave_air"
+      - "minecraft:seagrass"
+      - "minecraft:tall_seagrass"
+    harvester_blocks:
+      - "minecraft:coal_block"
+  try_nudge: false
+  fuel:
+    burn_rate: 0.0
+  contacts:
+    detection:
+      multiplier: 100.0
+      underwater_multiplier: 95.0
+    new_contact_sound:
+      ==: Movecraft_ConfiguredSound
+      Sound: "block.note_block.bit"
+      Category: "PLAYERS"
+      MinVolume: 1.0
+      MaxVolume: 1.0
+      MinPitch: 1.20
+      MaxPitch: 1.30
+  sinking:
+    #Old sinkpercent!
+    constraint_intolerance: 100.0
+    #Old overall sinkpercent!
+    lowest_possible_integrity: 99.0
+    speed: 15.0
+    keep_moving: true
+    explosion:
+      strength: 4.5
+      incendiary: false
+    falling_block_chance: 0.2
+    pretty:
+      enabled: false
+movecraft-shiprules:
+  min_absolute_width: 1
+  max_absolute_width: 3
+  min_absolute_length: 1
+  max_absolute_length: 3
+  min_absolute_height: 1
+  max_absolute_height: 3

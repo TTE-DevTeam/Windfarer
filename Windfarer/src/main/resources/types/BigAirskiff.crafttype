@@ -1,0 +1,27 @@
+parent: "Airskiff"
+movecraft:
+  general:
+    name: "BigAirskiff"
+  movement:
+    cruise:
+      speed: 8.0
+    dynamic_fly_blocks:
+      block_speed_factor: 25.0
+  constraints:
+    size:
+      max: 500
+      min: 80
+    movement:
+      height_limit:
+        min: -50
+        max: 315
+  sinking:
+    lowest_possible_integrity: 60.0
+    speed: 5.0
+movecraft-combat:
+  #Tracers
+  movement_tracer_blocks:
+    - "minecraft:redstone_block"
+    - "minecraft:fire"
+  movement_tracer_chance: 1.0
+  max_movement_tracers: 200

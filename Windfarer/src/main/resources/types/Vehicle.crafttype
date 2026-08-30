@@ -1,7 +1,7 @@
 parent: ""
 movecraft:
   general:
-    name: "Airship"
+    name: "Vehicle"
     block:
       allowed:
         - "#minecraft:concrete"
@@ -441,57 +441,30 @@ movecraft:
       #directional:
       forbidden:
         - "minecraft:bedrock"
-    can_switch_world: true
+    #Encourage use of carrier airships to move through worlds
+    can_switch_world: false
     can_be_named: true
     rotate_at_midpoint: true
     merge_piston_extensions: true
     release_timeout: 1000
-  #disabled_state:
-    #allow_block_breaking_when_disabled: true
-    #require_disabled_to_break_blocks: true
-    #can_be_un_disabled: true
   movement:
-    #chest_penalty:
     speed:
-      speed: 0.25
+      speed: 2.5
       half_when_underwater: false
-      modifiers:
-        max_speed: 8.0
-        blocks:
-          ==: Movecraft_NamespacedKeyToDoubleProperty
-          #this is normal armor
-          "minecraft:iron_block": -10.0
-          #super armor is twice as heavy as normal armor
-          "minecraft:obsidian": -20.0
-          #Munitions, dispensers, droppers, hoppers are 50% heavier than normal armor
-          "minecraft:coal_block": -15.0
-          "minecraft:dispenser": -15.0
-          "minecraft:dropper": -15.0
-          "minecraft:hopper": -15.0
-          #If the ship is at least 20% hull block, it will have full speed. Logically we explain it as it reduces drag
-          "#minecraft:concrete": 20.0
-          #Engines give speed too, but not a lot (50% of what a hull block gives)
-          "minecraft:redstone_block": 10.0
     cruise:
       enabled: true
-      skip_blocks: 7
-      vert_skip_blocks: 3
-      # WARNING: Setting this to absolute 0 will cause the conversion into cruiseTickCooldown to produce weird values
-      # Will lead to crafts not properly behaving
-      # Note that you must include a decimal for speeds. For example do 1.0 instead of just 1
-      speed: 0.01
-      vert_speed: 1.0
+      skip_blocks: 1
+      speed: 2.5
     move_break_blocks:
       - "#minecraft:replaceable"
       - "#minecraft:leaves"
     passthrough_blocks:
       - "#minecraft:air"
+      - "#minecraft:replaceable"
+      - "#minecraft:leaves"
     collision:
       explosion:
         focused: false
-        #arming_time: 1000
-        #strength: 0.0
-        #underwater_strength: 0.0
         allow_internal: true
       sound:
         ==: Movecraft_ConfiguredSound
@@ -501,192 +474,93 @@ movecraft:
         MaxVolume: 2.0
         MinPitch: 1.0
         MaxPitch: 1.0
-    can_direct_control: false
+    can_direct_control: true
     entities:
       enabled: true
       only_players: false
     gravity:
-      enabled: false
+      enabled: true
       incline_distance: -1
-      drop_distance: -8
+      drop_distance: 8
     controller:
       rotation:
         ==: Movecraft_DefaultRotationController
         TurningEnabled: true
-    direct_control:
-      enabled: true
-      controller:
-        ==: Movecraft_DirectControlController
-        pilot_must_be_in_movebox: true
-        slots:
-          5:
-            ==: Movecraft_CommandDirectControlSlot
-            # Command Placeholders: 
-            # - %EXECUTOR_UUID%
-            # - %CRAFT_UUID%
-            # - %CRAFT_NAME%
-            # - %CRAFT_PILOT_UUID%
-            # - %CRAFT_WORLD%
-            # - %CRAFT_CENTER_X%
-            # - %CRAFT_CENTER_Y%
-            # - %CRAFT_CENTER_Z%
-            on_left_click:
-              command: "cruise OFF"
-              # Running as console will execute the command as the server console
-              # If set to false, it will run as if the interacting player or entity issued the command
-              run_as_console: false
-            on_right_click:
-              command: "cruise ON"
-              run_as_console: false
-            #on_drop_item:
-            #on_swap_hand:
-          4:
-            ==: Movecraft_CommandDirectControlSlot
-            # Command Placeholders: 
-            # - %EXECUTOR_UUID%
-            # - %CRAFT_UUID%
-            # - %CRAFT_NAME%
-            # - %CRAFT_PILOT_UUID%
-            # - %CRAFT_WORLD%
-            # - %CRAFT_CENTER_X%
-            # - %CRAFT_CENTER_Y%
-            # - %CRAFT_CENTER_Z%
-            on_left_click:
-              command: "rudder HELM DECREMENT"
-              run_as_console: false
-            on_right_click:
-              command: "rudder HELM INCREMENT"
-              run_as_console: false
-            #on_drop_item:
-            #on_swap_hand:
-          3:
-            ==: Movecraft_CommandDirectControlSlot
-            # Command Placeholders: 
-            # - %EXECUTOR_UUID%
-            # - %CRAFT_UUID%
-            # - %CRAFT_NAME%
-            # - %CRAFT_PILOT_UUID%
-            # - %CRAFT_WORLD%
-            # - %CRAFT_CENTER_X%
-            # - %CRAFT_CENTER_Y%
-            # - %CRAFT_CENTER_Z%
-            on_left_click:
-              command: "rudder TRIM DECREMENT"
-              run_as_console: false
-            on_right_click:
-              command: "rudder TRIM INCREMENT"
-              run_as_console: false
-            #on_drop_item:
-            #on_swap_hand:
   teleport:
     enabled: false
-    #disabled_destination_worlds:
-    #cooldown:
   constraints:
     size:
-      max: 100000
-      min: 500
-    #require_water_contact:
+      max: 1500
+      min: 4
     allow_remote_sign: true
     must_be_subcraft: false
     can_be_subcraft: false
     movement:
+      #TODO: Sure?
       can_fly: true
       #required_contact_blocks:
       #traction_blocks:
-      #blocked_by_water:
-      #hover:
+      blocked_by_water: true
+      hover:
         #enabled: false
-        #forbidden_blocks:
+        forbidden_blocks:
+          - "#minecraft:water"
+          - "#minecraft:lava"
+          - "#minecraft:portals"
+          - "minecraft:magma_block"
+          - "minecraft:barrier"
         #limit: 0
-        #can_hover_over_water:
+        can_hover_over_water: false
       allow_vertical: true
       allow_horizontal: true
       static_move:
-        enabled: false
-        max: 1
+        enabled: true
+        max: 2
       height_limit:
-        min: 0
+        min: -64
         max: 300
-      max_ground_distance: 300
-      allow_vertical_takeoff_and_landing: true
+      max_ground_distance: 0
+      allow_vertical_takeoff_and_landing: false
     #forbidden_sign_strings:
     block:
       flyblocks:
         - ==: Movecraft_RequiredBlockEntry
-          displayName: "Lifting_Cells"
-          min: 50.0
-          max: 100.0
+          displayName: "Chests"
+          min: 0.0
+          max: 10.0
           blocks:
-            - "#minecraft:wool"
+            - "#minecraft:chests"
         - ==: Movecraft_RequiredBlockEntry
           displayName: "Armor"
           min: 0.0
-          max: 40.0
-          blocks:
-            - "minecraft:iron_block"
-            - "minecraft:waxed_copper_block"
-            - "minecraft:obsidian"
-        - ==: Movecraft_RequiredBlockEntry
-          displayName: "Guns"
-          min: 0.0
-          max: 5.0
+          max: 15.0
           blocks:
             - "minecraft:dispenser"
-            - "minecraft:dropper"
-            - "minecraft:hopper"
         - ==: Movecraft_RequiredBlockEntry
-          displayName: "Super_Armor"
-          min: 0.0
-          max: 1.0
+          displayName: "Furnaces"
+          min: N1
+          max: N10
           blocks:
-            - "#minecraft:anvil"
-            - "minecraft:obsidian"
+            - "#minecraft:smelter"
         - ==: Movecraft_RequiredBlockEntry
-          displayName: "Liquids"
+          displayName: "Water"
           min: 0.0
           max: 5.0
           blocks:
             - "minecraft:water"
             - "minecraft:lava"
       detection_blocks:
-        - ==: Movecraft_RequiredBlockEntry
-          displayName: "Wooden_Flyblocks"
-          min: 0.0
-          max: 50.0
-          blocks:
-            - "#minecraft:mineable_axe"
-        - ==: Movecraft_RequiredBlockEntry
-          displayName: "Chests"
-          min: 0.0
-          max: 1.0
-          blocks:
-            - "#minecraft:chests"
-        - ==: Movecraft_RequiredBlockEntry
-          displayName: "Furnaces"
-          min: N1
-          max: N200
-          blocks:
-            - "#minecraft:smelter"
       move_blocks:
         - ==: Movecraft_RequiredBlockEntry
           displayName: "Engines"
-          min: 1.0
+          min: 0.3
           max: 100.0
           blocks:
             - "minecraft:redstone_block"
-  #harvester:
-    #breakable_blocks:
-    #harvester_blocks:
+            - "#minecraft:smelter"
   try_nudge: false
-  #dynamic_lag:
-    #speed_factor:
-    #power_factor: 
-    #min_speed:
-    #block_speed_factor:
-  static_water_level: 62
   fuel:
-    burn_rate: 1.0
+    burn_rate: 0.5
     furnace_visualization: true
     passive_burn_rate: 0.01
     types:
@@ -696,8 +570,8 @@ movecraft:
       "minecraft:charcoal": 8
   contacts:
     detection:
-      multiplier: 10.0
-      underwater_multiplier: 1.0
+      multiplier: 50.0
+      underwater_multiplier: 150.0
     new_contact_sound:
       ==: Movecraft_ConfiguredSound
       Sound: "block.note_block.bit"
@@ -706,65 +580,25 @@ movecraft:
       MaxVolume: 1.0
       MinPitch: 1.20
       MaxPitch: 1.30
-  #gear_shifts:
-    #count:
-    #modify:
-      #tick_cooldown:
-      #direct_movement:
-      #cruise_skip_blocks:
   sinking:
     #Old sinkpercent!
     constraint_intolerance: 100.0
     #Old overall sinkpercent!
-    lowest_possible_integrity: 80.0
-    speed: 1.0
-    keep_moving: false
-    sink_on_out_of_fuel: false
-    smoke: 0
-    explosion:
-      strength: 0.0
-      incendiary: false
-    falling_block_chance: 0.2
+    lowest_possible_integrity: 82.0
     pretty:
-      enabled: true
-      max_remaining_percentage: 1.0
-      disintegration:
-        delay: 0
-        chance: 0.5
-        min: 5
-        max: 10
-        #sound:
-      explosion:
-        chance: 0.25
-        min: 4
-        max: 8
-#movecraft-shiprules:
-#  max_length_to_height_ratio: 1
-#  require_cruise_sign_alignment: false
-#  min_length_to_width_ratio: 0.5
-#  max_length_to_width_ratio: 1.0
-#  min_length_to_height_ratio: 0.5
-#  min_width_to_height_ratio: 0.5
-#  max_width_to_height_ratio: 1.0
-#  min_absolute_width: 10
-#  max_absolute_width: 20
-#  min_absolute_length: 10
-#  max_absolute_length: 20
-#  min_absolute_height: 10
-#  max_absolute_height: 20
+      enabled: false
 movecraft-bridges:
-  allow_bridge_signs: true
+  allow_bridge_signs: false
 movecraft-combat:
   #Tracers
   movement_tracer_blocks:
-    - "minecraft:redstone_block"
-    - "minecraft:fire"
-  movement_tracer_chance: 0.5
-  max_movement_tracers: 200
+    - "#minecraft:fire"
+  movement_tracer_chance: 1.0
+  max_movement_tracers: -1
   #Directors
-  allow_aa_director_sign: true
+  #allow_aa_director_sign: true
   #max_aa_director_angle: 45.0
-  allow_arrow_director_sign: true
+  #allow_arrow_director_sign: true
   #max_arrow_director_angle: 45.0
-  allow_cannon_director_sign: true
+  #allow_cannon_director_sign: true
   #max_cannon_director_angle: 45.0
