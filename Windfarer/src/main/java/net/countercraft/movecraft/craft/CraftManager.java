@@ -128,7 +128,7 @@ public class CraftManager implements Iterable<Craft>{
         Queue<TypeSafeCraftType> loadedTypes = new LinkedList<>();
         while (!queue.isEmpty()) {
             File file = queue.poll();
-            final String name = file.getAbsolutePath().substring(craftFileFolder.getAbsolutePath().length(), file.getAbsolutePath().lastIndexOf('.'));
+            final String name = file.getAbsolutePath().substring(craftFileFolder.getAbsolutePath().length() + 1, file.getAbsolutePath().lastIndexOf('.'));
             Movecraft.getInstance().getLogger().info(String.format("Loading crafttype file <%s> (type name will be %s>)...", file.getName(), name));
             Optional<TypeSafeCraftType> optTypeSafeCraftType = TypeSafeCraftType.load(file, name, this::getCraftTypeByName, Movecraft.getInstance().getLogger());
 
