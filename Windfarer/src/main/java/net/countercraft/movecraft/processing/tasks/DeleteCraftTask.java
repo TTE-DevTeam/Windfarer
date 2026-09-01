@@ -1,19 +1,15 @@
 package net.countercraft.movecraft.processing.tasks;
 
 import net.countercraft.movecraft.MovecraftLocation;
-import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.processing.CachedMovecraftWorld;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.processing.effects.SetBlockEffect;
-import net.countercraft.movecraft.processing.functions.Result;
-import net.countercraft.movecraft.util.BlockCollectionUtil;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
 import org.bukkit.World;
 import org.bukkit.block.BlockType;
 import org.bukkit.block.data.BlockData;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
 import java.util.function.Supplier;
