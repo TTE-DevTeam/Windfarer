@@ -33,6 +33,7 @@ public class TeleportCraftCommand extends AbstractCraftCommand {
     @Override
     protected int processCommand(CommandContext<CommandSourceStack> context, Set<Craft> crafts) {
         final World world = context.getArgument("destination-world", World.class);
+        // TODO: FixMe: Use BlockPositionResolver, not the BlockPosition interface
         final BlockPosition blockPosition = context.getArgument("destination-position", BlockPosition.class);
 
         final MovecraftLocation pos = new MovecraftLocation(blockPosition.blockX(), blockPosition.blockY(), blockPosition.blockZ());
