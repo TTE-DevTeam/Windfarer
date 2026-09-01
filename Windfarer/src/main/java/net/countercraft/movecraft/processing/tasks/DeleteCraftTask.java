@@ -34,14 +34,17 @@ public class DeleteCraftTask implements Supplier<Effect> {
 
         final BlockData airBlock = BlockType.AIR.createBlockData();
         final MovecraftWorld movecraftWorld = CachedMovecraftWorld.of(this.world);
-        BlockCollectionUtil.getLocations(null, this.hitBox, movecraftWorld, this::validatePosition, (loc, world, craft) -> result.add(new SetBlockEffect(world, loc, airBlock)));
+        //BlockCollectionUtil.getLocations(null, this.hitBox, movecraftWorld, this::validatePosition, (loc, world, craft) -> result.add(new SetBlockEffect(world, loc, airBlock)));
+        for (MovecraftLocation locTmp : this.hitBox) {
+            result.add(new SetBlockEffect(movecraftWorld, locTmp, airBlock);
+        }
 
         return result;
     }
 
-    private @NotNull Result validatePosition(@NotNull MovecraftLocation location, @NotNull MovecraftWorld movecraftWorld, @NotNull Craft craft) {
-        return Result.of(!movecraftWorld.getMaterial(location).isAir());
-    }
+    // private @NotNull Result validatePosition(@NotNull MovecraftLocation location, @NotNull MovecraftWorld movecraftWorld, @NotNull Craft craft) {
+    //     return Result.of(!movecraftWorld.getMaterial(location).isAir());
+    // }
 
     class EffectChain extends Effect.AndEffect implements Effect.MultiEffect {
 
