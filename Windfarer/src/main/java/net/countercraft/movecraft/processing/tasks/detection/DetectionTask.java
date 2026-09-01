@@ -69,22 +69,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class DetectionTask implements Supplier<Effect> {
-    private final static MovecraftLocation[] SHIFTS = {
-            new MovecraftLocation(0, 1, 1),
-            new MovecraftLocation(0, 0, 1),
-            new MovecraftLocation(0, -1, 1),
-            new MovecraftLocation(0, 1, 0),
-            new MovecraftLocation(1, 1 ,0),
-            new MovecraftLocation(1, 0 ,0),
-            new MovecraftLocation(1, -1 ,0),
-            new MovecraftLocation(0, 1, -1),
-            new MovecraftLocation(0, 0, -1),
-            new MovecraftLocation(0, -1, -1),
-            new MovecraftLocation(0, -1, 0),
-            new MovecraftLocation(-1, 1, 0),
-            new MovecraftLocation(-1, 0, 0),
-            new MovecraftLocation(-1, -1, 0)
-    };
+
     private static final AllowedBlockValidator ALLOWED_BLOCK_VALIDATOR = new AllowedBlockValidator();
     private static final ForbiddenBlockValidator FORBIDDEN_BLOCK_VALIDATOR = new ForbiddenBlockValidator();
     private static final List<DetectionPredicate<MovecraftLocation>> VALIDATORS = List.of(
@@ -482,7 +467,7 @@ public class DetectionTask implements Supplier<Effect> {
 
                     size.increment();
                     materials.computeIfAbsent(material, Functions.forSupplier(ConcurrentLinkedDeque::new)).add(probe);
-                    for (MovecraftLocation shift : SHIFTS) {
+                    for (MovecraftLocation shift : type.get(PropertyKeys.DETECTION_DIRECTIONS)) {
                         var shifted = probe.add(shift);
                         nextFrontier.add(shifted);
                     }

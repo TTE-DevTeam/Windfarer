@@ -1,5 +1,6 @@
 package net.countercraft.movecraft.craft.type;
 
+import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.craft.controller.AbstractRotationController;
 import net.countercraft.movecraft.craft.controller.directControl.DirectControlController;
 import net.countercraft.movecraft.craft.controller.rotation.DefaultRotationController;
@@ -26,6 +27,62 @@ public class PropertyKeys {
             register(PropertyKeyTypes.stringPropertyKey(key("general/alias"), t -> "").immutable());
     public static final PropertyKey<String> SIGN_HEADER =
             register(PropertyKeyTypes.stringPropertyKey(key("general/sign_header"), t -> t.getName()).immutable());
+    private static final Set<MovecraftLocation> DEFAULT_DETECTION_DIRECTIONS = Set.of(
+            new MovecraftLocation(0, 1, 1),
+            new MovecraftLocation(0, 0, 1),
+            new MovecraftLocation(0, -1, 1),
+            new MovecraftLocation(0, 1, 0),
+            new MovecraftLocation(1, 1 ,0),
+            new MovecraftLocation(1, 0 ,0),
+            new MovecraftLocation(1, -1 ,0),
+            new MovecraftLocation(0, 1, -1),
+            new MovecraftLocation(0, 0, -1),
+            new MovecraftLocation(0, -1, -1),
+            new MovecraftLocation(0, -1, 0),
+            new MovecraftLocation(-1, 1, 0),
+            new MovecraftLocation(-1, 0, 0),
+            new MovecraftLocation(-1, -1, 0)
+    );
+    public static final PropertyKey<Set<MovecraftLocation>> DETECTION_DIRECTIONS =
+            register(
+                    new PropertyKey<Set<MovecraftLocation>>(
+                            key("general/detection_directions"),
+                            t -> new HashSet<>(DEFAULT_DETECTION_DIRECTIONS),
+                            (object, crafttype) -> {
+                                if (object != null) {
+                                    if (object instanceof String string) {
+                                        Optional<MovecraftLocation> optionalMovecraftLocation = MovecraftLocation.tryReadFromString(string);
+                                        if (optionalMovecraftLocation.isPresent()) {
+                                            return Set.of(optionalMovecraftLocation.get());
+                                        }
+                                    } else if (object instanceof List<?> list) {
+                                        Set<MovecraftLocation> result = new HashSet<>();
+                                        for (Object listElement : list) {
+                                            if (listElement instanceof String string) {
+                                                Optional<MovecraftLocation> optionalMovecraftLocation = MovecraftLocation.tryReadFromString(string);
+                                                if (optionalMovecraftLocation.isPresent()) {
+                                                    result.add(optionalMovecraftLocation.get());
+                                                }
+                                            }
+                                        }
+                                        if (!result.isEmpty()) {
+                                            return result;
+                                        }
+                                    }
+                                }
+                                return Set.copyOf(DEFAULT_DETECTION_DIRECTIONS);
+                            },
+                            (set) -> {
+                                List<String> result = new ArrayList<>(set.size());
+                                for (MovecraftLocation movecraftLocation : set) {
+                                    result.add(movecraftLocation.toString());
+                                }
+                                return result;
+                            },
+                            Set::copyOf
+                    )
+            ).immutable();
+
     public static final PropertyKey<Integer> MAX_SIZE =
             register(PropertyKeyTypes.intPropertyKey(key("constraints/size/max")).immutable());
     public static final PropertyKey<Integer> MIN_SIZE =
