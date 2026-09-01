@@ -26,7 +26,7 @@ import java.util.Optional;
 
 public class ManOverboardCommand {
 
-    static final NamespacedKey MANOVERBOARD_LAST_TIME = new NamespacedKey(Movecraft.getInstance(), "manoverboard_last_timestamp");
+    static final NamespacedKey MANOVERBOARD_LAST_TIME = new NamespacedKey("windfarer", "manoverboard_last_timestamp");
 
     public static void register(final Commands commands) {
         commands.register(
