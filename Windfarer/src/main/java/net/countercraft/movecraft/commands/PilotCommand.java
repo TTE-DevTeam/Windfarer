@@ -113,7 +113,8 @@ public class PilotCommand implements IBrigadierCommandHelper {
                     CraftManager.getInstance().release(oldCraft, CraftReleaseEvent.Reason.PLAYER, false);
             }
         };
-        return process(commandContext, supplier, commandContext.getSource().getExecutor(), commandContext.getSource().getSender(), postDetection);
+        final @Nullable Entity executor = commandContext.getSource().getExecutor();
+        return process(commandContext, supplier, executor, executor != null ? executor : commandContext.getSource().getSender(), postDetection);
     }
 
     private static int processNPC(CommandContext<CommandSourceStack> commandContext) {
@@ -143,7 +144,7 @@ public class PilotCommand implements IBrigadierCommandHelper {
                     CraftManager.getInstance().release(oldCraft, CraftReleaseEvent.Reason.PLAYER, false);
             }
         };
-        return process(commandContext, supplier, pilot, commandContext.getSource().getSender(), postDetection);
+        return process(commandContext, supplier, pilot, pilot != null ? pilot : Bukkit.getConsoleSender(), postDetection);
     }
 
     private static int processSinking(CommandContext<CommandSourceStack> commandContext) {
@@ -157,7 +158,7 @@ public class PilotCommand implements IBrigadierCommandHelper {
         final Function<Craft, Effect> postDetection = craft -> () -> {
             // Do nothing
         };
-        return process(commandContext, supplier, null, commandContext.getSource().getSender(), postDetection);
+        return process(commandContext, supplier, null, Audience.empty(), postDetection);
     }
 
     private static int processNullPiloted(CommandContext<CommandSourceStack> commandContext) {
@@ -179,7 +180,7 @@ public class PilotCommand implements IBrigadierCommandHelper {
                     CraftManager.getInstance().release(oldCraft, CraftReleaseEvent.Reason.PLAYER, false);
             }
         };
-        return process(commandContext, supplier, null, commandContext.getSource().getSender(), postDetection);
+        return process(commandContext, supplier, null, Bukkit.getConsoleSender(), postDetection);
     }
 
     static int process(final CommandContext<CommandSourceStack> commandContext, final CraftSupplier craftSupplier, final @Nullable Entity pilot, final Audience audience, final Function<Craft, Effect> postDetectAction) {
