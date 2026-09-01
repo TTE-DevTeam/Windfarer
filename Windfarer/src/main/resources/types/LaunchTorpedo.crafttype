@@ -29,7 +29,7 @@ movecraft:
       - "#minecraft:replaceable"
       - "#minecraft:leaves"
     passthrough_blocks:
-      - "#minecraft:air
+      - "#minecraft:air"
       - "minecraft:water"
     collision:
       explosion:
