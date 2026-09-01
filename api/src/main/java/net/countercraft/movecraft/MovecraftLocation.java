@@ -22,6 +22,8 @@ import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Optional;
+
 import static net.countercraft.movecraft.util.BitMath.mask;
 
 /**
@@ -160,6 +162,32 @@ final public class MovecraftLocation implements Comparable<MovecraftLocation>{
     @Override
     public String toString(){
         return "(" + x + "," + y + "," + z +")";
+    }
+
+    public static Optional<MovecraftLocation> tryReadFromString(final String string) {
+        try {
+            String workingString = string;
+            if (string.startsWith("(")) {
+                workingString = workingString.substring(1);
+            }
+            if (string.endsWith(")")) {
+                workingString = workingString.substring(0, workingString.length() - 1);
+            }
+            String[] splitted = string.split(",");
+            if (splitted.length != 3) {
+                throw new IllegalArgumentException("Location is not constructed from 3 numbers!");
+            }
+            int[] components = new int[splitted.length];
+            for (int i = 0; i < splitted.length; i++) {
+                String s = splitted[i];
+                int iTmp = Integer.parseInt(s);
+                components[i] = iTmp;
+            }
+            return Optional.of(new MovecraftLocation(components[0], components[1], components[2]));
+        } catch(Exception exception) {
+            System.out.println("FAILED to decode string <" + string + "> to a movecraftLocation!");
+        }
+        return Optional.empty();
     }
 
 
