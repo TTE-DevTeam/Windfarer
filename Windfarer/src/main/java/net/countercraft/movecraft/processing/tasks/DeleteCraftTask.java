@@ -32,7 +32,7 @@ public class DeleteCraftTask implements Supplier<Effect> {
         final MovecraftWorld movecraftWorld = CachedMovecraftWorld.of(this.world);
         //BlockCollectionUtil.getLocations(null, this.hitBox, movecraftWorld, this::validatePosition, (loc, world, craft) -> result.add(new SetBlockEffect(world, loc, airBlock)));
         for (MovecraftLocation locTmp : this.hitBox) {
-            result.add(new SetBlockEffect(movecraftWorld, locTmp, airBlock);
+            result.add(new SetBlockEffect(movecraftWorld, locTmp, airBlock));
         }
 
         return result;
