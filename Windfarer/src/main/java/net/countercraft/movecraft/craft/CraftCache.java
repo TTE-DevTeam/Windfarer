@@ -125,6 +125,7 @@ public class CraftCache {
         Craft result = null;
         // Access can happen ASYNCHRONOUSLY!
         if (craftsInChunk != null) {
+            // TODO: Do we need this to be synchronized?!
             synchronized (craftsInChunk) {
                 if (!craftsInChunk.isEmpty()) {
                     for (CraftEntry craftEntry : craftsInChunk) {
@@ -152,7 +153,8 @@ public class CraftCache {
             // First, remove all no longer existing lists
             setsOfCraft.removeIf(ref -> ref.get() == null);
             // Then remove the references to this craft
-            setsOfCraft.forEach(ref -> ref.get().remove(new WeakReference<>(craft)));
+            // CraftEntry can be compared to Craft; They are qual if the UUID is the same
+            setsOfCraft.forEach(ref -> ref.get().remove(craft));
             setsOfCraft.clear();
         }
         // If the hitbox is empty, we quit early
