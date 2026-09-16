@@ -64,6 +64,7 @@ public class CraftCache {
 
     }
 
+    // TODO: Use Long2ObjectOpenHashMap
     protected final Map<ChunkPos, List<CraftEntry>> chunkMap = new ConcurrentHashMap<>();
     protected static final CraftDataTagKey<Set<WeakReference<List<CraftEntry>>>> positionCaches = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Movecraft.getInstance(), "chunkpos-references"), c -> Collections.synchronizedSet(new HashSet<>()));
 
@@ -186,6 +187,7 @@ public class CraftCache {
         this.cleanup();
     }
 
+    // TODO: Change to convert (x, y) => long and (long) => x, y methods!
     record ChunkPos(int chunkX, int chunkY, int chunkZ) {
         public static ChunkPos of(MovecraftLocation location) {
             return new ChunkPos(location.getX() >> 4, location.getY() >> 4, location.getZ() >> 4);
