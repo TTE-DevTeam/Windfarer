@@ -111,7 +111,8 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
                 return false;
             }
 
-            return interactor.hasPermission("movecraft." + craftType.getName().toLowerCase() + ".pilot") && this.canPlayerUseSignForCraftType(clickType, sign, interactor, craftType);
+            final String permissionNode = craftType.get(PropertyKeys.PERMISSION_NODE_PILOT);
+            return (permissionNode.isBlank() || interactor.hasPermission(permissionNode)) && this.canPlayerUseSignForCraftType(clickType, sign, interactor, craftType);
         }
         return false;
     }

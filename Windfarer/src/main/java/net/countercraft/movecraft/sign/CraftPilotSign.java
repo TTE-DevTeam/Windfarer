@@ -46,7 +46,8 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
 //        if (craftType != this.craftType) {
 //            return false;
 //        }
-        if (craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, interactor.getWorld()) && !interactor.hasPermission("movecraft." + this.craftType.getName() + ".pilot")) {
+        final String permissionNode = this.craftType.get(PropertyKeys.PERMISSION_NODE_PILOT);
+        if (craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, interactor.getWorld()) && !permissionNode.isBlank() && !interactor.hasPermission(permissionNode)) {
             interactor.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
             return false;
         } else {
@@ -86,6 +87,7 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
                         // Assert instructions are not available normally, also this is checked in beforehand sort of
                         assert p != null; // Note: This only passes in a non-null player.
                         Craft result = null;
+                        // region CruiseOnPilot
                         if (type.get(PropertyKeys.CRUISE_ON_PILOT)) {
                             if (parents.size() > 1)
                                 return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedString(
@@ -97,7 +99,11 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
 
                             result = new CruiseOnPilotCraft(type, world, p);
                         }
+                        // endregion CruiseOnPilot
+                        // region Normal piloted crafts
                         else {
+                            // TODO: Support piloting skiffs on carriers
+                            // If parents.size() > 0: There is another existing craft intersecting with the new craft's hitbox
                             if (parents.size() > 0)
                                 return new Pair<>(Result.failWithMessage(I18nSupport.getInternationalisedString(
                                         "Detection - Failed - Already commanding a craft")), null);
@@ -108,6 +114,7 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
                                 result = new PilotedCraftImpl(type, w, p);
                             }
                         }
+                        // endregion Normal piloted crafts
 
                         if (result != null) {
                             if (!isCruiseOnPilot) {
@@ -177,7 +184,8 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
 //        }
         if (Settings.RequireCreatePerm) {
             Player player = event.getPlayer();
-            if (!player.hasPermission("movecraft." + this.craftType.getName() + ".create")) {
+            final String permissionNode = this.craftType.get(PropertyKeys.PERMISSION_NODE_CREATE);
+            if (!permissionNode.isBlank() && !player.hasPermission(permissionNode)) {
                 player.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
                 return false;
             } else {

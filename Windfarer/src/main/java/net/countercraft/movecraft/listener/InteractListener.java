@@ -89,7 +89,8 @@ public final class InteractListener implements Listener {
                 return;
             }
 
-            if (!p.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".move")) {
+            final String permissionNode = craft.getCraftProperties().get(PropertyKeys.PERMISSION_NODE_SCUTTLE);
+            if (!permissionNode.isBlank() && !p.hasPermission(permissionNode)) {
                 p.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
                 return; // Player doesn't have permission to move this craft, so don't do anything
             }

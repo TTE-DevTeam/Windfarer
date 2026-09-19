@@ -4,6 +4,7 @@ import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.craft.SinkingCraft;
+import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.events.CraftScuttleEvent;
 import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
@@ -49,8 +50,8 @@ public class ScuttleSign extends AbstractCraftSign {
                     + I18nSupport.getInternationalisedString("Scuttle - Craft Already Sinking"));
             return false;
         }
-        if(!interactor.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase()
-                + ".scuttle")) {
+        final String permissionNode = craft.getCraftProperties().get(PropertyKeys.PERMISSION_NODE_SCUTTLE);
+        if(!permissionNode.isBlank() && !interactor.hasPermission(permissionNode)) {
             interactor.sendMessage(MOVECRAFT_COMMAND_PREFIX
                     + I18nSupport.getInternationalisedString("Insufficient Permissions"));
             return false;

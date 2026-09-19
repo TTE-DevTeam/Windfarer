@@ -7,6 +7,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SinkingCraft;
+import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.events.CraftScuttleEvent;
 import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
@@ -42,7 +43,8 @@ public class ScuttleCommand extends AbstractCraftCommand {
     protected int processCommand(CommandContext<CommandSourceStack> context, Set<Craft> crafts) {
         int scuttled = 0;
         for (Craft craft : crafts) {
-            if (!context.getSource().getSender().hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".scuttle")) {
+            final String permissionNode = craft.getCraftProperties().get(PropertyKeys.PERMISSION_NODE_MOVE);
+            if (!permissionNode.isBlank() && !context.getSource().getSender().hasPermission(permissionNode)) {
                 context.getSource().getSender().sendMessage(ChatUtils.errorPrefix().append(I18nSupport.getInternationalisedComponent("Insufficient Permissions")));
             } else {
                 if (craft instanceof SinkingCraft) {

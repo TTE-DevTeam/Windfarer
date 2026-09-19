@@ -4,6 +4,7 @@ import io.papermc.paper.command.brigadier.Commands;
 import net.countercraft.movecraft.MovecraftRotation;
 import net.countercraft.movecraft.commands.argument.type.EnumArgumentType;
 import net.countercraft.movecraft.craft.*;
+import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.util.ChatUtils;
 import org.bukkit.command.CommandSender;
@@ -84,10 +85,11 @@ public class RotateCommand {
                 .findFirst();
         if (optCraft.isPresent()) {
             final Craft craft = optCraft.get();
+            final String permissionNode = craft.getCraftProperties().get(PropertyKeys.PERMISSION_NODE_ROTATE);
             /*if (!craft.getCraftProperties().get(PropertyKeys.CAN_CRUISE)) {
                 sender.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Cruise - Craft Cannot Rotate"));
             }
-            else*/ if (!commandSender.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".rotate")) {
+            else*/ if (!permissionNode.isBlank() && !commandSender.hasPermission(permissionNode)) {
                 executor.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Insufficient Permissions"));
             }
             else if (rotation == null) {

@@ -111,7 +111,8 @@ public class HelmSign extends AbstractInformationSign {
     protected boolean canPlayerUseSignOn(Entity interactor, Craft craft) {
         // TODO: Refactor into general method
         if (super.canPlayerUseSignOn(interactor, craft)) {
-            if (!interactor.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".rotate")) {
+            final String permissionNode = craft.getCraftProperties().get(PropertyKeys.PERMISSION_NODE_ROTATE);
+            if (!permissionNode.isBlank() && !interactor.hasPermission(permissionNode)) {
                 interactor.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
                 return false;
             }

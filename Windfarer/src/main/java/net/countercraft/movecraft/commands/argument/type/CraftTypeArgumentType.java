@@ -37,7 +37,13 @@ public class CraftTypeArgumentType implements CustomArgumentType.Converted<TypeS
         S s = context.getSource();
         Predicate<TypeSafeCraftType> checkFunction;
         if (s instanceof Permissible permissible) {
-            checkFunction = (craftType) -> !craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, "") || permissible.hasPermission("movecraft." + craftType.getName().toLowerCase() + ".pilot");
+            checkFunction = (craftType) -> {
+                if (!craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, "")) {
+                    return true;
+                }
+                final String permissionNode = craftType.get(PropertyKeys.PERMISSION_NODE_PILOT);
+                return permissionNode.isBlank() || permissible.hasPermission(permissionNode);
+            };
         } else {
             checkFunction = Predicates.alwaysTrue();
         }

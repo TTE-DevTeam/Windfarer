@@ -91,8 +91,6 @@ public class PropertyKeys {
             register(PropertyKeyTypes.blockSetPropertyKey(key("general/block/allowed")).immutable());
     public static final PropertyKey<PerWorldData<Double>> SPEED =
             register(PropertyKeyTypes.doublePropertyKey(key("movement/speed/speed")).perWorld().immutable());
-    public static final PropertyKey<PerWorldData<Boolean>> REQUIRE_PERM_FOR_ASSEMBLY =
-            register(PropertyKeyTypes.boolPropertyKey(key("require_permission_for_piloting"), true).perWorld().immutable());
     // endregion required base settings
 
     // region block constraints
@@ -511,6 +509,21 @@ public class PropertyKeys {
                     false
             ).immutable());
     // endregion fuel
+
+    // region permissions
+    public static final PropertyKey<PerWorldData<Boolean>> REQUIRE_PERM_FOR_ASSEMBLY =
+            register(PropertyKeyTypes.boolPropertyKey(key("permissions/require_permission_for_piloting"), true).perWorld().immutable());
+    public static final PropertyKey<String> PERMISSION_NODE_CREATE =
+            register(PropertyKeyTypes.stringPropertyKey(key("permissions/createpermission"), t -> "movecraft." + t.getName() + ".create").immutable());
+    public static final PropertyKey<String> PERMISSION_NODE_PILOT =
+            register(PropertyKeyTypes.stringPropertyKey(key("permissions/pilot_permission"), t -> "movecraft." + t.getName() + ".pilot").immutable());
+    public static final PropertyKey<String> PERMISSION_NODE_MOVE =
+            register(PropertyKeyTypes.stringPropertyKey(key("permissions/move_permission"), t -> "movecraft." + t.getName() + ".move").immutable());
+    public static final PropertyKey<String> PERMISSION_NODE_ROTATE =
+            register(PropertyKeyTypes.stringPropertyKey(key("permissions/rotate_permission"), t -> "movecraft." + t.getName() + ".rotate").immutable());
+    public static final PropertyKey<String> PERMISSION_NODE_SCUTTLE =
+            register(PropertyKeyTypes.stringPropertyKey(key("permissions/scuttle_permission"), t -> "movecraft." + t.getName() + ".scuttle").immutable());
+    // endregion permissions
 
     public static <T> PropertyKey<T> register(PropertyKey<T> propertyKey) {
         return TypeSafeCraftType.PROPERTY_REGISTRY.register(propertyKey.key(), propertyKey);

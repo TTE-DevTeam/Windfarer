@@ -10,9 +10,6 @@ import net.countercraft.movecraft.craft.PlayerCraft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
-import net.countercraft.movecraft.sign.AbstractToggleSign;
-import net.countercraft.movecraft.sign.CraftSignManager;
-import net.countercraft.movecraft.sign.CruiseSign;
 import net.countercraft.movecraft.util.ChatUtils;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -86,10 +83,11 @@ public class CruiseCommand {
                 .findFirst();
         if (optCraft.isPresent()) {
             final Craft craft = optCraft.get();
+            final String permissionNode = craft.getCraftProperties().get(PropertyKeys.PERMISSION_NODE_MOVE);
             if (!craft.getCraftProperties().get(PropertyKeys.CAN_CRUISE)) {
                 executor.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Cruise - Craft Cannot Cruise"));
             }
-            else if (!commandSender.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".move")) {
+            else if (!permissionNode.isBlank() && !commandSender.hasPermission(permissionNode)) {
                 executor.sendMessage(ChatUtils.MOVECRAFT_COMMAND_PREFIX + I18nSupport.getInternationalisedString("Insufficient Permissions"));
             }
             else if (direction == null) {

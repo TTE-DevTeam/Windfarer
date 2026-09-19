@@ -224,8 +224,8 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
 
     @Override
     protected boolean canPlayerUseSignForCraftType(Action action, SignListener.SignWrapper signWrapper, Entity player, TypeSafeCraftType craftType) {
-        String craftTypeStr = craftType.getName().toLowerCase();
-        if (craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, player.getWorld()) && !player.hasPermission("movecraft." + craftTypeStr + ".move")) {
+        final String permissionNode = craftType.get(PropertyKeys.PERMISSION_NODE_MOVE);
+        if (!permissionNode.isBlank() && craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, player.getWorld()) && !player.hasPermission(permissionNode)) {
             player.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
             return false;
         } else if (!craftType.get(PropertyKeys.CAN_STATIC_MOVE)) {

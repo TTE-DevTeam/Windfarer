@@ -103,8 +103,8 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
 
     @Override
     protected boolean canPlayerUseSignForCraftType(Action clickType, SignListener.SignWrapper sign, Entity interactor, TypeSafeCraftType subcraftType) {
-        final String craftTypeStr = subcraftType.getName().toLowerCase();
-        if (subcraftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, interactor.getWorld()) && !interactor.hasPermission("movecraft." + craftTypeStr + ".rotate")) {
+        final String permissionNode = subcraftType.get(PropertyKeys.PERMISSION_NODE_ROTATE);
+        if (!permissionNode.isBlank() && subcraftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, interactor.getWorld()) && !interactor.hasPermission(permissionNode)) {
             interactor.sendMessage(I18nSupport.getInternationalisedString("Insufficient Permissions"));
             return false;
         }

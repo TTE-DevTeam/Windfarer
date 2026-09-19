@@ -2,6 +2,7 @@ package net.countercraft.movecraft.commands;
 
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
+import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.TopicPaginator;
@@ -58,7 +59,8 @@ public class CraftTypeCommand implements TabExecutor {
             commandSender.sendMessage("You must supply a craft type!");
             return true;
         }
-        if(!commandSender.hasPermission("movecraft." + type.getName().toLowerCase() + ".pilot")) {
+        final String permissionNode = type.get(PropertyKeys.PERMISSION_NODE_PILOT);
+        if(!permissionNode.isBlank() && !commandSender.hasPermission(permissionNode)) {
             commandSender.sendMessage("You don't have permission for that craft type!");
             return true;
         }
@@ -72,9 +74,12 @@ public class CraftTypeCommand implements TabExecutor {
         if(strings.length !=1 || !commandSender.hasPermission("movecraft.commands") || !commandSender.hasPermission("movecraft.commands.crafttype"))
             return Collections.emptyList();
         List<String> completions = new ArrayList<>();
-        for(TypeSafeCraftType type : CraftManager.getInstance().getTypesafeCraftTypes())
-            if(commandSender.hasPermission("movecraft." + type.getName().toLowerCase() + ".pilot"))
+        for(TypeSafeCraftType type : CraftManager.getInstance().getTypesafeCraftTypes()) {
+            final String permissionNode = type.get(PropertyKeys.PERMISSION_NODE_PILOT);
+            if (permissionNode.isBlank() || commandSender.hasPermission(permissionNode)) {
                 completions.add(type.getName());
+            }
+        }
         completions.add("list");
         List<String> returnValues = new ArrayList<>();
         for(String completion : completions)

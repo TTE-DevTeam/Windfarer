@@ -50,7 +50,8 @@ public class MoveSign extends AbstractCraftSign {
         if (!(super.canPlayerUseSignOn(interactor, craft) || HelmsManManager.getHelmsMan(craft) == interactor)) {
             return false;
         }
-        if (!interactor.hasPermission("movecraft." + craft.getCraftProperties().getName().toLowerCase() + ".move")) {
+        final String permissionNode = craft.getCraftProperties().get(PropertyKeys.PERMISSION_NODE_MOVE);
+        if (!permissionNode.isBlank() && !interactor.hasPermission(permissionNode)) {
             interactor.sendMessage(
                     I18nSupport.getInternationalisedString("Insufficient Permissions"));
             return false;
