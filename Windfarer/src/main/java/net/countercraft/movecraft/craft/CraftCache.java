@@ -6,17 +6,19 @@ import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
-import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class CraftCache {
+public class CraftCache extends BukkitRunnable {
 
     // Cache WeakMap<World<Map<ChunkPos<List<WeakReference<Craft>>>>>>
     // Stores a reference to all crafts per chunk
@@ -32,8 +34,17 @@ public class CraftCache {
 
     protected static Map<UUID, CraftCache> worldMap = new ConcurrentHashMap<>();
 
+    // Wrapper around the timed scheduled task
+    private BukkitTask bukkitTask;
+    // Queue for udpates
+    protected final Queue<CraftPositionUpdate> scheduledUpdates = new ConcurrentLinkedQueue<>();
+
     public static void onWorldUnload(final UUID world) {
-        worldMap.remove(world);
+        CraftCache cache = worldMap.get(world);
+        if (cache != null) {
+            cache.stopTask();
+            worldMap.remove(world, cache);
+        }
     }
 
     protected static CraftCache of(final World world) {
@@ -44,7 +55,11 @@ public class CraftCache {
     }
 
     public static void onCraftFinishedMovement(final Craft craft) {
-        Bukkit.getScheduler().runTaskAsynchronously(Movecraft.getInstance(), new UpdateCraftPositionRunnable(craft, craft.getWorld().getUID(), new BitmapHitBox(craft.getHitBox())));
+        of(craft.getWorld()).scheduleUpdate(CraftPositionUpdate.of(craft));
+    }
+
+    public static void onCraftLeftWorld(final Craft craft, final UUID oldWorld) {
+        of(oldWorld).removeCraftFromChunkLists(craft);
     }
 
     public static Set<Craft> getCraftsAtChunk(World world, MovecraftLocation blockCoordinate) {
@@ -65,38 +80,36 @@ public class CraftCache {
     }
 
     // TODO: Use Long2ObjectOpenHashMap
-    protected final Map<ChunkPos, List<CraftEntry>> chunkMap = new ConcurrentHashMap<>();
-    protected static final CraftDataTagKey<Set<WeakReference<List<CraftEntry>>>> positionCaches = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Movecraft.getInstance(), "chunkpos-references"), c -> Collections.synchronizedSet(new HashSet<>()));
+    protected final Map<ChunkPos, Set<UUID>> chunkMap = new ConcurrentHashMap<>();
+    protected static final CraftDataTagKey<Set<WeakReference<Set<UUID>>>> positionCaches = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey(Movecraft.getInstance(), "chunkpos-references"), c -> Collections.synchronizedSet(new HashSet<>()));
 
-    protected void cleanup() {
-        this.chunkMap.entrySet().removeIf(e -> {
-            // TODO: Replace that contains clause!
-            e.getValue().removeIf(ref -> !ref.craftIsValid() || !CraftManager.getInstance().getCrafts().contains(ref.getCraft()));
-            return e.getValue().isEmpty();
-        });
-    }
-
-    protected static Set<WeakReference<List<CraftEntry>>> getSetsOfCraft(final Craft craft) {
+    protected static Set<WeakReference<Set<UUID>>> getSetsOfCraft(final Craft craft) {
         return craft.getDataTag(positionCaches);
     }
 
     public static void removeCraft(final Craft craft) {
-        worldMap.values().forEach(cc -> cc.removeCraftInternal(craft));
+        worldMap.values().forEach(cc -> cc.removeCraftFromChunkLists(craft));
     }
 
-    protected void removeCraftInternal(final Craft craft) {
-        for (List<CraftEntry> list : this.chunkMap.values()) {
-            list.remove(craft);
+    protected void removeCraftFromChunkLists(final Craft craft) {
+        Set<WeakReference<Set<UUID>>> setsOfCraft = getSetsOfCraft(craft);
+        if (!setsOfCraft.isEmpty()) {
+            // First, remove all no longer existing lists
+            // Then remove the references to this craft
+            // CraftEntry can be compared to Craft; They are qual if the UUID is the same
+            setsOfCraft.removeIf(ref -> {
+                Set<UUID> uuidSet = ref.get();
+                if (uuidSet != null) {
+                    uuidSet.remove(craft.getUUID());
+                }
+                return true;
+            });
         }
-        this.cleanup();
     }
 
     @Nullable
-    protected List<CraftEntry> getEntriesAtChunk(MovecraftLocation blockCoordinate) {
+    protected Set<UUID> getEntriesAtChunk(MovecraftLocation blockCoordinate) {
         final ChunkPos chunkPos = ChunkPos.of(blockCoordinate);
-
-        // Very important: Cleanup first!
-        this.cleanup();
 
         return this.chunkMap.getOrDefault(chunkPos, null);
     }
@@ -104,16 +117,14 @@ public class CraftCache {
     // Returns all crafts that somehow contain this chunk in their hitbox; No guarantee on if the craft actually has a block there or not!
     protected Set<Craft> getCraftsAtChunkInternal(MovecraftLocation blockCoordinate) {
         Set<Craft> result = new HashSet<>();
-        List<CraftEntry> list = this.getEntriesAtChunk(blockCoordinate);
+        Set<UUID> list = this.getEntriesAtChunk(blockCoordinate);
         if (list != null) {
-            for (CraftEntry reference : list) {
-                if (!reference.craftIsValid())
+            for (UUID reference : list) {
+                final Craft craft = Craft.getCraftByUUID(reference);
+                if (craft == null)
                     continue;
 
-                Craft deReferenced = reference.getCraft();
-                if (deReferenced != null) {
-                    result.add(deReferenced);
-                }
+                result.add(craft);
             }
         }
 
@@ -122,24 +133,23 @@ public class CraftCache {
 
     // returns the first craft that contains this position
     protected Optional<Craft> getCraftAtInternal(MovecraftLocation blockCoordinate) {
-        List<CraftEntry> craftsInChunk = this.getEntriesAtChunk(blockCoordinate);
+        Set<UUID> craftsInChunk = this.getEntriesAtChunk(blockCoordinate);
         Craft result = null;
         // Access can happen ASYNCHRONOUSLY!
         if (craftsInChunk != null) {
-            // TODO: Do we need this to be synchronized?!
-            synchronized (craftsInChunk) {
-                if (!craftsInChunk.isEmpty()) {
-                    for (CraftEntry craftEntry : craftsInChunk) {
-                        if (!craftEntry.craftIsValid())
-                            continue;
+            if (!craftsInChunk.isEmpty()) {
+                for (UUID craftId : craftsInChunk) {
+                    final Craft craft = Craft.getCraftByUUID(craftId);
+                    if (craft == null)
+                        continue;
 
-                        if (craftEntry.hitBoxSnapshot().isEmpty())
-                            continue;
+                    final HitBox hitBox = new BitmapHitBox(craft.getHitBox());
+                    if (hitBox.isEmpty())
+                        continue;
 
-                        if (craftEntry.hitBoxSnapshot().inBounds(blockCoordinate) && craftEntry.hitBoxSnapshot().contains(blockCoordinate)) {
-                            result = craftEntry.getCraft();
-                            break;
-                        }
+                    if (hitBox.inBounds(blockCoordinate) && hitBox.contains(blockCoordinate)) {
+                        result = craft;
+                        break;
                     }
                 }
             }
@@ -147,44 +157,104 @@ public class CraftCache {
         return Optional.ofNullable(result);
     }
 
-    // TODO: Change to repeating AsyncTask that works down a queue
-    protected void onCraftFinishedMovementInternal(final Craft craft, final HitBox hitBox) {
-        Set<WeakReference<List<CraftEntry>>> setsOfCraft = getSetsOfCraft(craft);
-        if (!setsOfCraft.isEmpty()) {
-            // First, remove all no longer existing lists
-            setsOfCraft.removeIf(ref -> ref.get() == null);
-            // Then remove the references to this craft
-            // CraftEntry can be compared to Craft; They are qual if the UUID is the same
-            setsOfCraft.forEach(ref -> ref.get().remove(craft));
-            setsOfCraft.clear();
+    static final byte MAX_UPDATES_PER_TICK = 50;
+    static final int CLEANUP_PERIOD_MS = 10000;
+    protected long lastCleanup = System.currentTimeMillis();
+
+    @Override
+    public void run() {
+        byte counter = 0;
+        while (counter < MAX_UPDATES_PER_TICK) {
+            final CraftPositionUpdate update = this.scheduledUpdates.poll();
+            if (update == null)
+                break;
+
+            this.runUpdate(update);
+
+            counter++;
         }
-        // If the hitbox is empty, we quit early
-        if (hitBox.isEmpty()) {
+
+        // If there is time now, we run the cleanup
+        final long now = System.currentTimeMillis();
+        long delta = now - this.lastCleanup;
+        if (delta > CLEANUP_PERIOD_MS) {
+            this.lastCleanup = now;
+            runCleanup();
+        }
+
+        // If we do not have anything left, stop the task
+        if (this.scheduledUpdates.isEmpty()) {
+            this.stopTask();
+        }
+    }
+
+    protected void runCleanup() {
+        this.chunkMap.entrySet().removeIf(e -> {
+            // TODO: Replace that contains clause!
+            e.getValue().removeIf(craftUUID -> {
+                final Craft craftObject = Craft.getCraftByUUID(craftUUID);
+                if (craftObject == null)
+                    return true;
+
+                return !CraftManager.getInstance().getCrafts().contains(craftObject);
+            });
+            return e.getValue().isEmpty();
+        });
+    }
+
+    protected void runUpdate(final CraftPositionUpdate update) {
+        final Craft craftObject = Craft.getCraftByUUID(update.craftUUID());
+        if (craftObject != null) {
+            removeCraftFromChunkLists(craftObject);
+        }
+
+        if (update.empty() || craftObject == null) {
+            // In theory unnecessary, we need to test if we will need it again!
+            //this.chunkMap.values().forEach(set -> set.remove(update.craftUUID()));
             return;
         }
-        
-        // Now, recalculate the chunks of that craft
-        final int minChunkX = hitBox.getMinX() >> 4;
-        final int minChunkY = hitBox.getMinY() >> 4;
-        final int minChunkZ = hitBox.getMinZ() >> 4;
-        final int maxChunkX = hitBox.getMaxX() >> 4;
-        final int maxChunkY = hitBox.getMaxY() >> 4;
-        final int maxChunkZ = hitBox.getMaxZ() >> 4;
 
-        final CraftEntry entry = new CraftEntry(craft.getUUID(), hitBox);
+        // Now, recalculate the chunks of that craft
+        final int minChunkX = update.x1() >> 4;
+        final int minChunkY = update.y1() >> 4;
+        final int minChunkZ = update.z1() >> 4;
+        final int maxChunkX = update.x2() >> 4;
+        final int maxChunkY = update.y2() >> 4;
+        final int maxChunkZ = update.z2() >> 4;
+
+        Set<WeakReference<Set<UUID>>> setsOfCraft = getSetsOfCraft(craftObject);
         for (int iX = minChunkX; iX <= maxChunkX; iX++) {
             for (int iY = minChunkY; iY <= maxChunkY; iY++) {
                 for (int iZ = minChunkZ; iZ <= maxChunkZ; iZ++) {
                     ChunkPos chunkPos = new ChunkPos(iX, iY, iZ);
-                    List<CraftEntry> craftList = chunkMap.computeIfAbsent(chunkPos, k -> Collections.synchronizedList(new ArrayList<>()));
-                    craftList.add(entry);
+                    Set<UUID> craftList = chunkMap.computeIfAbsent(chunkPos, k -> ConcurrentHashMap.newKeySet());
+                    craftList.add(update.craftUUID());
                     setsOfCraft.add(new WeakReference<>(craftList));
                 }
             }
         }
+    }
 
-        // Finally, run cache cleanup
-        this.cleanup();
+    protected synchronized void stopTask() {
+        if (this.bukkitTask != null) {
+            this.bukkitTask.cancel();
+            this.bukkitTask = null;
+        }
+    }
+
+    protected synchronized void scheduleUpdate(final CraftPositionUpdate update) {
+        if (update == null) {
+            return;
+        }
+
+        // Remove already existing updates for this craft
+        this.scheduledUpdates.remove(update);
+        // Now schedule the new update
+        this.scheduledUpdates.add(update);
+
+        if (this.bukkitTask == null || this.bukkitTask.isCancelled()) {
+            this.bukkitTask = this.runTaskTimerAsynchronously(Movecraft.getInstance(), 0, 1);
+        }
     }
 
     // TODO: Change to convert (x, y) => long and (long) => x, y methods!
@@ -207,23 +277,15 @@ public class CraftCache {
 
     }
 
-    protected record UpdateCraftPositionRunnable(Craft craft, UUID worldUUID, HitBox hitBox) implements Runnable {
+    protected record CraftPositionUpdate(UUID craftUUID, int x1, int x2, int y1, int y2, int z1, int z2, boolean empty) {
+        public static CraftPositionUpdate of(Craft craft) {
+            final UUID uuid = craft.getUUID();
 
-        @Override
-        public void run() {
-            of(worldUUID).onCraftFinishedMovementInternal(craft, hitBox);
-        }
-    }
+            final HitBox hitBox = craft.getHitBox();
+            if (hitBox == null || hitBox.isEmpty())
+                return new CraftPositionUpdate(uuid, 0,0,0,0,0,0,true);
 
-    protected record CraftEntry(@NotNull UUID craftUUID, HitBox hitBoxSnapshot) {
-
-        public boolean craftIsValid() {
-            return Craft.getCraftByUUID(this.craftUUID) != null;
-        }
-
-        @Nullable
-        public Craft getCraft() {
-            return Craft.getCraftByUUID(this.craftUUID);
+            return new CraftPositionUpdate(uuid, hitBox.getMinX(), hitBox.getMaxX(), hitBox.getMinY(), hitBox.getMaxY(), hitBox.getMinZ(), hitBox.getMaxZ(), false);
         }
 
         @Override
@@ -231,11 +293,8 @@ public class CraftCache {
             if (obj == this) {
                 return true;
             }
-            if (obj instanceof CraftEntry ce) {
-                return ce.craftUUID.equals(this.craftUUID);
-            }
-            if (obj instanceof Craft craft) {
-                return craft.getUUID() != null && craft.getUUID().equals(this.craftUUID);
+            if (obj instanceof CraftPositionUpdate other) {
+                return this.craftUUID().equals(other.craftUUID());
             }
             return false;
         }

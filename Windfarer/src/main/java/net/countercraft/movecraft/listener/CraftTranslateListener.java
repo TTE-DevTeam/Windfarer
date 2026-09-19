@@ -26,6 +26,10 @@ public class CraftTranslateListener implements Listener {
             WorldManager.INSTANCE.submit(task);
         }
 
+        if (!event.getOldWorld().equals(craft.getWorld().getUID())) {
+            CraftCache.onCraftLeftWorld(craft, event.getOldWorld());
+        }
+
         CraftCache.onCraftFinishedMovement(craft);
     }
 
