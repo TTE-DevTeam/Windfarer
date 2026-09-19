@@ -13,6 +13,7 @@ dependencies {
     runtimeOnly(project(":windfarer-v1_21_11"))
     runtimeOnly(project(":windfarer-v26_1_2"))
     runtimeOnly(project(":windfarer-v26_2"))
+    runtimeOnly(project(":windfarer-v26_3"))
     implementation(project(":windfarer-api"))
     compileOnly("org.yaml:snakeyaml:2.0")
 }
@@ -29,6 +30,7 @@ tasks.shadowJar {
         include(project(":windfarer-v1_21_11"))
         include(project(":windfarer-v26_1_2"))
         include(project(":windfarer-v26_2"))
+        include(project(":windfarer-v26_3"))
     }
 
     manifest.attributes(
@@ -74,7 +76,7 @@ hangarPublish {
         platforms {
             register(io.papermc.hangarpublishplugin.model.Platforms.PAPER) {
                 jar.set(tasks.shadowJar.flatMap { it.archiveFile })
-                platformVersions.set(listOf("1.21.8", "1.21.10", "1.21.11", "26.1.2", "26.2"))
+                platformVersions.set(listOf("1.21.8", "1.21.10", "1.21.11", "26.1.2", "26.2", "26.3"))
             }
         }
     }
