@@ -2,10 +2,13 @@ package net.countercraft.movecraft.craft.type;
 
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.MemorySection;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -113,28 +116,31 @@ public class PerWorldData<T> {
 
     public static <T> BiFunction<Object, TypeSafeCraftType, PerWorldData<T>> createDeserializer(BiFunction<Object, TypeSafeCraftType, T> singleElementDeserializer) {
         return (yamlObj, type) -> {
-            if (yamlObj instanceof Map) {
+            // TODO: FixMe! All YAML Objects seemingly **ARE** Map instances! This creates problems for us...
+            if (yamlObj instanceof ConfigurationSection) {
                 // Parse map and pass it
-                Map<String, Object> mapping;
+                ConfigurationSection mapping;
                 try {
-                    mapping = (Map<String, Object>) yamlObj;
+                    mapping = (ConfigurationSection) yamlObj;
                 } catch(ClassCastException cce) {
                     // TODO: Log error
                     return null;
                 }
-                T defaultObj = singleElementDeserializer.apply(mapping.getOrDefault("_default", null), type);
+                T defaultObj = singleElementDeserializer.apply(mapping.get("_default", null), type);
                 if (defaultObj == null) {
                     // TODO: Log error
                     return null;
                 }
-                if (mapping.size() > 1) {
-                    Map<String, T> overrides = new HashMap<>(mapping.size() - 1);
-                    for (Map.Entry<String, Object> entry : mapping.entrySet()) {
-                        if (entry.getKey() == "_default") {
+                final Set<String> topLevelKeys = mapping.getKeys(false);
+                final int keyCount = topLevelKeys.size();
+                if (keyCount > 1) {
+                    Map<String, T> overrides = new HashMap<>(keyCount - 1);
+                    for (String key : topLevelKeys) {
+                        if (key == "_default") {
                             continue;
                         }
                         try {
-                            overrides.put(entry.getKey(), (T) entry.getValue());
+                            overrides.put(key, (T) mapping.get(key));
                         } catch(ClassCastException cce) {
                             // TODO: Log error
                         }
