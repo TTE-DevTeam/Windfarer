@@ -17,6 +17,7 @@
 
 package net.countercraft.movecraft.mapUpdater.update;
 
+import io.papermc.paper.entity.TeleportFlag;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.util.ReflectUtils;
 import org.bukkit.Location;
@@ -24,6 +25,7 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerTeleportEvent;
 
 import java.util.Objects;
 
@@ -91,7 +93,7 @@ public class EntityUpdateCommand extends UpdateCommand {
 
         // Use bukkit teleporting API for changing worlds because it won't be smooth anyway
         if (!(entity instanceof Player) || !entity.getLocation().getWorld().equals(world)) {
-            entity.teleport(location);
+            entity.teleport(location, PlayerTeleportEvent.TeleportCause.PLUGIN, TeleportFlag.EntityState.RETAIN_PASSENGERS, TeleportFlag.EntityState.RETAIN_VEHICLE);
             return;
         }
 

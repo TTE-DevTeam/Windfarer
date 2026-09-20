@@ -18,10 +18,13 @@
 package net.countercraft.movecraft.config;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.EntityType;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class Settings {
     public static boolean IGNORE_RESET = false;
@@ -56,4 +59,21 @@ public class Settings {
     public static String displayBlockListsAtlasPrefix = "block/";
     public static long maxElapsedTimeForWorldChanges = 50000;
     public static long maxElapsedTimeForSyncTaskProcessing = 50000;
+    public static Set<NamespacedKey> alwaysMovedEntities = Set.of(
+            EntityType.TNT.getKey(),
+            EntityType.ARMOR_STAND.getKey(),
+            EntityType.PAINTING.getKey(),
+            EntityType.ITEM_FRAME.getKey(),
+            EntityType.ITEM_DISPLAY.getKey(),
+            EntityType.TEXT_DISPLAY.getKey(),
+            EntityType.MARKER.getKey(),
+            EntityType.INTERACTION.getKey(),
+            EntityType.GLOW_ITEM_FRAME.getKey(),
+            EntityType.MINECART.getKey(),
+            EntityType.TNT_MINECART.getKey(),
+            EntityType.CHEST_MINECART.getKey(),
+            EntityType.FURNACE_MINECART.getKey(),
+            EntityType.HOPPER_MINECART.getKey()
+    );
+
 }

@@ -1,6 +1,7 @@
 package net.countercraft.movecraft.processing.tasks.translation.effects;
 
 import net.countercraft.movecraft.MovecraftLocation;
+import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.SinkingCraft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
@@ -13,6 +14,9 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class TeleportationEffect implements Effect {
     private final @NotNull Craft craft;
@@ -32,6 +36,7 @@ public class TeleportationEffect implements Effect {
             return;
 
         Location midpoint = craft.getHitBox().getMidPoint().toBukkit(craft.getWorld());
+        Set<Entity> entitiesToTeleport = new HashSet<>();
         for (Entity entity : craft.getWorld().getNearbyEntities(midpoint,
                 craft.getHitBox().getXLength() / 2.0 + 1,
                 craft.getHitBox().getYLength() / 2.0 + 2,
@@ -42,21 +47,36 @@ public class TeleportationEffect implements Effect {
                 if (e.isCancelled())
                     continue;
 
-                EntityUpdateCommand eUp = new EntityUpdateCommand(entity, translation.getX(), translation.getY(),
-                        translation.getZ(), 0, 0, world);
-                eUp.doUpdate();
+                entitiesToTeleport.add(entity);
             }
             else if (!craft.getCraftProperties().get(PropertyKeys.ONLY_MOVE_PLAYERS)
-                    || entity.getType() == EntityType.TNT) {
+                    || Settings.alwaysMovedEntities.contains(entity.getType().getKey())) {
                 CraftTeleportEntityEvent e = new CraftTeleportEntityEvent(craft, entity);
                 Bukkit.getServer().getPluginManager().callEvent(e);
                 if (e.isCancelled())
                     continue;
 
-                EntityUpdateCommand eUp = new EntityUpdateCommand(entity, translation.getX(), translation.getY(),
-                        translation.getZ(), 0, 0, world);
-                eUp.doUpdate();
+                entitiesToTeleport.add(entity);
             }
+        }
+
+        if (entitiesToTeleport.isEmpty())
+            return;
+
+        // Remove all passengers from the list
+        Set<Entity> cleanedList = new HashSet<>(entitiesToTeleport);
+        for (Entity entity : entitiesToTeleport) {
+            if (entity.getPassengers() != null && !entity.getPassengers().isEmpty()) {
+                cleanedList.removeAll(entity.getPassengers());
+            }
+        }
+
+        if (cleanedList.isEmpty())
+            return;
+
+        for (Entity entity : cleanedList) {
+            EntityUpdateCommand entityUpdateCommand = new EntityUpdateCommand(entity, translation.getX(), translation.getY(), translation.getZ(), 0, 0, world);
+            entityUpdateCommand.doUpdate();
         }
     }
 }

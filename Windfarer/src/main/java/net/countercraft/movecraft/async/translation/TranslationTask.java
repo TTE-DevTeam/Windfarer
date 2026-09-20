@@ -330,6 +330,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
             Bukkit.getServer().getPluginManager().callEvent(new CraftCollisionEvent(craft, collisionBox, world));
         }
 
+        // TODO: Split into multiple updates maybe?
         updates.add(new CraftTranslateCommand(craft, new MovecraftLocation(dx, dy, dz), world));
 
         //prevents torpedo and rocket pilots
@@ -355,6 +356,9 @@ public class TranslationTask extends FuelAwareAsyncTask {
                 (oldHitBox.getMaxX() + oldHitBox.getMinX()) / 2.0,
                 (oldHitBox.getMaxY() + oldHitBox.getMinY()) / 2.0,
                 (oldHitBox.getMaxZ() + oldHitBox.getMinZ()) / 2.0);
+
+        Set<Entity> entitiesToTeleport = new HashSet<>();
+
         for (Entity entity : craft.getWorld().getNearbyEntities(midpoint,
                 oldHitBox.getXLength() / 2.0 + 1,
                 oldHitBox.getYLength() / 2.0 + 2,
@@ -391,11 +395,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
 
             final boolean isEntityAlwaysMoved = (
                     entity instanceof Player
-                    || entity.getType() == EntityType.TNT
-                    || entity.getType() == EntityType.TNT_MINECART
-                    || entity instanceof Minecart
-                    || entity instanceof Hanging
-                    || entity instanceof Display
+                    || Settings.alwaysMovedEntities.contains(entity.getType().getKey())
             );
 
             final int craftSize = craft.getHitBox().size();
@@ -442,9 +442,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
                 if (e.isCancelled())
                     continue;
 
-                EntityUpdateCommand eUp = new EntityUpdateCommand(entity, dx, dy, dz, 0, 0,
-                        world, sound, volume);
-                updates.add(eUp);
+                entitiesToTeleport.add(entity);
                 continue;
             }
 
@@ -460,8 +458,24 @@ public class TranslationTask extends FuelAwareAsyncTask {
             if (e.isCancelled())
                 continue;
 
-            EntityUpdateCommand eUp = new EntityUpdateCommand(entity, dx, dy, dz, 0, 0, world);
-            updates.add(eUp);
+            entitiesToTeleport.add(entity);
+        }
+
+        // Now filter the entity list
+        // Remove all passengers from the list
+        Set<Entity> cleanedList = new HashSet<>(entitiesToTeleport);
+        for (Entity entity : entitiesToTeleport) {
+            if (entity.getPassengers() != null && !entity.getPassengers().isEmpty()) {
+                cleanedList.removeAll(entity.getPassengers());
+            }
+        }
+
+        if (cleanedList.isEmpty())
+            return;
+
+        for (Entity entity : cleanedList) {
+            EntityUpdateCommand entityUpdateCommand = new EntityUpdateCommand(entity, dx, dy, dz, 0, 0, world);
+            updates.add(entityUpdateCommand);
         }
     }
 
