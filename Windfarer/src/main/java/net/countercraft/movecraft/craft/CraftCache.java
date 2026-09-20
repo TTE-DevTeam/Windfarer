@@ -6,11 +6,10 @@ import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
-import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
@@ -18,7 +17,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class CraftCache extends BukkitRunnable {
+public class CraftCache implements Runnable {
 
     // Cache WeakMap<World<Map<ChunkPos<List<WeakReference<Craft>>>>>>
     // Stores a reference to all crafts per chunk
@@ -253,7 +252,7 @@ public class CraftCache extends BukkitRunnable {
         this.scheduledUpdates.add(update);
 
         if (this.bukkitTask == null || this.bukkitTask.isCancelled()) {
-            this.bukkitTask = this.runTaskTimerAsynchronously(Movecraft.getInstance(), 0, 1);
+            this.bukkitTask = Bukkit.getScheduler().runTaskTimerAsynchronously(Movecraft.getInstance(), this, 0, 1);
         }
     }
 
