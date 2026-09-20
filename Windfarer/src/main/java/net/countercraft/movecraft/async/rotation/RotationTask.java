@@ -37,7 +37,6 @@ import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.NamespacedIDUtil;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
-import net.countercraft.movecraft.util.hitboxes.SetHitBox;
 import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -45,7 +44,6 @@ import org.bukkit.entity.*;
 import org.bukkit.util.Vector;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -277,14 +275,14 @@ public class RotationTask extends FuelAwareAsyncTask {
                 (oldHitBox.getMaxY() + oldHitBox.getMinY())/2.0,
                 (oldHitBox.getMaxZ() + oldHitBox.getMinZ())/2.0);
 
-        List<EntityType> entityList = List.of(EntityType.PLAYER, EntityType.TNT, EntityType.ITEM_FRAME, EntityType.PAINTING, EntityType.TNT_MINECART, EntityType.GLOW_ITEM_FRAME);
+        Set<Entity> entitiesToTeleport = new HashSet<>();
         for(Entity entity : craft.getWorld().getNearbyEntities(midpoint,
                 oldHitBox.getXLength() / 2.0 + 1,
                 oldHitBox.getYLength() / 2.0 + 2,
                 oldHitBox.getZLength() / 2.0 + 1)) {
 
             if (craft.getCraftProperties().get(PropertyKeys.ONLY_MOVE_PLAYERS)
-                    && (!entityList.contains(entity.getType())
+                    && (!Settings.alwaysMovedEntities.contains(entity.getType().getKey())
                     || craft instanceof SinkingCraft)) {
                 continue;
             }// Player is onboard this craft
@@ -329,18 +327,34 @@ public class RotationTask extends FuelAwareAsyncTask {
                 }
             }
 
-            Location adjustedPLoc = entity.getLocation().subtract(tOP);
-
-            double[] rotatedCoords = MathUtils.rotateVecNoRound(rotation,
-                    adjustedPLoc.getX(), adjustedPLoc.getZ());
-            float newYaw = this.craft.getCraftProperties().get(PropertyKeys.MODIFY_ENTITY_YAW_ON_ROTATION) ? rotation == MovecraftRotation.CLOCKWISE ? 90F : -90F : 0F;
-
             CraftTeleportEntityEvent e = new CraftTeleportEntityEvent(craft, entity);
             Bukkit.getServer().getPluginManager().callEvent(e);
             if (e.isCancelled())
                 continue;
 
             // DONE: Add option to prevent pilot rotation changes on craft rotation
+            entitiesToTeleport.add(entity);
+        }
+
+        // Now filter the entity list
+        // Remove all passengers from the list
+        Set<Entity> cleanedList = new HashSet<>(entitiesToTeleport);
+        for (Entity entity : entitiesToTeleport) {
+            if (entity.getPassengers() != null && !entity.getPassengers().isEmpty()) {
+                cleanedList.removeAll(entity.getPassengers());
+            }
+        }
+
+        if (cleanedList.isEmpty())
+            return;
+
+        for (Entity entity : cleanedList) {
+            Location adjustedPLoc = entity.getLocation().subtract(tOP);
+
+            double[] rotatedCoords = MathUtils.rotateVecNoRound(rotation,
+                    adjustedPLoc.getX(), adjustedPLoc.getZ());
+            float newYaw = this.craft.getCraftProperties().get(PropertyKeys.MODIFY_ENTITY_YAW_ON_ROTATION) ? rotation == MovecraftRotation.CLOCKWISE ? 90F : -90F : 0F;
+
             EntityUpdateCommand eUp = new EntityUpdateCommand(entity,
                     rotatedCoords[0] + tOP.getX() - entity.getLocation().getX(),
                     0,
@@ -349,8 +363,6 @@ public class RotationTask extends FuelAwareAsyncTask {
                     0
             );
             updates.add(eUp);
-
-
         }
     }
 
