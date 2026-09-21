@@ -470,12 +470,12 @@ movecraft:
           "minecraft:dropper": -15.0
           "minecraft:hopper": -15.0
           #If the ship is at least 20% hull block, it will have full speed. Logically we explain it as it reduces drag
-          "#minecraft:concrete": 20.0
+          "#minecraft:mineable/pickaxe": 20.0
           #Engines give speed too, but not a lot (50% of what a hull block gives)
           "minecraft:redstone_block": 10.0
     cruise:
       enabled: true
-      skip_blocks: 7
+      skip_blocks: 8
       vert_skip_blocks: 3
       # WARNING: Setting this to absolute 0 will cause the conversion into cruiseTickCooldown to produce weird values
       # Will lead to crafts not properly behaving
