@@ -182,7 +182,7 @@ public class CraftManager implements Iterable<Craft>{
         // Install base types
         final String[] BASE_TYPES = new String[]{
                 "testtype.crafttype",
-                "Airship.crafttype",
+                "airship.crafttype",
                 "Airskiff.crafttype",
                 "BigAirskiff.crafttype",
                 "Elevator.crafttype",
@@ -190,7 +190,8 @@ public class CraftManager implements Iterable<Craft>{
                 "LaunchTorpedo.crafttype",
                 "MoveTool.crafttype",
                 "Turret.crafttype",
-                "Vehicle.crafttype"
+                "Vehicle.crafttype",
+                "Seaship.crafttype"
         };
         Movecraft.getInstance().getLogger().info("Installing <" + BASE_TYPES.length + "> base types...");
 
