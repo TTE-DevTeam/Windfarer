@@ -340,17 +340,17 @@ movecraft-tte-additions:
     - Ultrairship
     - GigAirship
   #Warheads
-Cannons:
-  mass:
-    min: 1
-    max: 2
-    excluded:
-      - someCannonDesign1
-      - someCannonDesign2
-  use_ship_angles: true
-  cannon_constraints:
-    - ==: CannonsRevamped_CannonTypeConstraint
-      cannonTypes:
-        - someCannnonDesignAffectedByThisConstraint
-      min: 1
-      max: 2
+#Cannons:
+#  mass:
+#    min: 1
+#    max: 2
+#    excluded:
+#      - someCannonDesign1
+#      - someCannonDesign2
+#  use_ship_angles: true
+#  cannon_constraints:
+#    - ==: CannonsRevamped_CannonTypeConstraint
+#      cannonTypes:
+#        - someCannnonDesignAffectedByThisConstraint
+#      min: 1
+#      max: 2
