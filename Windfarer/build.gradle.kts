@@ -27,31 +27,17 @@ val platformProjects = listOf(
     ":windfarer-v26_3",
 )
 
-// Take the first X projects
-val reobfProjects = platformProjects.take(3)
-// Take the last X projects
-val regularProjects = platformProjects.drop(3)
-
 tasks.shadowJar {
     archiveBaseName.set("Windfarer-${project.version}")
     archiveClassifier.set("")
     archiveVersion.set("")
 
     dependsOn(
-        reobfProjects.map { "$it:reobfJar" } +
-                regularProjects.map { "$it:jar" }
+                platformProjects.map { "$it:jar" }
     )
 
     from(
-        reobfProjects.map { projectPath ->
-            project(projectPath).layout.buildDirectory.file(
-                "libs/${projectPath.removePrefix(":")}-${project.version}-reobf.jar"
-            )
-        }
-    )
-
-    from(
-        regularProjects.map { projectPath ->
+        platformProjects.map { projectPath ->
             project(projectPath).layout.buildDirectory.file(
                 "libs/${projectPath.removePrefix(":")}-${project.version}.jar"
             )
