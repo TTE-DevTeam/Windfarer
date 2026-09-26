@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.project
+
 plugins {
     `maven-publish`
     id("buildlogic.java-conventions")
@@ -5,32 +7,59 @@ plugins {
     id("io.papermc.hangar-publish-plugin") version "0.1.3"
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release = 21
+}
 
 dependencies {
-    runtimeOnly(project(":windfarer-v1_21_8"))
-    runtimeOnly(project(":windfarer-v1_21_10"))
-    runtimeOnly(project(":windfarer-v1_21_11"))
-    runtimeOnly(project(":windfarer-v26_1_2"))
-    runtimeOnly(project(":windfarer-v26_2"))
-    runtimeOnly(project(":windfarer-v26_3"))
     implementation(project(":windfarer-api"))
     compileOnly("org.yaml:snakeyaml:2.0")
 }
+
+val platformProjects = listOf(
+    ":windfarer-v1_21_8",
+    ":windfarer-v1_21_10",
+    ":windfarer-v1_21_11",
+    ":windfarer-v26_1_2",
+    ":windfarer-v26_2",
+    ":windfarer-v26_3",
+)
+
+// Take the first X projects
+val reobfProjects = platformProjects.take(3)
+// Take the last X projects
+val regularProjects = platformProjects.drop(3)
 
 tasks.shadowJar {
     archiveBaseName.set("Windfarer-${project.version}")
     archiveClassifier.set("")
     archiveVersion.set("")
 
+    dependsOn(
+        reobfProjects.map { "$it:reobfJar" } +
+                regularProjects.map { "$it:jar" }
+    )
+
+    from(
+        reobfProjects.map { projectPath ->
+            project(projectPath).layout.buildDirectory.file(
+                "libs/${projectPath.removePrefix(":")}-${project.version}-reobf.jar"
+            )
+        }
+    )
+
+    from(
+        regularProjects.map { projectPath ->
+            project(projectPath).layout.buildDirectory.file(
+                "libs/${projectPath.removePrefix(":")}-${project.version}.jar"
+            )
+        }
+    )
+
     dependencies {
         include(project(":windfarer-api"))
-        include(project(":windfarer-v1_21_8"))
-        include(project(":windfarer-v1_21_10"))
-        include(project(":windfarer-v1_21_11"))
-        include(project(":windfarer-v26_1_2"))
-        include(project(":windfarer-v26_2"))
-        include(project(":windfarer-v26_3"))
     }
 
     manifest.attributes(
