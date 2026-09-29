@@ -182,7 +182,7 @@ public class CraftManager implements Iterable<Craft>{
         // Install base types
         final String[] BASE_TYPES = new String[]{
                 "testtype.crafttype",
-                "airship.crafttype",
+                "Airship.crafttype",
                 "Airskiff.crafttype",
                 "BigAirskiff.crafttype",
                 "Elevator.crafttype",
@@ -197,7 +197,11 @@ public class CraftManager implements Iterable<Craft>{
 
         for (String filename : BASE_TYPES) {
             Movecraft.getInstance().getLogger().info("Installing base type <" + filename + ">...");
-            Movecraft.getInstance().saveResource("types/" + filename, false);
+            try {
+                Movecraft.getInstance().saveResource("types/" + filename, false);
+            } catch(IllegalArgumentException iae) {
+                Movecraft.getInstance().getLogger().warning("FAILED installing crafttype <" + filename + ">!");
+            }
         }
 
         Movecraft.getInstance().getLogger().info("Base type installation complete!");
