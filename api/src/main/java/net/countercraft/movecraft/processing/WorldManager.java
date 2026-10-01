@@ -40,6 +40,9 @@ public final class WorldManager implements Executor {
 
     protected WorldManager(){}
 
+    // TODO: Add a blocking task that keeps the main thread (whatever is calling this method) occupied, this allows for faster detection at the cost of occupying the main thread
+    // Issue is that if the detection fails to deliver effects on time, the effects will have to wait 50ms until it is processed
+    // This also applies to requests to the world such as getBlock() for example!
     public void run() {
         if(!Bukkit.isPrimaryThread()){
             throw new RuntimeException("WorldManager must be executed on the main thread.");
