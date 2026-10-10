@@ -18,6 +18,7 @@ import net.countercraft.movecraft.sign.SignListener;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.Tags;
 import net.countercraft.movecraft.util.hitboxes.*;
+import net.countercraft.movecraft.util.NamespacedIDUtil;
 import org.bukkit.*;
 import org.bukkit.block.data.Waterlogged;
 import org.jetbrains.annotations.NotNull;
@@ -78,7 +79,7 @@ public class CraftTranslateCommand extends UpdateCommand {
             //place phased blocks
             for (MovecraftLocation location : to) {
                 var data = location.toBukkit(world).getBlock().getBlockData();
-                if (passthroughBlocks.contains(data.getMaterial())) {
+                if (passthroughBlocks.contains(NamespacedIDUtil.getBlockID(data))) {
                     craft.getPhaseBlocks().put(location.toBukkit(world), data);
                 }
             }
@@ -120,7 +121,7 @@ public class CraftTranslateCommand extends UpdateCommand {
             final WorldHandler handler = Movecraft.getInstance().getWorldHandler();
             for (MovecraftLocation location : failed) {
                 var data = location.toBukkit(world).getBlock().getBlockData();
-                if (!passthroughBlocks.contains(data.getMaterial()))
+                if (!passthroughBlocks.contains(NamespacedIDUtil.getBlockID(data)))
                     continue;
 
                 craft.getPhaseBlocks().put(location.toBukkit(world), data);
@@ -165,7 +166,7 @@ public class CraftTranslateCommand extends UpdateCommand {
             for (MovecraftLocation location : failed) {
                 Location bukkit = location.toBukkit(oldWorld);
                 var data = bukkit.getBlock().getBlockData();
-                if (passthroughBlocks.contains(data.getMaterial())) {
+                if (passthroughBlocks.contains(NamespacedIDUtil.getBlockID(data))) {
                     craft.getPhaseBlocks().put(bukkit, data);
                     handler.setBlockFast(bukkit, Material.AIR.createBlockData());
 
