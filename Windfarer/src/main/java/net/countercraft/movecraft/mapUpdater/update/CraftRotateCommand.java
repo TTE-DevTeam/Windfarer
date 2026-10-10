@@ -161,7 +161,7 @@ public class CraftRotateCommand extends UpdateCommand {
 
             for (MovecraftLocation location : interior) {
                 Location bukkit = location.toBukkit(craft.getWorld());
-                var data = var data = bukkit.getBlock().getBlockData();
+                var data = bukkit.getBlock().getBlockData();
                 if (passthroughBlocks.contains(NamespacedIDUtil.getBlockID(data))) {
                     craft.getPhaseBlocks().put(bukkit, data);
                     handler.setBlockFast(bukkit, Material.AIR.createBlockData());
