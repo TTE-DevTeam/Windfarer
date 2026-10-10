@@ -855,7 +855,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
         } while ((!testBlock.getType().isAir() &&
                 !craft.getCraftProperties().get(PropertyKeys.PASSTHROUGH_BLOCKS).contains(testType) &&
                 !oldHitBox.contains(surfaceLoc)) &&
-                surfaceLoc.getY() + 1 > craft.getCraftProperties().get(PropertyKeys.MAX_HEIGHT_LIMIT, craft.getWorld()));
+                surfaceLoc.getY() + 1 < craft.getCraftProperties().get(PropertyKeys.MAX_HEIGHT_LIMIT, craft.getWorld()));
         return surfaceLoc;
     }
 
