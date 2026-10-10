@@ -96,13 +96,13 @@ public class CraftCache implements Runnable {
             // First, remove all no longer existing lists
             // Then remove the references to this craft
             // CraftEntry can be compared to Craft; They are qual if the UUID is the same
-            setsOfCraft.removeIf(ref -> {
+            setsOfCraft.forEach(ref -> {
                 Set<UUID> uuidSet = ref.get();
                 if (uuidSet != null) {
                     uuidSet.remove(craft.getUUID());
                 }
-                return true;
             });
+            setsOfCraft.clear();
         }
     }
 
