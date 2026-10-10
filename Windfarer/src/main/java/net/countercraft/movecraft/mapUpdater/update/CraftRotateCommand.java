@@ -70,9 +70,8 @@ public class CraftRotateCommand extends UpdateCommand {
             final Set<MovecraftLocation> to = Sets.difference(craft.getHitBox().asSet(), originalLocations.asSet());
 
             for (MovecraftLocation location : to) {
-                var toMoveBlock = location.toBukkit(craft.getWorld()).getBlock();
-                var data = toMoveBlock.getBlockData();
-                if (passthroughBlocks.contains(NamespacedIDUtil.getBlockID(toMoveBlock))) {
+                var data = location.toBukkit(craft.getWorld()).getBlock().getBlockData();
+                if (passthroughBlocks.contains(NamespacedIDUtil.getBlockID(data))) {
                     craft.getPhaseBlocks().put(location.toBukkit(craft.getWorld()), data);
                 }
             }
@@ -128,9 +127,8 @@ public class CraftRotateCommand extends UpdateCommand {
 
             final WorldHandler handler = Movecraft.getInstance().getWorldHandler();
             for (MovecraftLocation location : Sets.difference(invertedHitBox, exterior.asSet())) {
-                var toMoveBlock = location.toBukkit(craft.getWorld()).getBlock();
-                var data = toMoveBlock.getBlockData();
-                if (!passthroughBlocks.contains(NamespacedIDUtil.getBlockID(toMoveBlock))) {
+                var data = location.toBukkit(craft.getWorld()).getBlock().getBlockData();
+                if (!passthroughBlocks.contains(NamespacedIDUtil.getBlockID(data))) {
                     continue;
                 }
                 craft.getPhaseBlocks().put(location.toBukkit(craft.getWorld()), data);
@@ -163,9 +161,8 @@ public class CraftRotateCommand extends UpdateCommand {
 
             for (MovecraftLocation location : interior) {
                 Location bukkit = location.toBukkit(craft.getWorld());
-                var toMoveBlock = location.toBukkit(craft.getWorld()).getBlock();
-                var data = toMoveBlock.getBlockData();
-                if (passthroughBlocks.contains(NamespacedIDUtil.getBlockID(toMoveBlock))) {
+                var data = location.toBukkit(craft.getWorld()).getBlock().getBlockData();
+                if (passthroughBlocks.contains(NamespacedIDUtil.getBlockID(data))) {
                     craft.getPhaseBlocks().put(bukkit, data);
                     handler.setBlockFast(bukkit, Material.AIR.createBlockData());
 
