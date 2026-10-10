@@ -343,9 +343,16 @@ public class DetectionTask implements Supplier<Effect> {
         // TODO: Perhaps run these async?
         for (BiFunction<Supplier<Effect>, Craft, Supplier<Effect>> entry : additionalStepsBuilder) {
             final Supplier<Effect> task = entry.apply(this, craft);
-            final Effect effect = task.get();
-            if (effect != null) {
-                additionalEffects.add(effect);
+            if (task != null) {
+                try {
+                    final Effect effect = task.get();
+                    if (effect != null) {
+                        additionalEffects.add(effect);
+                    }
+                } catch(Exception exception) {
+                    Movecraft.getInstance().getLogger().warning("Caught exception during execution of additional detection step of type: <" + task.getClass() + ">!");
+                    exception.printStackTrace();
+                }
             }
         }
         Movecraft.getInstance().getLogger().info(String.format("Finished %d additional detection steps! Time taken: %dms", additionalStepsBuilder.size(), System.currentTimeMillis() - startTime));
