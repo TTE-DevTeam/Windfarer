@@ -78,7 +78,7 @@ public class CraftTranslateCommand extends UpdateCommand {
             final Set<MovecraftLocation> to = Sets.difference(craft.getHitBox().asSet(), originalLocations.asSet());
             //place phased blocks
             for (MovecraftLocation location : to) {
-                var data = location.toBukkit(craft.getWorld()).getBlock().getBlockData();
+                var data = location.toBukkit(world).getBlock().getBlockData();
                 if (passthroughBlocks.contains(NamespacedIDUtil.getBlockID(data))) {
                     craft.getPhaseBlocks().put(location.toBukkit(world), data);
                 }
@@ -120,7 +120,7 @@ public class CraftTranslateCommand extends UpdateCommand {
 
             final WorldHandler handler = Movecraft.getInstance().getWorldHandler();
             for (MovecraftLocation location : failed) {
-                var data = location.toBukkit(craft.getWorld()).getBlock().getBlockData();
+                var data = location.toBukkit(world).getBlock().getBlockData();
                 if (!passthroughBlocks.contains(NamespacedIDUtil.getBlockID(data)))
                     continue;
 
@@ -165,7 +165,7 @@ public class CraftTranslateCommand extends UpdateCommand {
 
             for (MovecraftLocation location : failed) {
                 Location bukkit = location.toBukkit(oldWorld);
-                var data = location.toBukkit(craft.getWorld()).getBlock().getBlockData();
+                var data = bukkit.getBlock().getBlockData();
                 if (passthroughBlocks.contains(NamespacedIDUtil.getBlockID(data))) {
                     craft.getPhaseBlocks().put(bukkit, data);
                     handler.setBlockFast(bukkit, Material.AIR.createBlockData());
