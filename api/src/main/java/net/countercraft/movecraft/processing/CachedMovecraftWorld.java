@@ -107,7 +107,7 @@ public final class CachedMovecraftWorld implements MovecraftWorld{
 //        });
         try {
             // Test idea: Try to use getChunkAtAsync to gain performance
-            Chunk chunk = world.getChunkAtAsync(location.toBukkit(world)).get();
+            Chunk chunk = world.getChunkAtAsyncUrgently(location.toBukkit(world)).get();
             test = AsyncChunk.of(chunk);
         } catch (InterruptedException | ExecutionException e) {
             // Safeguard => Fallback to APDev solution
