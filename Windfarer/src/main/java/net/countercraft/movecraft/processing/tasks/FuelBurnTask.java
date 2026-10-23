@@ -66,6 +66,9 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
         List<Effect> additionalSteps = new ArrayList<>(2);
 
         // If the specified rate is 0 and we are here, then we burn fuel, but not currently!
+        // TODO: Sure? This will break fuel consumption!
+        // TODO: Properly treat crafts without passive fuel burning! Those need to calculate their values!
+        // We also pass in a burn rate of 0, if we are not moving for example
         if (fuelBurnRate <= 0.0D) {
             craft.setBurningFuel(0.0);
         }
@@ -238,6 +241,9 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
                 if (blockState instanceof InventoryHolder inventoryHolder) {
                     if (inventoryHolder.getInventory() instanceof FurnaceInventory furnaceInventory) {
                         ItemStack fuelItemStack = furnaceInventory.getFuel();
+                        if (fuelItemStack == null || fuelItemStack.isEmpty()) {
+                            return;
+                        }
                         final int stackSize = fuelItemStack.getAmount();
                         // TODO: Rewrite to support different stack sizes than 1 for buckets!
                         if (Tags.BUCKETS.contains(fuelItemStack.getType())) {
