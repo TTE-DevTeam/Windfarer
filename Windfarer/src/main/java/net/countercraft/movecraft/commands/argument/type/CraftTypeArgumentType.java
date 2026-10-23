@@ -18,6 +18,16 @@ import java.util.function.Predicate;
 
 public class CraftTypeArgumentType implements CustomArgumentType.Converted<TypeSafeCraftType, String> {
 
+    protected final boolean ignoreCreatePermissions;
+
+    public CraftTypeArgumentType() {
+        this(false);
+    }
+
+    public CraftTypeArgumentType(boolean ignoreCreatePermissions) {
+        this.ignoreCreatePermissions = ignoreCreatePermissions;
+    }
+
     @Override
     public TypeSafeCraftType convert(String value) throws CommandSyntaxException {
         if (value != null) {
@@ -36,7 +46,7 @@ public class CraftTypeArgumentType implements CustomArgumentType.Converted<TypeS
     public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
         S s = context.getSource();
         Predicate<TypeSafeCraftType> checkFunction;
-        if (s instanceof Permissible permissible) {
+        if (!this.ignoreCreatePermissions && s instanceof Permissible permissible) {
             checkFunction = (craftType) -> {
                 if (!craftType.get(PropertyKeys.REQUIRE_PERM_FOR_ASSEMBLY, "")) {
                     return true;
