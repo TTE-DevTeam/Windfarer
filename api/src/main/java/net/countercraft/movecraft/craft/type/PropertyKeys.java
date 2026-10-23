@@ -514,15 +514,15 @@ public class PropertyKeys {
     public static final PropertyKey<PerWorldData<Boolean>> REQUIRE_PERM_FOR_ASSEMBLY =
             register(PropertyKeyTypes.boolPropertyKey(key("permissions/require_permission_for_piloting"), true).perWorld().immutable());
     public static final PropertyKey<String> PERMISSION_NODE_CREATE =
-            register(PropertyKeyTypes.stringPropertyKey(key("permissions/createpermission"), t -> "movecraft." + t.getName() + ".create").immutable());
+            register(PropertyKeyTypes.stringPropertyKey(key("permissions/createpermission"), t -> "movecraft." + t.getName().toLowerCase() + ".create").immutable());
     public static final PropertyKey<String> PERMISSION_NODE_PILOT =
-            register(PropertyKeyTypes.stringPropertyKey(key("permissions/pilot_permission"), t -> "movecraft." + t.getName() + ".pilot").immutable());
+            register(PropertyKeyTypes.stringPropertyKey(key("permissions/pilot_permission"), t -> "movecraft." + t.getName().toLowerCase() + ".pilot").immutable());
     public static final PropertyKey<String> PERMISSION_NODE_MOVE =
-            register(PropertyKeyTypes.stringPropertyKey(key("permissions/move_permission"), t -> "movecraft." + t.getName() + ".move").immutable());
+            register(PropertyKeyTypes.stringPropertyKey(key("permissions/move_permission"), t -> "movecraft." + t.getName().toLowerCase() + ".move").immutable());
     public static final PropertyKey<String> PERMISSION_NODE_ROTATE =
-            register(PropertyKeyTypes.stringPropertyKey(key("permissions/rotate_permission"), t -> "movecraft." + t.getName() + ".rotate").immutable());
+            register(PropertyKeyTypes.stringPropertyKey(key("permissions/rotate_permission"), t -> "movecraft." + t.getName().toLowerCase() + ".rotate").immutable());
     public static final PropertyKey<String> PERMISSION_NODE_SCUTTLE =
-            register(PropertyKeyTypes.stringPropertyKey(key("permissions/scuttle_permission"), t -> "movecraft." + t.getName() + ".scuttle").immutable());
+            register(PropertyKeyTypes.stringPropertyKey(key("permissions/scuttle_permission"), t -> "movecraft." + t.getName().toLowerCase() + ".scuttle").immutable());
     // endregion permissions
 
     public static <T> PropertyKey<T> register(PropertyKey<T> propertyKey) {
