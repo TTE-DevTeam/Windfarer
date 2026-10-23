@@ -10,10 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -33,8 +30,11 @@ public final class WorldManager implements Executor {
     };
 
     protected final ConcurrentLinkedQueue<Effect> worldChanges = new ConcurrentLinkedQueue<>();
+
     protected final ConcurrentLinkedQueue<Supplier<@Nullable Effect>> tasks = new ConcurrentLinkedQueue<>();
-    protected final ConcurrentLinkedQueue<Runnable> currentTasks = new ConcurrentLinkedQueue<>();
+    protected final BlockingQueue<Runnable> currentTasks = new LinkedBlockingQueue<>();
+    protected final ConcurrentLinkedQueue<Supplier<@Nullable Effect>> highPriorityTasks = new ConcurrentLinkedQueue<>();
+
     protected final AtomicInteger pendingTasks = new AtomicInteger(0);
     protected volatile boolean running = false;
 
@@ -48,11 +48,74 @@ public final class WorldManager implements Executor {
             throw new RuntimeException("WorldManager must be executed on the main thread.");
         }
         // If we have nothing to start and nothing to wait for, we can quit early :)
-        if(tasks.isEmpty() && currentTasks.isEmpty() && worldChanges.isEmpty() && pendingTasks.get() == 0)
+        final boolean hasOpenUrgentTasks = !(highPriorityTasks.isEmpty());
+        final boolean hasOpenNormalTasks = !(tasks.isEmpty() && currentTasks.isEmpty()  && worldChanges.isEmpty() && pendingTasks.get() == 0);
+        if(!(hasOpenNormalTasks || hasOpenUrgentTasks))
             return;
         running = true;
         // TODO: Allow the task to also supply lists of effects instead of a single one
         // TODO: Add a option on how long or how many tasks we can start
+        if (hasOpenUrgentTasks) {
+            runHighPriorityTasks();
+        }
+        if (hasOpenNormalTasks) {
+            runNormalTasks();
+        }
+
+        // Once we are fully done, purge the worlds
+        if(highPriorityTasks.isEmpty() && tasks.isEmpty() && currentTasks.isEmpty() && worldChanges.isEmpty() && pendingTasks.get() == 0) {
+            CachedMovecraftWorld.purge();
+            running = false;
+        }
+    }
+
+    private void runHighPriorityTasks() {
+        int remaining = 0;
+        List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
+        while(!highPriorityTasks.isEmpty()){
+            remaining++;
+            inProgress.add(CompletableFuture.supplyAsync(highPriorityTasks.poll()).whenComplete((effect, exception) -> {
+                poison();
+                if(exception != null){
+                    exception.printStackTrace();
+                } else if(effect != null) {
+                    worldChanges.add(effect);
+                }
+            }));
+        }
+        // process pre-queued tasks and their requests to the main thread
+        eventLoop: while(true){
+            var runningTasks = new ArrayList<Runnable>();
+            try {
+                runningTasks.add(currentTasks.poll(5, TimeUnit.SECONDS));
+            } catch (InterruptedException e) {
+                continue;
+            }
+            if(runningTasks.isEmpty() || runningTasks.get(0) == null){
+                Bukkit.getLogger().severe("WorldManager timed out on task query! Dumping " + inProgress.size() + " tasks.");
+                inProgress.forEach(task -> task.cancel(true));
+                worldChanges.clear();
+                break;
+            }
+            currentTasks.drainTo(runningTasks);
+            for(var runnable : runningTasks){
+                if(runnable == POISON){
+                    remaining--;
+                    if(remaining == 0){
+                        break eventLoop;
+                    }
+                }
+                runnable.run();
+            }
+        }
+        // process world updates on the main thread
+        Effect sideEffect;
+        while((sideEffect = worldChanges.poll()) != null){
+            sideEffect.run();
+        }
+    }
+
+    private void runNormalTasks() {
         // Issue is, all the collected effects will be run in the same tick...
         while(!tasks.isEmpty()){
             // DONE: Will this block our mainthread while the task is calculating?
@@ -85,11 +148,6 @@ public final class WorldManager implements Executor {
             long timeElapsed = System.currentTimeMillis() - startTime;
             if (timeElapsed >= Settings.maxElapsedTimeForWorldChanges)
                 break;
-        }
-        // Once we are fully done, purge the worlds
-        if (pendingTasks.get() == 0 && currentTasks.isEmpty() && tasks.isEmpty() && worldChanges.isEmpty()) {
-            CachedMovecraftWorld.purge();
-            running = false;
         }
     }
 
@@ -147,11 +205,22 @@ public final class WorldManager implements Executor {
         currentTasks.add(POISON);
     }
 
+    public void submitHighPriority(Runnable task){
+        highPriorityTasks.add(() -> {
+            task.run();
+            return null;
+        });
+    }
+
     public void submit(Runnable task){
         tasks.add(() -> {
             task.run();
             return null;
         });
+    }
+
+    public void submitHighPriority(Supplier<@Nullable Effect> task){
+        highPriorityTasks.add(task);
     }
 
     public void submit(Supplier<@Nullable Effect> task){

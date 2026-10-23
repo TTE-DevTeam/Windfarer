@@ -118,7 +118,7 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
             final int deltaX = Math.toIntExact(Math.round(movement.getX()));
             final int deltaY = Math.toIntExact(Math.round(movement.getY()));
             final int deltaZ = Math.toIntExact(Math.round(movement.getZ()));
-            CraftManager.getInstance().detect(startPoint, subcraftType, (type, w, p, parents) -> {
+            CraftManager.getInstance().detectSubcraft(startPoint, subcraftType, (type, w, p, parents) -> {
                 if (parents.size() > 1) {
                     return new Pair(Result.failWithMessage(I18nSupport.getInternationalisedString("Detection - Failed - Already commanding a craft")), (Object) null);
                 } else if (parents.size() < 1) {

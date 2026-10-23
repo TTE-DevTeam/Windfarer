@@ -242,6 +242,20 @@ public class CraftManager implements Iterable<Craft>{
         ));
     }
 
+    public void detectSubcraft(@NotNull MovecraftLocation startPoint,
+                       @NotNull TypeSafeCraftType type, @NotNull CraftSupplier supplier,
+                       @NotNull World world, @Nullable Entity pilot,
+                       @NotNull Audience audience,
+                       @NotNull Function<Craft, Effect> postDetection) {
+        WorldManager.INSTANCE.submitHighPriority(new DetectionTask(
+                startPoint, CachedMovecraftWorld.of(world),
+                type, supplier,
+                world, pilot,
+                audience,
+                postDetection
+        ));
+    }
+
     public void detect(@NotNull MovecraftLocation startPoint,
                        @NotNull TypeSafeCraftType type, @NotNull CraftSupplier supplier,
                        @NotNull World world, @Nullable Entity pilot,
