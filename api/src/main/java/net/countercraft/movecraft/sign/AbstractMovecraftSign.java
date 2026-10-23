@@ -179,7 +179,7 @@ public abstract class AbstractMovecraftSign {
     // Return true, if everything was ok
     protected abstract boolean internalProcessSign(Action clickType, SignListener.SignWrapper sign, Entity interactor, @Nullable Craft craft);
 
-    // Called by the event handler when SignChangeEvent is being cought
+    // Called by the event handler when SignChangeEvent is being caught
     // Return true, if everything was ok
     public abstract boolean processSignChange(SignChangeEvent event, SignListener.SignWrapper sign);
 

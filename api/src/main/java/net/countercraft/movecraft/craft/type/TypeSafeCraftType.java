@@ -287,4 +287,5 @@ public class TypeSafeCraftType extends TypedContainer<PropertyKey<?>> {
     public @NotNull String getSignHeader() {
         return this.get(PropertyKeys.SIGN_HEADER);
     }
+
 }
