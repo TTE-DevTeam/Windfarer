@@ -46,6 +46,7 @@ import net.countercraft.movecraft.util.BukkitTeleport;
 import net.countercraft.movecraft.util.Tags;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -104,6 +105,16 @@ public class Movecraft extends JavaPlugin {
 
         Settings.maxElapsedTimeForWorldChanges = getConfig().getLong("MaxElapsedTimeForWorldChanges", Settings.maxElapsedTimeForWorldChanges);
         Settings.maxElapsedTimeForSyncTaskProcessing = getConfig().getLong("MaxElapsedTimeForSyncTasks", Settings.maxElapsedTimeForSyncTaskProcessing);
+
+        boolean configFound = getConfig().contains("AlwaysMovedEntities");
+        if (configFound) {
+            Set<NamespacedKey> alwaysMovedEntities = new HashSet<>();
+            for (String s : getConfig().getStringList("AlwaysMovedEntities")) {
+                NamespacedKey key = NamespacedKey.fromString(s);
+                alwaysMovedEntities.add(key);
+            }
+            Settings.alwaysMovedEntities = alwaysMovedEntities;
+        }
 
         String[] localisations = {"en", "cz", "nl", "fr"};
         for (String s : localisations) {
