@@ -70,8 +70,23 @@ public class CraftManager implements Iterable<Craft>{
 
     public static void initialize(boolean loadCraftTypes) {
         instance = new CraftManager(loadCraftTypes);
+        instance.postTypeLoad();
     }
 
+    private void postTypeLoad() {
+        TypeSafeCraftType.runTransformers(new LinkedList<>(loadedTypes));
+        Set<TypeSafeCraftType> validateList = new HashSet<>(loadedTypes);
+        TypeSafeCraftType.runValidators(validateList);
+        Set<String> toRemove = new HashSet<>();
+        for (Map.Entry<String, TypeSafeCraftType> entry : this.craftTypeMap.entrySet()) {
+            if (!loadedTypes.contains(entry.getValue())) {
+                toRemove.add(entry.getKey());
+            }
+        }
+        toRemove.forEach(this.craftTypeMap::remove);
+
+        loadedTypes.clear();
+    }
 
 
     /**
@@ -91,6 +106,8 @@ public class CraftManager implements Iterable<Craft>{
      * Set of all craft types on the server.
      */
     private final ConcurrentMap<String, TypeSafeCraftType> craftTypeMap = new ConcurrentHashMap<>();
+    // Temporary field for proper loading, dirty implementation until proper fix is implemented
+    private final Queue<TypeSafeCraftType> loadedTypes = new LinkedList<>();
 
 
     private CraftManager(boolean loadCraftTypes) {
@@ -125,7 +142,6 @@ public class CraftManager implements Iterable<Craft>{
         // Before we load everything, we calculate our dependency tree
         // Dependency tree based loading
         Queue<File> queue = TypeDependency.buildLoadingQueue(files);
-        Queue<TypeSafeCraftType> loadedTypes = new LinkedList<>();
         while (!queue.isEmpty()) {
             File file = queue.poll();
             // Replaces \ with / at the end
@@ -147,17 +163,6 @@ public class CraftManager implements Iterable<Craft>{
                 loadedTypes.add(typeSafeCraftType);
             }
         }
-
-        TypeSafeCraftType.runTransformers(new LinkedList<>(loadedTypes));
-        Set<TypeSafeCraftType> validateList = new HashSet<>(loadedTypes);
-        TypeSafeCraftType.runValidators(validateList);
-        Set<String> toRemove = new HashSet<>();
-        for (Map.Entry<String, TypeSafeCraftType> entry : this.craftTypeMap.entrySet()) {
-            if (!loadedTypes.contains(entry.getValue())) {
-                toRemove.add(entry.getKey());
-            }
-        }
-        toRemove.forEach(this.craftTypeMap::remove);
     }
 
     private void registerType(final String id, final TypeSafeCraftType type, Consumer<TypeSafeCraftType> removeFromLoadListCallback) {
