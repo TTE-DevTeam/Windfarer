@@ -45,7 +45,7 @@ public class INMSHelper extends NMSHelper {
                             new LootParams.Builder(
                                     ((CraftWorld)world).getHandle()
                             ).create(
-                                    LootContextParamSets.CONTAINER_PROCESS
+                                    LootContextParamSets.EMPTY
                             )
                     ).create(Optional.empty()), 0);
         }
