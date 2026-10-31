@@ -142,7 +142,14 @@ public class CraftCache implements Runnable {
                     if (craft == null)
                         continue;
 
-                    final HitBox hitBox = new BitmapHitBox(craft.getHitBox());
+                    final HitBox hitBox;
+                    if (Bukkit.isPrimaryThread()) {
+                        // Use it DIRECTLY
+                        hitBox = craft.getHitBox();
+                    } else {
+                        // Hitbox must be cloned in order to properly access it
+                        hitBox = new BitmapHitBox(craft.getHitBox());
+                    }
                     if (hitBox.isEmpty())
                         continue;
 
