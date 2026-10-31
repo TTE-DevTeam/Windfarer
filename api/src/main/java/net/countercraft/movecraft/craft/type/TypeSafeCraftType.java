@@ -15,6 +15,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.yaml.snakeyaml.error.YAMLException;
 
 import java.io.*;
 import java.util.*;
@@ -58,9 +59,9 @@ public class TypeSafeCraftType extends TypedContainer<PropertyKey<?>> {
             return Optional.of(buildType(name, typeRetriever, yaml, logger));
         }
         // Thrown if there is an error in the file, like serialized objects not being registered or their class is missing
-        catch(IllegalArgumentException iaex) {
+        catch(IllegalArgumentException | YAMLException exception) {
             //iaex.printStackTrace();
-            logger.warning(String.format("Caught exception <%s> while parsing file!", iaex.getMessage()));
+            logger.warning(String.format("Caught exception <%s> while parsing file!", exception.getMessage()));
             return Optional.empty();
         }
     }

@@ -4,6 +4,7 @@ import net.countercraft.movecraft.Movecraft;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.Nullable;
+import org.yaml.snakeyaml.error.YAMLException;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -105,7 +106,7 @@ public class TypeDependency {
                 }
             }
             // Bukkit throws this exception when it can not dereference objects
-            catch (IllegalArgumentException illegalArgumentException) {
+            catch (IllegalArgumentException | YAMLException exception) {
                 Movecraft.getInstance().getLogger().warning("Skipping file <" + file.getName() + "> as it contains unresolvable entries!");
             }
             // General IO catcher
