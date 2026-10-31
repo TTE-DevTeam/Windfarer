@@ -55,6 +55,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+// TODO: Add read-only field of hitbox for access from multiple threads
 public interface Craft {
     // TODO: Unify with RECENT_CONTACTS tag and use a object to also store distance and direction
     CraftDataTagKey<List<UUID>> CONTACTS = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey("movecraft", "contacts"), craft -> new ArrayList<>(0));
