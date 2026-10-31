@@ -313,7 +313,7 @@ public class ContactsManager extends BukkitRunnable implements Listener {
     }
 
     static Component buildIgnoreButton(final UUID baseCraftUUID, final UUID ignoreUUID) {
-        ClickEvent clickEvent = ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/ignorecontact " + baseCraftUUID.toString() + " " + ignoreUUID.toString());
+        ClickEvent clickEvent = ClickEvent.runCommand("/ignorecontact " + baseCraftUUID.toString() + " " + ignoreUUID.toString());
         Component result = Component.text("[IGNORE]").color(NamedTextColor.DARK_RED).clickEvent(clickEvent);
         return result;
     }
