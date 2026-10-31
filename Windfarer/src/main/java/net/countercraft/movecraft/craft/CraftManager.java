@@ -141,7 +141,7 @@ public class CraftManager implements Iterable<Craft>{
 
         // Before we load everything, we calculate our dependency tree
         // Dependency tree based loading
-        Queue<File> queue = TypeDependency.buildLoadingQueue(files);
+        Queue<File> queue = TypeDependency.buildLoadingQueue(files, craftFileFolder.getAbsolutePath());
         while (!queue.isEmpty()) {
             File file = queue.poll();
             // Replaces \ with / at the end

@@ -36,8 +36,8 @@ public class TypeDependency {
         }
     }
 
-    public static Queue<File> buildLoadingQueue(Set<Path> files) {
-        List<DependencyNode> rootNodes = findRootNodes(files);
+    public static Queue<File> buildLoadingQueue(Set<Path> files, final String rootDirectory) {
+        List<DependencyNode> rootNodes = findRootNodes(files, rootDirectory);
         printDependencyTree(rootNodes);
 
         Queue<File> queue = new LinkedList<>();
@@ -70,7 +70,7 @@ public class TypeDependency {
         }
     }
 
-    private static List<DependencyNode> findRootNodes(Set<Path> files) {
+    private static List<DependencyNode> findRootNodes(Set<Path> files, final String rootDirectory) {
         List<DependencyNode> result = new ArrayList<>();
         Map<String, DependencyNode> nodes = new HashMap<>();
 
@@ -90,8 +90,19 @@ public class TypeDependency {
             }
             try(input) {
                 FileConfiguration yaml = YamlConfiguration.loadConfiguration(file);
-                final String name = file.getName().substring(0, file.getName().lastIndexOf('.')).toUpperCase();
-                nodes.put(name, new DependencyNode(file, yaml.getString("parent", "").toUpperCase()));
+                final String typeID = file.getAbsolutePath().substring(rootDirectory.length() + 1, file.getAbsolutePath().lastIndexOf('.')).replace('\\', '/').toLowerCase();
+                final String typeName = yaml.getString("movecraft.general.name", null);
+                final String typeAlias = yaml.getString("movecraft.general.alias", null);
+
+                final DependencyNode node = new DependencyNode(file, yaml.getString("parent", "").toLowerCase());
+
+                nodes.put(typeID, node);
+                if (typeName != null && !typeName.isEmpty()) {
+                    nodes.put(typeName.toLowerCase(), node);
+                }
+                if (typeAlias != null && !typeAlias.isEmpty()) {
+                    nodes.put(typeAlias.toLowerCase(), node);
+                }
             }
             // Bukkit throws this exception when it can not dereference objects
             catch (IllegalArgumentException illegalArgumentException) {
@@ -106,7 +117,8 @@ public class TypeDependency {
         // endregion generate nodes
 
         // region calculate tree
-        for (DependencyNode node : nodes.values()) {
+        Set<DependencyNode> nodeSet = new HashSet<>(nodes.values());
+        for (DependencyNode node : nodeSet) {
             if (node.parentName != null && !node.parentName.trim().isEmpty()) {
                 DependencyNode parent = nodes.get(node.parentName);
                 if (parent == null) {
