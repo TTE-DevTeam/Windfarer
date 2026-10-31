@@ -1,7 +1,10 @@
 package net.countercraft.movecraft.support.v26_2;
 
 import net.countercraft.movecraft.NMSHelper;
+import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.util.ReflectUtils;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.object.ObjectContents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ButtonBlock;
@@ -10,6 +13,7 @@ import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.FuelValues;
 import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Furnace;
 import org.bukkit.craftbukkit.CraftWorld;
@@ -21,6 +25,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
+import java.util.Set;
 
 public class INMSHelper extends NMSHelper {
 
@@ -96,4 +101,25 @@ public class INMSHelper extends NMSHelper {
         }
         return false;
     }
+
+    @Override
+    public Component getBlockListComponent(Set<NamespacedKey> blockIds) {
+        Component result = Component.empty();
+        if (!Settings.displayBlockLists || Settings.displayBlockListsAtlasName == null || Settings.displayBlockListsAtlasName.isEmpty()) {
+            return result;
+        }
+        final NamespacedKey atlasKey = NamespacedKey.fromString(Settings.displayBlockListsAtlasName);
+        boolean isFirst = true;
+        for (NamespacedKey key : blockIds) {
+            Component sprite = Component.object(ObjectContents.sprite(atlasKey, new NamespacedKey(key.getNamespace(), Settings.displayBlockListsAtlasPrefix + key.getKey())));
+            if (isFirst) {
+                isFirst = false;
+            } else {
+                result = result.append(Component.text(","));
+            }
+            result = result.append(sprite);
+        }
+        return result;
+    }
+
 }
