@@ -6,6 +6,7 @@ import net.countercraft.movecraft.async.translation.TranslationTask;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagContainer;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
+import net.countercraft.movecraft.craft.status.CraftState;
 import net.countercraft.movecraft.craft.type.*;
 import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
@@ -91,6 +92,8 @@ public abstract class BaseCraft implements Craft {
 
     private double cruiseTickMultiplier = 1;
 
+    private final CraftState craftState = new CraftState();
+
     // TODO: Replace CraftType with TypeSafeCraftProperties
     public BaseCraft(@NotNull TypeSafeCraftType type, @NotNull World world) {
         this(type, world, UUID.randomUUID());
@@ -159,7 +162,7 @@ public abstract class BaseCraft implements Craft {
 
     @Deprecated
     public void translate(int dx, int dy, int dz) {
-        translate(w, dx, dy, dz);
+        translate(w, new Vector(dx, dy, dz));
     }
 
     // Bresenham translation
@@ -724,5 +727,9 @@ public abstract class BaseCraft implements Craft {
     @Override
     public CraftProperties getCraftProperties() {
         return this.craftProperties;
+    }
+
+    public CraftState getCraftState() {
+        return this.craftState;
     }
 }
