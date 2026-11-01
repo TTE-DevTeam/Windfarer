@@ -6,6 +6,9 @@ import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SinkingCraft;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
+import net.countercraft.movecraft.craft.status.CraftState;
+import net.countercraft.movecraft.craft.status.CraftTaskType;
+import net.countercraft.movecraft.craft.status.CraftTaskTypes;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
 import net.countercraft.movecraft.events.CraftSinkEvent;
@@ -34,8 +37,16 @@ public class StatusManager extends BukkitRunnable implements Listener {
             if (ticksElapsed <= Settings.SinkCheckTicks)
                 continue;
 
-            c.setDataTag(LAST_STATUS_CHECK, System.currentTimeMillis());
-            WorldManager.INSTANCE.submit(new StatusUpdateTask(c));
+            final CraftState craftState = c.getState();
+            if (craftState.isActive(CraftTaskTypes.STATUS_CALCULATION)) {
+                continue;
+            }
+
+            final CraftState.Guard stateGuard = craftState.tryAcquire(CraftTaskTypes.STATUS_CALCULATION);
+            if (stateGuard != null) {
+                c.setDataTag(LAST_STATUS_CHECK, System.currentTimeMillis());
+                WorldManager.INSTANCE.submit(new StatusUpdateTask(c, stateGuard));
+            }
         }
     }
 
