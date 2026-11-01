@@ -33,6 +33,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -108,7 +109,7 @@ public final class InteractListener implements Listener {
                 dz = 0;
             }
 
-            craft.translate(craft.getWorld(), dx, dy, dz);
+            craft.translate(craft.getWorld(), new Vector(dx, dy, dz));
             storeInteraction(craft, p);
             craft.setLastCruiseUpdate(System.currentTimeMillis());
         }

@@ -153,7 +153,7 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
                     }
 
                     if (movementAllowed || !subcraftType.get(PropertyKeys.RESTRICT_TO_MOVEBOX)) {
-                        subcraft.translate(world, deltaX, deltaY, deltaZ);
+                        subcraft.translate(world, new Vector(deltaX, deltaY, deltaZ));
                     } else {
                         player.sendMessage(I18nSupport.getInternationalisedComponent("Subcraft Move - can't move out of the parentcraft!"));
                     }

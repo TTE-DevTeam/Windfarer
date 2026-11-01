@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
+import org.bukkit.util.Vector;
 
 public class TeleportSign extends MoveSign {
 
@@ -40,7 +41,7 @@ public class TeleportSign extends MoveSign {
         int dx = dxRaw - signWrapper.block().getX();
         int dy = dyRaw - signWrapper.block().getY();
         int dz = dzRaw - signWrapper.block().getZ();
-        craft.translate(world, dx, dy, dz);
+        craft.translate(world, new Vector(dx, dy, dz));
         craft.setLastTeleportTime(System.currentTimeMillis());
 
         return true;

@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.NumberConversions;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -73,7 +74,7 @@ public class DefaultDirectControlSlot extends AbstractDirectControlSlot {
         if (craft.getCraftProperties().get(PropertyKeys.GEAR_SHIFT_AFFECT_DIRECT_MOVEMENT))
             dy *= craft.getCurrentGear(); // account for gear shifts
 
-        craft.translate(craft.getWorld(), 0, dy, 0);
+        craft.translate(craft.getWorld(), new Vector(0.0D, (double)dy, 0.0D));
 
         craft.setLastCruiseUpdate(System.currentTimeMillis());
 
