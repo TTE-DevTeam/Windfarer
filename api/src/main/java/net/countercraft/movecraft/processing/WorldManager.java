@@ -19,6 +19,9 @@ import java.util.function.Supplier;
  */
 public final class WorldManager implements Executor {
 
+    final ThreadPoolExecutor HIGH_PRIORITY_POOL;
+    final ThreadPoolExecutor NORMAL_POOL;
+
     public static final WorldManager INSTANCE = new WorldManager();
     protected static final Runnable POISON = new Runnable() {
         @Override
@@ -38,7 +41,44 @@ public final class WorldManager implements Executor {
     protected final AtomicInteger pendingTasks = new AtomicInteger(0);
     protected volatile boolean running = false;
 
-    protected WorldManager(){}
+    protected WorldManager(){
+        HIGH_PRIORITY_POOL = new ThreadPoolExecutor(
+                Settings.highPriorityThreadCount,
+                Settings.highPriorityThreadCount,
+                0L,
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(),
+                new ThreadFactory() {
+                    private final AtomicInteger id = new AtomicInteger();
+
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        Thread t = new Thread(r);
+                        t.setName("WorldManager-HP-Worker-" + id.incrementAndGet());
+                        t.setDaemon(true);
+                        return t;
+                    }
+                }
+        );
+        NORMAL_POOL = new ThreadPoolExecutor(
+                Settings.normalPriorityThreadCount,
+                Settings.normalPriorityThreadCount,
+                0L,
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(),
+                new ThreadFactory() {
+                    private final AtomicInteger id = new AtomicInteger();
+
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        Thread t = new Thread(r);
+                        t.setName("WorldManager-Worker-" + id.incrementAndGet());
+                        t.setDaemon(true);
+                        return t;
+                    }
+                }
+        );
+    }
 
     // TODO: Add a blocking task that keeps the main thread (whatever is calling this method) occupied, this allows for faster detection at the cost of occupying the main thread
     // Issue is that if the detection fails to deliver effects on time, the effects will have to wait 50ms until it is processed
@@ -70,11 +110,16 @@ public final class WorldManager implements Executor {
     }
 
     private void runHighPriorityTasks() {
+        if (!threadPoolHasFreeCapacity(this.HIGH_PRIORITY_POOL, "HighPriorityPool", Settings.highPriorityPoolOverpressure)) {
+            return;
+        }
         int remaining = 0;
+        int allowedStarts = getThreadPoolCapacity(this.HIGH_PRIORITY_POOL, Settings.highPriorityPoolOverpressure);
         List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
-        while(!highPriorityTasks.isEmpty()){
+        while(!highPriorityTasks.isEmpty() && allowedStarts > 0){
             remaining++;
-            inProgress.add(CompletableFuture.supplyAsync(highPriorityTasks.poll()).whenComplete((effect, exception) -> {
+            allowedStarts--;
+            inProgress.add(CompletableFuture.supplyAsync(highPriorityTasks.poll(), HIGH_PRIORITY_POOL).whenComplete((effect, exception) -> {
                 poison();
                 if(exception != null){
                     exception.printStackTrace();
@@ -115,13 +160,42 @@ public final class WorldManager implements Executor {
         }
     }
 
+    private int getThreadPoolCapacity(ThreadPoolExecutor threadPool, int highPriorityPoolOverpressure) {
+        int taskOccupation = (threadPool.getActiveCount() + threadPool.getQueue().size());
+        int capacity = highPriorityPoolOverpressure + threadPool.getMaximumPoolSize();
+
+        return Math.max(taskOccupation - capacity, 0);
+    }
+
+    private boolean threadPoolHasFreeCapacity(ThreadPoolExecutor threadPool, String name, int overpressure) {
+        int active = threadPool.getActiveCount();
+        int queued = threadPool.getQueue().size();
+        long completed = threadPool.getCompletedTaskCount();
+        int workers = threadPool.getMaximumPoolSize();
+        int freeWorkers = active - workers;
+
+        if (Settings.Debug) {
+            Bukkit.getLogger().info("Occupation of threadpool: " + name);
+            Bukkit.getLogger().info("Active: " + active);
+            Bukkit.getLogger().info("Queued: " + queued);
+            Bukkit.getLogger().info("Completed: " + completed);
+            Bukkit.getLogger().info("Free workers: " + freeWorkers);
+        }
+
+        return getThreadPoolCapacity(threadPool, overpressure) > 0;
+    }
+
     private void runNormalTasks() {
         // Issue is, all the collected effects will be run in the same tick...
-        while(!tasks.isEmpty()){
-            // DONE: Will this block our mainthread while the task is calculating?
-            // => No, it simply builds a list of completableFutures, it waits later down the line (when polling from "currentTasks")
-            final Supplier<@Nullable Effect> task = tasks.poll();
-            startTask(task);
+        if (threadPoolHasFreeCapacity(NORMAL_POOL, "NormalPriorityPool", Settings.normalPriorityPoolOverpressure)) {
+            int allowedStarts = getThreadPoolCapacity(this.NORMAL_POOL, Settings.normalPriorityPoolOverpressure);
+            while(!tasks.isEmpty() && allowedStarts > 0){
+                // DONE: Will this block our mainthread while the task is calculating?
+                // => No, it simply builds a list of completableFutures, it waits later down the line (when polling from "currentTasks")
+                final Supplier<@Nullable Effect> task = tasks.poll();
+                startTask(task);
+                allowedStarts--;
+            }
         }
 
         // Run all requests to main thread now!
@@ -156,7 +230,7 @@ public final class WorldManager implements Executor {
         pendingTasks.getAndIncrement();
         // NoOpTask tasks do not provide us any effects, we do not need to wait for those and can just start them normally
         if (!(task instanceof NoOpTask)) {
-            inProgress.add(CompletableFuture.supplyAsync(task).whenComplete((effect, exception) -> {
+            inProgress.add(CompletableFuture.supplyAsync(task, NORMAL_POOL).whenComplete((effect, exception) -> {
                 // Once the task is complete, we add poison to currentTasks, which also holds all requests to the main thread
                 poison();
                 if(exception != null){
@@ -167,7 +241,13 @@ public final class WorldManager implements Executor {
                 }
             }));
         } else {
-            CompletableFuture.supplyAsync(task);
+            inProgress.add(CompletableFuture.supplyAsync(task, NORMAL_POOL).whenComplete((effect, exception) -> {
+                // Once the task is complete, we add poison to currentTasks, which also holds all requests to the main thread
+                poison();
+                if(exception != null){
+                    exception.printStackTrace();
+                }
+            }));
         }
     }
 

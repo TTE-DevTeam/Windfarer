@@ -59,6 +59,13 @@ public class Settings {
     public static String displayBlockListsAtlasPrefix = "block/";
     public static long maxElapsedTimeForWorldChanges = 50000;
     public static long maxElapsedTimeForSyncTaskProcessing = 50000;
+
+    public static int highPriorityThreadCount = 2;
+    // How many more tasks can be queued in addition to highPriorityThreadCount?
+    public static int highPriorityPoolOverpressure = 2;
+    public static int normalPriorityThreadCount = Runtime.getRuntime().availableProcessors();;
+    public static int normalPriorityPoolOverpressure = 0;
+
     public static Set<NamespacedKey> alwaysMovedEntities = Set.of(
             EntityType.TNT.getKey(),
             EntityType.ARMOR_STAND.getKey(),
