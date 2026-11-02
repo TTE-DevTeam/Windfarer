@@ -17,6 +17,7 @@ import java.util.function.Supplier;
 /**
  *
  */
+// TODO: Refactor in oder to allow the existence of multiple thread pools with different priority levels
 public final class WorldManager implements Executor {
 
     final ThreadPoolExecutor HIGH_PRIORITY_POOL;
@@ -167,7 +168,7 @@ public final class WorldManager implements Executor {
         int taskOccupation = (threadPool.getActiveCount() + threadPool.getQueue().size());
         int capacity = threadPool.getMaximumPoolSize() + highPriorityPoolOverpressure;
 
-        return Math.max(taskOccupation - capacity, 0);
+        return Math.max(capacity - taskOccupation, 0);
     }
 
     private boolean threadPoolHasFreeCapacity(ThreadPoolExecutor threadPool, String name, int overpressure) {
