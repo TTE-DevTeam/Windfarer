@@ -136,9 +136,12 @@ public final class WorldManager implements Executor {
             } catch (InterruptedException e) {
                 continue;
             }
-            if(runningTasks.isEmpty() || runningTasks.get(0) == null){
-                Bukkit.getLogger().severe("WorldManager timed out on task query! Dumping " + inProgress.size() + " tasks.");
+            final boolean isEmpty = runningTasks.isEmpty();
+            final boolean firstIsNull = runningTasks.get(0) == null;
+            if(isEmpty || firstIsNull) {
+                Bukkit.getLogger().severe("WorldManager timed out on task query! Dumping " + inProgress.size() + " tasks. IsEmpty: <" + isEmpty + "> FirstIsNull: <" + firstIsNull + ">");
                 inProgress.forEach(task -> task.cancel(true));
+                Bukkit.getLogger().severe("Discarding <" + worldChanges.size() + "> queued world changes!");
                 worldChanges.clear();
                 break;
             }
