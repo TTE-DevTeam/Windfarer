@@ -165,7 +165,7 @@ public final class WorldManager implements Executor {
 
     private int getThreadPoolCapacity(ThreadPoolExecutor threadPool, int highPriorityPoolOverpressure) {
         int taskOccupation = (threadPool.getActiveCount() + threadPool.getQueue().size());
-        int capacity = highPriorityPoolOverpressure + threadPool.getMaximumPoolSize();
+        int capacity = threadPool.getMaximumPoolSize() + highPriorityPoolOverpressure;
 
         return Math.max(taskOccupation - capacity, 0);
     }
@@ -175,7 +175,7 @@ public final class WorldManager implements Executor {
         int queued = threadPool.getQueue().size();
         long completed = threadPool.getCompletedTaskCount();
         int workers = threadPool.getMaximumPoolSize();
-        int freeWorkers = active - workers;
+        int freeWorkers = workers - active;
 
         if (Settings.Debug) {
             Bukkit.getLogger().info("Occupation of threadpool: " + name);
