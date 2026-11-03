@@ -26,15 +26,21 @@ import org.jetbrains.annotations.NotNull;
 
 public class StatusManager extends BukkitRunnable implements Listener {
     public static final CraftDataTagKey<Long> LAST_STATUS_CHECK = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey("movecraft", "last-status-check"), craft -> System.currentTimeMillis());
+    public static final CraftDataTagKey<Boolean> STATUS_CHECK_ACTIVE = CraftDataTagRegistry.INSTANCE.registerTagKey(new NamespacedKey("movecraft", "status-check-active"), craft -> false);
 
     @Override
     public void run() {
         for (Craft c : CraftManager.getInstance().getCrafts()) {
+            // TODO: Should this be run for SinkingCrafts too?
+            // If something is already running, we can skip this
+            if (c.getDataTag(STATUS_CHECK_ACTIVE))
+                continue;
+            // Otherwise, we check when the last status check finished
             long ticksElapsed = (System.currentTimeMillis() - c.getDataTag(LAST_STATUS_CHECK)) / 50;
             if (ticksElapsed <= Settings.SinkCheckTicks)
                 continue;
 
-            c.setDataTag(LAST_STATUS_CHECK, System.currentTimeMillis());
+            c.setDataTag(STATUS_CHECK_ACTIVE, true);
             WorldManager.INSTANCE.submit(new StatusUpdateTask(c));
         }
     }
@@ -108,12 +114,16 @@ public class StatusManager extends BukkitRunnable implements Listener {
             if (disabled) {
                 craft.setDisabled(disabled);
                 if (disabled) {
+                    // TODO: Use craftproperties
                     craft.getAudience().playSound(Sound.sound(Key.key("entity.iron_golem.death"), Sound.Source.NEUTRAL, 5.0f, 5.0f));
                 }
             }
             else if (craft.getCraftProperties().get(PropertyKeys.CAN_BE_UN_DISABLED)) {
                 craft.setDisabled(disabled);
-                // TODO: Play sound
+                // There is a event in between!
+                if (!craft.getDisabled()) {
+                    // TODO: Play sound!
+                }
             }
         }
 

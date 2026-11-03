@@ -33,6 +33,7 @@ public interface PilotedCraft extends Craft {
 
     @Override
     default boolean shouldAutoRelease(final long autoReleaseTimeout, final long maxTimeBetweenCruiseUpdates) {
+        // Always returns false and marks the craft as no longer processing !!DANGEROUS!!
         if (!this.isNotProcessing()) {
             if (this.getCruising()) {
                 if(this.getLastCruiseUpdate() < System.currentTimeMillis() - maxTimeBetweenCruiseUpdates) {
