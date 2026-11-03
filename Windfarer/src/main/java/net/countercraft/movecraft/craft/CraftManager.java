@@ -238,7 +238,7 @@ public class CraftManager implements Iterable<Craft>{
                         @NotNull World world, @Nullable Entity pilot,
                         @NotNull Audience audience,
                         @NotNull Function<Craft, Effect> postDetection) {
-        WorldManager.INSTANCE.submitAndRunNow(new DetectionTask(
+        WorldManager.INSTANCE.submitHighPriority(new DetectionTask(
                 startPoint, CachedMovecraftWorld.of(world),
                 type, supplier,
                 world, pilot,
@@ -267,7 +267,7 @@ public class CraftManager implements Iterable<Craft>{
                        @NotNull Audience audience,
                        @NotNull Function<Craft, Effect> postDetection,
                        @Nullable Function<@Nullable Craft, Effect> alwaysRunAfter) {
-        WorldManager.INSTANCE.submitAndRunNow(new DetectionTask(
+        WorldManager.INSTANCE.submitHighPriority(new DetectionTask(
                 startPoint, CachedMovecraftWorld.of(world),
                 type, supplier,
                 world, pilot,
@@ -350,7 +350,7 @@ public class CraftManager implements Iterable<Craft>{
         // TODO: Not sure if this will work at all
         // TODO: FInd a prettier solution! THis is a pretty ugly workaround...
         Bukkit.getScheduler().runTaskLater(Movecraft.getInstance(), () -> {
-            WorldManager.INSTANCE.submitAndRunNow(new UpdateFuelBurnersTask(craft, false));
+            WorldManager.INSTANCE.submitHighPriority(new UpdateFuelBurnersTask(craft, false));
         }, 10);
 
         if(craft.getHitBox().isEmpty())
