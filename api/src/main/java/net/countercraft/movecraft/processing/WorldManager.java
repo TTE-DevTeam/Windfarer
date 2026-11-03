@@ -85,13 +85,13 @@ public final class WorldManager implements Executor {
     // Issue is that if the detection fails to deliver effects on time, the effects will have to wait 50ms until it is processed
     // This also applies to requests to the world such as getBlock() for example!
     public void run() {
-        if(!Bukkit.isPrimaryThread()){
+        if (!Bukkit.isPrimaryThread()) {
             throw new RuntimeException("WorldManager must be executed on the main thread.");
         }
         // If we have nothing to start and nothing to wait for, we can quit early :)
         final boolean hasOpenUrgentTasks = !(highPriorityTasks.isEmpty());
         final boolean hasOpenNormalTasks = !(tasks.isEmpty() && currentTasks.isEmpty()  && worldChanges.isEmpty() && pendingTasks.get() == 0);
-        if(!(hasOpenNormalTasks || hasOpenUrgentTasks))
+        if (!(hasOpenNormalTasks || hasOpenUrgentTasks))
             return;
         running = true;
         // TODO: Allow the task to also supply lists of effects instead of a single one
@@ -104,7 +104,7 @@ public final class WorldManager implements Executor {
         }
 
         // Once we are fully done, purge the worlds
-        if(highPriorityTasks.isEmpty() && tasks.isEmpty() && currentTasks.isEmpty() && worldChanges.isEmpty() && pendingTasks.get() == 0) {
+        if (highPriorityTasks.isEmpty() && tasks.isEmpty() && currentTasks.isEmpty() && worldChanges.isEmpty() && pendingTasks.get() == 0) {
             CachedMovecraftWorld.purge();
             running = false;
         }
@@ -117,7 +117,7 @@ public final class WorldManager implements Executor {
         int remaining = 0;
         int allowedStarts = getThreadPoolCapacity(this.HIGH_PRIORITY_POOL, Settings.highPriorityPoolOverpressure);
         List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
-        while(!highPriorityTasks.isEmpty() && allowedStarts > 0){
+        while (!highPriorityTasks.isEmpty() && allowedStarts > 0){
             remaining++;
             allowedStarts--;
             inProgress.add(CompletableFuture.supplyAsync(highPriorityTasks.poll(), HIGH_PRIORITY_POOL).whenComplete((effect, exception) -> {
@@ -138,8 +138,9 @@ public final class WorldManager implements Executor {
                 continue;
             }
             final boolean isEmpty = runningTasks.isEmpty();
+            // If the above poll() call reaches a timeout, it will return null! Thus the null check!
             final boolean firstIsNull = runningTasks.get(0) == null;
-            if(isEmpty || firstIsNull) {
+            if (isEmpty || firstIsNull) {
                 Bukkit.getLogger().severe("WorldManager timed out on task query! Dumping " + inProgress.size() + " tasks. IsEmpty: <" + isEmpty + "> FirstIsNull: <" + firstIsNull + ">");
                 inProgress.forEach(task -> task.cancel(true));
                 Bukkit.getLogger().severe("Discarding <" + worldChanges.size() + "> queued world changes!");
@@ -147,10 +148,10 @@ public final class WorldManager implements Executor {
                 break;
             }
             currentTasks.drainTo(runningTasks);
-            for(var runnable : runningTasks){
-                if(runnable == POISON){
+            for (var runnable : runningTasks){
+                if (runnable == POISON){
                     remaining--;
-                    if(remaining == 0){
+                    if (remaining == 0){
                         break eventLoop;
                     }
                 }
@@ -159,7 +160,7 @@ public final class WorldManager implements Executor {
         }
         // process world updates on the main thread
         Effect sideEffect;
-        while((sideEffect = worldChanges.poll()) != null){
+        while ((sideEffect = worldChanges.poll()) != null) {
             sideEffect.run();
         }
     }
@@ -193,7 +194,7 @@ public final class WorldManager implements Executor {
         // Issue is, all the collected effects will be run in the same tick...
         if (threadPoolHasFreeCapacity(NORMAL_POOL, "NormalPriorityPool", Settings.normalPriorityPoolOverpressure)) {
             int allowedStarts = getThreadPoolCapacity(this.NORMAL_POOL, Settings.normalPriorityPoolOverpressure);
-            while(!tasks.isEmpty() && allowedStarts > 0){
+            while (!tasks.isEmpty() && allowedStarts > 0) {
                 // DONE: Will this block our mainthread while the task is calculating?
                 // => No, it simply builds a list of completableFutures, it waits later down the line (when polling from "currentTasks")
                 final Supplier<@Nullable Effect> task = tasks.poll();
@@ -221,7 +222,7 @@ public final class WorldManager implements Executor {
         // DONE: Limit the amount of time a effect has to run, otherwise, all effects from "now" must run in the same tick!
         final long startTime = System.currentTimeMillis();
         Effect sideEffect;
-        while((sideEffect = worldChanges.poll()) != null){
+        while ((sideEffect = worldChanges.poll()) != null) {
             sideEffect.run();
             long timeElapsed = System.currentTimeMillis() - startTime;
             if (timeElapsed >= Settings.maxElapsedTimeForWorldChanges)
