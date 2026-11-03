@@ -13,7 +13,7 @@ import java.util.function.Supplier;
 /**
  *
  */
-// TODO: Refactor in oder to allow the existence of multiple thread pools with different priority levels
+// DONE: Refactor in oder to allow the existence of multiple thread pools with different priority levels
 public final class WorldManager implements Executor {
 
     public static final WorldManager INSTANCE = new WorldManager();
@@ -35,7 +35,7 @@ public final class WorldManager implements Executor {
         WorldManagerWorkers[] workers = WorldManagerWorkers.values();
         boolean anyoneNeedsTheWorld = false;
         for (int i = 0; i < workers.length; i++) {
-            WorldManagerWorker worker = workers[i];
+            WorldManagerWorker worker = workers[i].worker();
             this.currentWorker = worker;
             if (worker.hasUnfinishedWork()) {
                 this.running = true;
@@ -71,34 +71,57 @@ public final class WorldManager implements Executor {
         });
     }
 
-
+    @Deprecated(forRemoval = true)
     public void submitHighPriority(Runnable task){
-        WorldManagerWorkers.HIGH_PRIORITY.submit(() -> {
+        WorldManagerWorkers.HIGH_PRIORITY.worker().submit(() -> {
             task.run();
             return null;
         });
     }
 
+    @Deprecated(forRemoval = true)
     public void submit(Runnable task){
-        WorldManagerWorkers.NORMAL_PRIORITY.submit(() -> {
+        WorldManagerWorkers.NORMAL_PRIORITY.worker().submit(() -> {
             task.run();
             return null;
         });
     }
 
+    @Deprecated(forRemoval = true)
     public void submitHighPriority(Supplier<@Nullable Effect> task){
-        WorldManagerWorkers.HIGH_PRIORITY.submit(task);
+        WorldManagerWorkers.HIGH_PRIORITY.worker().submit(task);
     }
 
+    @Deprecated(forRemoval = true)
     public void submit(Supplier<@Nullable Effect> task){
-        WorldManagerWorkers.NORMAL_PRIORITY.submit(task);
+        WorldManagerWorkers.NORMAL_PRIORITY.worker().submit(task);
     }
 
+    @Deprecated(forRemoval = true)
     public void submitAndRunNow(Supplier<@Nullable Effect> task){
         if (this.isRunning()) {
-            WorldManagerWorkers.NORMAL_PRIORITY.startTask(task);
+            WorldManagerWorkers.NORMAL_PRIORITY.worker().startTask(task);
         } else {
             this.submit(task);
+        }
+    }
+
+    public void submit(Supplier<@Nullable Effect> task, WorldManagerWorkers worker) {
+        worker.worker().submit(task);
+    }
+
+    public void submit(Runnable task, WorldManagerWorkers worker) {
+        worker.worker().submit(() -> {
+            task.run();
+            return null;
+        });
+    }
+
+    public void submitAndRunNow(Supplier<@Nullable Effect> task, WorldManagerWorkers worker){
+        if (this.isRunning()) {
+            worker.worker().startTask(task);
+        } else {
+            this.submit(task, worker);
         }
     }
 
