@@ -105,7 +105,8 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
         }
     }
 
-    protected void startTask(Supplier<@Nullable Effect> task) {
+    @Override
+    public void startTask(Supplier<@Nullable Effect> task) {
         pendingTasks.getAndIncrement();
         // NoOpTask tasks do not provide us any effects, we do not need to wait for those and can just start them normally
         if (!(task instanceof NoOpTask)) {

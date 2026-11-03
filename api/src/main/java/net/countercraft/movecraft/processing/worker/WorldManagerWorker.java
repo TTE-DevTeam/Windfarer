@@ -9,6 +9,9 @@ public interface WorldManagerWorker {
 
     public boolean hasUnfinishedWork();
     public void run();
+
+    void startTask(Supplier<@Nullable Effect> task);
+
     public void submit(Supplier<@Nullable Effect> task);
     public void submitEffectToCurrentTasks(Runnable runnable);
 
