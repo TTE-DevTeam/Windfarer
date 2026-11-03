@@ -38,6 +38,7 @@ public final class WorldManager implements Executor {
             WorldManagerWorker worker = workers[i];
             this.currentWorker = worker;
             if (worker.hasUnfinishedWork()) {
+                this.running = true;
                 anyoneNeedsTheWorld = true;
                 worker.run();
             }
