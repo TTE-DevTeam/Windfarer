@@ -136,6 +136,7 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
     }
 
     protected final void poison() {
+        currentTasks.add(POISON);
     }
 
     @Override
