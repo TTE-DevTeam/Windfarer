@@ -13,6 +13,10 @@ public class BlockingWorldManagerWorker extends BaseWorldManagerWorker {
 
     @Override
     protected void processMainThreadRequests() {
+        // We are not waiting for any task to return
+        if (pendingTasks.get() <= 0) {
+            return;
+        }
         // process pre-queued tasks and their requests to the main thread
         eventLoop: while(true){
             var runningTasks = new ArrayList<Runnable>();
@@ -27,8 +31,10 @@ public class BlockingWorldManagerWorker extends BaseWorldManagerWorker {
             if (isEmpty || firstIsNull) {
                 Bukkit.getLogger().severe("WorldManager timed out on task query! Dumping " + inProgress.size() + " tasks. IsEmpty: <" + isEmpty + "> FirstIsNull: <" + firstIsNull + ">");
                 inProgress.forEach(task -> task.cancel(true));
+                inProgress.clear();
                 Bukkit.getLogger().severe("Discarding <" + worldChanges.size() + "> queued world changes!");
                 worldChanges.clear();
+                pendingTasks.set(0);
                 break;
             }
             currentTasks.drainTo(runningTasks);
