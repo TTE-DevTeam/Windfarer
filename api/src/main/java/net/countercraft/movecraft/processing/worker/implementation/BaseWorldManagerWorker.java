@@ -110,7 +110,7 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
     public void startTask(Supplier<@Nullable Effect> task) {
         pendingTasks.getAndIncrement();
 
-        final CompletableFuture<Effect> future = this.threadPool.enqueueTask(task);
+        final CompletableFuture<Effect> future = this.threadPool.enqueueTask(task, this);
         inProgress.add(future);
         
         // NoOpTask tasks do not provide us any effects, we do not need to wait for those and can just start them normally
