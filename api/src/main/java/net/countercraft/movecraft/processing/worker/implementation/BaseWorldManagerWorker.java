@@ -37,7 +37,7 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
     protected final ConcurrentLinkedQueue<Supplier<@Nullable Effect>> tasks = new ConcurrentLinkedQueue<>();
     protected final BlockingQueue<Runnable> currentTasks = new LinkedBlockingQueue<>();
     protected final AtomicInteger pendingTasks = new AtomicInteger(0);
-    List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
+    protected final List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
 
     public BaseWorldManagerWorker(long maxTimeForWorldChanges, long maxTimeForMainThreadRequests, final int poolSize, final int poolOverpressure, final String identifier) {
         this.maxTimeForWorldChanges = maxTimeForWorldChanges;
@@ -47,7 +47,7 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
 
     @Override
     public boolean hasUnfinishedWork() {
-        return !(this.tasks.isEmpty() && this.currentTasks.isEmpty() && this.worldChanges.isEmpty() && this.pendingTasks.get() == 0);
+        return !(this.tasks.isEmpty() && this.currentTasks.isEmpty() && this.worldChanges.isEmpty() && this.pendingTasks.get() == 0 && inProgress.isEmpty() && threadPool.getActiveCount() == 0);
     }
 
     @Override
