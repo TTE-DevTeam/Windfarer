@@ -2,6 +2,7 @@ package net.countercraft.movecraft.processing;
 
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.processing.effects.Effect;
+import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import org.bukkit.Bukkit;
 
 import java.util.Map;
