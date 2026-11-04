@@ -109,13 +109,13 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
     @Override
     public void startTask(Supplier<@Nullable Effect> task) {
         pendingTasks.getAndIncrement();
+
+        final CompletableFuture<Effect> future = this.threadPool.enqueueTask(task);
+        inProgress.add(future);
+        
         // NoOpTask tasks do not provide us any effects, we do not need to wait for those and can just start them normally
         if (!(task instanceof NoOpTask)) {
-            final CompletableFuture<Effect> future = this.threadPool.enqueueTask(task);
-
-            inProgress.add(future);
-
-            // TODO: Does this return the same future?
+            // DONE: Does this return the same future? => No, it returns a new completion state, doesnt matter here though
             future.whenComplete((effect, exception) -> {
                  // We have finished running! Remove ourselves from inProgress
                 inProgress.remove(future);
@@ -128,29 +128,16 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
                     addEffect(effect);
                 }
             });
-            /*inProgress.add(this.threadPool.enqueueTask(task).whenComplete((effect, exception) -> {
+        } else             
+            future.whenComplete((effect, exception) -> {
                 // We have finished running! Remove ourselves from inProgress
-                inProgress.remove(this);
-                // Once the task is complete, we add poison to currentTasks, which also holds all requests to the main thread
-                poison();
-                if(exception != null){
-                    exception.printStackTrace();
-                } else if(effect != null) {
-                    // And if there were no exceptions, we add all or THE effect the task produced
-                    addEffect(effect);
-                }
-            }));*/
-        } else 
-            // TODO: Fix inProgress#remove()! The current implementation would remove the worldmanagerworker, not the future!
-            inProgress.add(this.threadPool.enqueueTask(task).whenComplete((effect, exception) -> {
-                // We have finished running! Remove ourselves from inProgress
-                inProgress.remove(this);
+                inProgress.remove(future);
                 // Once the task is complete, we add poison to currentTasks, which also holds all requests to the main thread
                 poison();
                 if(exception != null){
                     exception.printStackTrace();
                 }
-            }));
+            });
         }
     }
 
