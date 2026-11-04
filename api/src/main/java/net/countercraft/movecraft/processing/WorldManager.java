@@ -19,7 +19,7 @@ public final class WorldManager implements Executor {
 
     public static final WorldManager INSTANCE = new WorldManager();
     protected volatile boolean running = false;
-    protected ThreadLocal<WorldManagerWorker> currentWorker = new ThreadLocal<>();
+    protected final ThreadLocal<WorldManagerWorker> currentWorker = new ThreadLocal<>();
 
     protected WorldManager(){
         currentWorker.set(null);
@@ -37,7 +37,6 @@ public final class WorldManager implements Executor {
         boolean anyoneNeedsTheWorld = false;
         for (int i = 0; i < workers.length; i++) {
             WorldManagerWorker worker = workers[i].worker();
-            this.currentWorker = worker;
             if (worker.hasUnfinishedWork()) {
                 this.running = true;
                 anyoneNeedsTheWorld = true;
@@ -49,7 +48,6 @@ public final class WorldManager implements Executor {
         if (!anyoneNeedsTheWorld) {
             CachedMovecraftWorld.purge();
             running = false;
-            currentWorker = null;
         }
     }
 
@@ -62,7 +60,7 @@ public final class WorldManager implements Executor {
         }
         final WorldManagerWorker currentWorker = this.currentWorker.get();
         if (currentWorker == null) {
-            threw new RejectedExecutionException("No current worker for this thread!");
+            throw new RejectedExecutionException("No current worker for this thread!");
         }
         var task = new CompletableFutureTask<>(callable);
         currentWorker.submitEffectToCurrentTasks(task);

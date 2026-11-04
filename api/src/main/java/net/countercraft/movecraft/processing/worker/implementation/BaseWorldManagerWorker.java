@@ -6,9 +6,8 @@ import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -128,7 +127,7 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
                     addEffect(effect);
                 }
             });
-        } else             
+        } else {
             future.whenComplete((effect, exception) -> {
                 // We have finished running! Remove ourselves from inProgress
                 inProgress.remove(future);
