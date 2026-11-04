@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.*;
 import java.util.function.Supplier;
+import java.lang.ThreadLocal;
 
 /**
  *
@@ -18,10 +19,10 @@ public final class WorldManager implements Executor {
 
     public static final WorldManager INSTANCE = new WorldManager();
     protected volatile boolean running = false;
-    protected WorldManagerWorker currentWorker = null;
+    protected ThreadLocal<WorldManagerWorker> currentWorker = new ThreadLocal<>();
 
     protected WorldManager(){
-
+        currentWorker.set(null);
     }
 
     // TODO: Add a blocking task that keeps the main thread (whatever is calling this method) occupied, this allows for faster detection at the cost of occupying the main thread
@@ -58,6 +59,10 @@ public final class WorldManager implements Executor {
         }
         if(Bukkit.isPrimaryThread()){
             throw new RejectedExecutionException("Cannot schedule on main thread from the main thread");
+        }
+        final WorldManagerWorker currentWorker = this.currentWorker.get();
+        if (currentWorker == null) {
+            threw new RejectedExecutionException("No current worker for this thread!");
         }
         var task = new CompletableFutureTask<>(callable);
         currentWorker.submitEffectToCurrentTasks(task);
@@ -133,4 +138,14 @@ public final class WorldManager implements Executor {
     public void execute(@NotNull Runnable command) {
         this.executeMain(command);
     }
+
+    void setThreadLocalWorker(WorldManagerWorker worker) {
+        this.currentWorker.set(worker);
+    }
+
+    void removeThreadLocalWorker() {
+        this.currentWorker.remove();
+    }
+
+        
 }
