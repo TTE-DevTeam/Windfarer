@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -37,7 +38,7 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
     protected final ConcurrentLinkedQueue<Supplier<@Nullable Effect>> tasks = new ConcurrentLinkedQueue<>();
     protected final BlockingQueue<Runnable> currentTasks = new LinkedBlockingQueue<>();
     protected final AtomicInteger pendingTasks = new AtomicInteger(0);
-    protected final List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
+    protected final Set<CompletableFuture<Effect>> inProgress = ConcurrentHashMap.newKeySet();
 
     public BaseWorldManagerWorker(long maxTimeForWorldChanges, long maxTimeForMainThreadRequests, final int poolSize, final int poolOverpressure, final String identifier) {
         this.maxTimeForWorldChanges = maxTimeForWorldChanges;
