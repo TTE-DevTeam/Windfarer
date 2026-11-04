@@ -70,10 +70,17 @@ public class WindfarerThreadPool extends ThreadPoolExecutor {
         return Math.max(capacity - taskOccupation, 0);
     }
 
-    public CompletableFuture<Effect> enqueueTask(Supplier<Effect> task) {
+    public CompletableFuture<Effect> enqueueTask(final Supplier<Effect> task, final WorldManagerWorker worker) {
         this.statisticMap.computeIfAbsent(task.getClass(), k -> new AtomicLong(0)).incrementAndGet();
-
-        return CompletableFuture.supplyAsync(task, this);
+        
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                WorldManager.INSTANCE.setThreadLocalWorker(worker);
+                return task.get();
+            } finally {
+                WorldManager.INSTANCE.removeThreadLocalWorker();
+            }
+        }, this);
     }
 
 }
