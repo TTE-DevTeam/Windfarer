@@ -65,6 +65,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+// TODO: It can happen that when a subcraft is piloted just at the wrong time when the craft moves, that the entire high priority pool locks itself up
+// TODO: In that case, a dead task stays inside the threadpool, that must be cleaned up! (Active: x; Current tasks: 1 => There was a missing clear on the currentTasks() list)
 public class DetectionTask implements Supplier<Effect> {
 
     private static final AllowedBlockValidator ALLOWED_BLOCK_VALIDATOR = new AllowedBlockValidator();
@@ -288,7 +290,7 @@ public class DetectionTask implements Supplier<Effect> {
 
         WorldManager.INSTANCE.executeMain(() -> Bukkit.getPluginManager().callEvent(event));
         if (event.isCancelled()) {
-            Movecraft.getInstance().getLogger().info(String.format("Detection task for pilot <%s> FAILED! DetectEvent was canclled. Message: <%s>", pilot == null ? "NULL" : pilot.getUniqueId(), event.getFailMessage()));
+            Movecraft.getInstance().getLogger().info(String.format("Detection task for pilot <%s> FAILED! DetectEvent was cancelled. Message: <%s>", pilot == null ? "NULL" : pilot.getUniqueId(), event.getFailMessage()));
             return () -> craft.getAudience().sendMessage(Component.text(event.getFailMessage()));
         }
 
