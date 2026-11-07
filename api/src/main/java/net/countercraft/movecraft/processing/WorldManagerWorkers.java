@@ -21,7 +21,7 @@ public enum WorldManagerWorkers {
         this.worker = worker;
     }
 
-    WorldManagerWorker worker() {
+    public WorldManagerWorker worker() {
         return worker;
     }
 

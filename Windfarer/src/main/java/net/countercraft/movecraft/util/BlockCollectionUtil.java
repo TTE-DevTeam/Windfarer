@@ -2,9 +2,12 @@ package net.countercraft.movecraft.util;
 
 import com.google.common.collect.Sets;
 import net.countercraft.movecraft.MovecraftLocation;
+import net.countercraft.movecraft.async.AbstractWorker;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.processing.MovecraftWorld;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.functions.TriadicPredicate;
+import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.util.functions.TriConsumer;
 import net.countercraft.movecraft.util.hitboxes.HitBoxSlicer;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
@@ -13,7 +16,6 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ForkJoinTask;
 
 public class BlockCollectionUtil {
@@ -45,8 +47,11 @@ public class BlockCollectionUtil {
         if (hitbox.isEmpty()) {
             return new HashSet<>();
         }
+
+        final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
+
         ArrayList<ForkJoinTask<WorkerData>> workers = new ArrayList<>();
-        new HitBoxSlicer(hitbox).forEach(slice -> workers.add(ForkJoinTask.adapt(new Worker(craft, movecraftWorld, slice, checkPredicate, consumer, Sets.newConcurrentHashSet()))));
+        new HitBoxSlicer(hitbox).forEach(slice -> workers.add(ForkJoinTask.adapt(new Worker(worker, craft, movecraftWorld, slice, checkPredicate, consumer, Sets.newConcurrentHashSet()))));
 
         Optional<WorkerData> workResult = ForkJoinTask
                 .invokeAll(workers)
@@ -75,28 +80,76 @@ public class BlockCollectionUtil {
     }
 
     // Goes over a single slice and checks for air
-    private record Worker(
-            @NotNull Craft craft,
-            @NotNull MovecraftWorld world,
-            @NotNull Iterable<MovecraftLocation> slice,
-            @NotNull TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> validationRule,
-            @NotNull TriConsumer<MovecraftLocation, MovecraftWorld, Craft> consumer,
-            @NotNull Set<MovecraftLocation> locations
-    ) implements Callable<WorkerData> {
+        private static final class Worker extends AbstractWorker<WorkerData> {
+            private final @NotNull Craft craft;
+            private final @NotNull MovecraftWorld world;
+            private final @NotNull Iterable<MovecraftLocation> slice;
+            private final @NotNull TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> validationRule;
+            private final @NotNull TriConsumer<MovecraftLocation, MovecraftWorld, Craft> consumer;
+            private final @NotNull Set<MovecraftLocation> locations;
 
-        @Override
-        public WorkerData call() {
-            Set<MovecraftLocation> locations = Collections.synchronizedSet(new HashSet<>());
-
-            for (MovecraftLocation l : this.slice) {
-                if (validationRule().validate(l, world, this.craft).isSucess()) {
-                    locations.add(l);
-                    consumer().accept(l, world, this.craft);
-                }
+            private Worker(
+                    @NotNull WorldManagerWorker worker,
+                    @NotNull Craft craft,
+                    @NotNull MovecraftWorld world,
+                    @NotNull Iterable<MovecraftLocation> slice,
+                    @NotNull TriadicPredicate<MovecraftLocation, MovecraftWorld, Craft> validationRule,
+                    @NotNull TriConsumer<MovecraftLocation, MovecraftWorld, Craft> consumer,
+                    @NotNull Set<MovecraftLocation> locations
+            ) {
+                super(worker);
+                this.craft = craft;
+                this.world = world;
+                this.slice = slice;
+                this.validationRule = validationRule;
+                this.consumer = consumer;
+                this.locations = locations;
             }
 
-            return new WorkerData(locations);
+                @Override
+                public WorkerData callInternally() {
+                    Set<MovecraftLocation> locations = Collections.synchronizedSet(new HashSet<>());
+
+                    for (MovecraftLocation l : this.slice) {
+                        if (validationRule.validate(l, world, this.craft).isSucess()) {
+                            locations.add(l);
+                            consumer.accept(l, world, this.craft);
+                        }
+                    }
+
+                    return new WorkerData(locations);
+                }
+
+            @Override
+            public boolean equals(Object obj) {
+                if (obj == this) return true;
+                if (obj == null || obj.getClass() != this.getClass()) return false;
+                var that = (Worker) obj;
+                return
+                        Objects.equals(this.craft, that.craft) &&
+                        Objects.equals(this.world, that.world) &&
+                        Objects.equals(this.slice, that.slice) &&
+                        Objects.equals(this.validationRule, that.validationRule) &&
+                        Objects.equals(this.consumer, that.consumer) &&
+                        Objects.equals(this.locations, that.locations);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(craft, world, slice, validationRule, consumer, locations);
+            }
+
+            @Override
+            public String toString() {
+                return "Worker[" +
+                        "craft=" + craft + ", " +
+                        "world=" + world + ", " +
+                        "slice=" + slice + ", " +
+                        "validationRule=" + validationRule + ", " +
+                        "consumer=" + consumer + ", " +
+                        "locations=" + locations + ']';
+            }
+
         }
-    }
 
 }

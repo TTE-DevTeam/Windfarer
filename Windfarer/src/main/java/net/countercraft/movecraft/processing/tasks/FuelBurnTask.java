@@ -3,6 +3,7 @@ package net.countercraft.movecraft.processing.tasks;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.TrackedLocation;
+import net.countercraft.movecraft.async.AbstractWorker;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
@@ -15,7 +16,9 @@ import net.countercraft.movecraft.features.fuel.FuelDataTags;
 import net.countercraft.movecraft.features.fuel.FuelUtil;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.WorldManager;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.effects.Effect;
+import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.util.Tags;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -28,11 +31,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Callable;
+import java.util.*;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -93,12 +92,13 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
             if (!furnaces.isEmpty()) {
                 // Access furnace inventories and determine the next active burner
                 // Also collect the burners in a list to update them later on
+                final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
                 ArrayList<ForkJoinTask<Void>> workers = new ArrayList<>();
                 final NamespacedKeyToDoubleProperty fuelTypes = this.craft.getCraftProperties().get(PropertyKeys.FUEL_TYPES);
                 final double finalBurnRate = fuelBurnRate;
                 final AtomicBoolean validatedFound = new AtomicBoolean(false);
                 final AtomicReference<WorkerData> resultReference = new AtomicReference<>(null);
-                furnaces.forEach(location -> workers.add(ForkJoinTask.adapt(new Worker(craft, location, fuelTypes, finalBurnRate, validatedFound, resultReference))));
+                furnaces.forEach(location -> workers.add(ForkJoinTask.adapt(new Worker(worker, craft, location, fuelTypes, finalBurnRate, validatedFound, resultReference))));
 
                 // Invokes all, the workers check towards the AtomicBoolean if there still is something to do
                 ForkJoinTask.invokeAll(workers);
@@ -282,17 +282,35 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
     }
 
     // TODO: Find better name
-    private record Worker(
-            @NotNull Craft craft,
-            @NotNull TrackedLocation location,
-            @NotNull NamespacedKeyToDoubleProperty fuelTypes,
-            @NotNull double fuelBurnRateIn,
-            AtomicBoolean validatedFound,
-            AtomicReference<WorkerData> resultReference) implements Callable<Void> {
+        private static final class Worker extends AbstractWorker<Void> {
+        private final @NotNull Craft craft;
+        private final @NotNull TrackedLocation location;
+        private final @NotNull NamespacedKeyToDoubleProperty fuelTypes;
+        private final @NotNull double fuelBurnRateIn;
+        private final AtomicBoolean validatedFound;
+        private final AtomicReference<WorkerData> resultReference;
+
+        private Worker(
+                @NotNull WorldManagerWorker worker,
+                @NotNull Craft craft,
+                @NotNull TrackedLocation location,
+                @NotNull NamespacedKeyToDoubleProperty fuelTypes,
+                @NotNull double fuelBurnRateIn,
+                AtomicBoolean validatedFound,
+                AtomicReference<WorkerData> resultReference
+        ) {
+            super(worker);
+            this.craft = craft;
+            this.location = location;
+            this.fuelTypes = fuelTypes;
+            this.fuelBurnRateIn = fuelBurnRateIn;
+            this.validatedFound = validatedFound;
+            this.resultReference = resultReference;
+        }
 
         @Override
         // Return null if we do not want this furnace to be the active burner
-        public Void call() {
+        public Void callInternally() {
             if (validatedFound.get()) {
                 return null;
             }
@@ -343,6 +361,36 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
             return null;
         }
 
-    }
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            var that = (Worker) obj;
+            return Objects.equals(this.craft, that.craft) &&
+                    Objects.equals(this.location, that.location) &&
+                    Objects.equals(this.fuelTypes, that.fuelTypes) &&
+                    Double.doubleToLongBits(this.fuelBurnRateIn) == Double.doubleToLongBits(that.fuelBurnRateIn) &&
+                    Objects.equals(this.validatedFound, that.validatedFound) &&
+                    Objects.equals(this.resultReference, that.resultReference);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(craft, location, fuelTypes, fuelBurnRateIn, validatedFound, resultReference);
+        }
+
+        @Override
+        public String toString() {
+            return "Worker[" +
+                    "craft=" + craft + ", " +
+                    "location=" + location + ", " +
+                    "fuelTypes=" + fuelTypes + ", " +
+                    "fuelBurnRateIn=" + fuelBurnRateIn + ", " +
+                    "validatedFound=" + validatedFound + ", " +
+                    "resultReference=" + resultReference + ']';
+        }
+
+
+        }
 
 }

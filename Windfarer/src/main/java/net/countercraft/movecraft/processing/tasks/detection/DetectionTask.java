@@ -29,6 +29,7 @@ import net.countercraft.movecraft.processing.tasks.detection.validators.NameSign
 import net.countercraft.movecraft.processing.tasks.detection.validators.PilotSignValidator;
 import net.countercraft.movecraft.processing.tasks.detection.validators.SizeValidator;
 import net.countercraft.movecraft.processing.tasks.detection.validators.WaterContactValidator;
+import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.sign.AbstractMovecraftSign;
 import net.countercraft.movecraft.sign.CraftSignManager;
 import net.countercraft.movecraft.sign.MovecraftSignRegistry;
@@ -399,11 +400,16 @@ public class DetectionTask implements Supplier<Effect> {
         ConcurrentLinkedQueue<MovecraftLocation> nextFrontier = new ConcurrentLinkedQueue<>();
         currentFrontier.add(startLocation);
         currentFrontier.addAll(type.get(PropertyKeys.DETECTION_DIRECTIONS).stream().map(startLocation::add).collect(Collectors.toList()));
-        int threads = Runtime.getRuntime().availableProcessors();
+
+        WorldManagerWorker worker = WorldManager.INSTANCE.getCurrentWorker();
+        if (worker == null) {
+            throw new IllegalStateException("No WorldManagerWorker for current thread!");
+        }
+        final int threads = Runtime.getRuntime().availableProcessors();
         while(!currentFrontier.isEmpty() && size.intValue() < type.get(PropertyKeys.MAX_SIZE) + threads) {
             List<ForkJoinTask<?>> tasks = new ArrayList<>();
             for(int j = 0; j < threads ; j++) {
-                tasks.add(ForkJoinPool.commonPool().submit(new DetectAction(currentFrontier, nextFrontier)));
+                tasks.add(ForkJoinPool.commonPool().submit(new DetectAction(worker, currentFrontier, nextFrontier)));
             }
 
             for(var task : tasks) {
@@ -424,6 +430,7 @@ public class DetectionTask implements Supplier<Effect> {
     private class DetectAction implements Runnable {
         private final ConcurrentLinkedQueue<MovecraftLocation> currentFrontier;
         private final ConcurrentLinkedQueue<MovecraftLocation> nextFrontier;
+        private final WorldManagerWorker worldManagerWorker;
         private static DetectionPredicate<MovecraftLocation> chain;
 
         static {
@@ -433,55 +440,61 @@ public class DetectionTask implements Supplier<Effect> {
             }
         }
 
-        private DetectAction(ConcurrentLinkedQueue<MovecraftLocation> currentFrontier, ConcurrentLinkedQueue<MovecraftLocation> nextFrontier) {
+        private DetectAction(final WorldManagerWorker worker, ConcurrentLinkedQueue<MovecraftLocation> currentFrontier, ConcurrentLinkedQueue<MovecraftLocation> nextFrontier) {
             this.currentFrontier = currentFrontier;
             this.nextFrontier = nextFrontier;
+            this.worldManagerWorker = worker;
         }
 
         @Override
         public void run() {
-            MovecraftLocation probe;
-            BlockSetProperty directionalDependent = type.get(PropertyKeys.DIRECTIONAL_DEPENDENT_MATERIALS);
+            WorldManager.INSTANCE.setThreadLocalWorker(worldManagerWorker);
+            try {
+                MovecraftLocation probe;
+                BlockSetProperty directionalDependent = type.get(PropertyKeys.DIRECTIONAL_DEPENDENT_MATERIALS);
 
-            while((probe = currentFrontier.poll()) != null) {
-                BlockData blockData = movecraftWorld.getData(probe);
-                NamespacedKey material = NamespacedIDUtil.getBlockID(blockData);
+                while((probe = currentFrontier.poll()) != null) {
+                    BlockData blockData = movecraftWorld.getData(probe);
+                    NamespacedKey material = NamespacedIDUtil.getBlockID(blockData);
 
-                if (directionalDependent.contains(material)) {
-                    BlockFace supportFace = SupportUtils.getSupportFace(blockData);
-                    if (supportFace != null) {
-                        MovecraftLocation relativeLoc = probe.getRelative(supportFace);
+                    if (directionalDependent.contains(material)) {
+                        BlockFace supportFace = SupportUtils.getSupportFace(blockData);
+                        if (supportFace != null) {
+                            MovecraftLocation relativeLoc = probe.getRelative(supportFace);
 
-                        if (!legal.contains(relativeLoc))
-                            continue;
+                            if (!legal.contains(relativeLoc))
+                                continue;
+                        }
+                    }
+
+                    if(!visited.add(probe))
+                        continue;
+
+                    visitedMaterials.computeIfAbsent(material, Functions.forSupplier(ConcurrentLinkedDeque::new)).add(probe);
+                    // TODO: Use BlockData.getAsString() for validation
+                    if(!ALLOWED_BLOCK_VALIDATOR.validate(probe, type, movecraftWorld, pilot).isSucess())
+                        continue;
+
+                    var result = chain.validate(probe, type, movecraftWorld, pilot);
+
+                    if (result.isSucess()) {
+                        legal.add(probe);
+                        if (Tags.FLUID.contains(material))
+                            fluid.add(probe);
+
+                        size.increment();
+                        materials.computeIfAbsent(material, Functions.forSupplier(ConcurrentLinkedDeque::new)).add(probe);
+                        for (MovecraftLocation shift : type.get(PropertyKeys.DETECTION_DIRECTIONS)) {
+                            var shifted = probe.add(shift);
+                            nextFrontier.add(shifted);
+                        }
+                    } else {
+                        illegal.add(probe);
+                        audience.sendMessage(result.getMessageComponent());
                     }
                 }
-
-                if(!visited.add(probe))
-                    continue;
-
-                visitedMaterials.computeIfAbsent(material, Functions.forSupplier(ConcurrentLinkedDeque::new)).add(probe);
-                // TODO: Use BlockData.getAsString() for validation
-                if(!ALLOWED_BLOCK_VALIDATOR.validate(probe, type, movecraftWorld, pilot).isSucess())
-                    continue;
-
-                var result = chain.validate(probe, type, movecraftWorld, pilot);
-
-                if (result.isSucess()) {
-                    legal.add(probe);
-                    if (Tags.FLUID.contains(material))
-                        fluid.add(probe);
-
-                    size.increment();
-                    materials.computeIfAbsent(material, Functions.forSupplier(ConcurrentLinkedDeque::new)).add(probe);
-                    for (MovecraftLocation shift : type.get(PropertyKeys.DETECTION_DIRECTIONS)) {
-                        var shifted = probe.add(shift);
-                        nextFrontier.add(shifted);
-                    }
-                } else {
-                    illegal.add(probe);
-                    audience.sendMessage(result.getMessageComponent());
-                }
+            } finally {
+                WorldManager.INSTANCE.removeThreadLocalWorker();
             }
         }
     }

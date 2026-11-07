@@ -2,6 +2,7 @@ package net.countercraft.movecraft.features.status;
 
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
+import net.countercraft.movecraft.async.AbstractWorker;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
@@ -9,7 +10,10 @@ import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
 import net.countercraft.movecraft.features.status.events.CraftStatusUpdateEvent;
 import net.countercraft.movecraft.processing.MovecraftWorld;
+import net.countercraft.movecraft.processing.WorldManager;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.effects.Effect;
+import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.util.Counter;
 import net.countercraft.movecraft.util.NamespacedIDUtil;
 import net.countercraft.movecraft.util.Tags;
@@ -21,6 +25,7 @@ import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ForkJoinTask;
@@ -64,9 +69,10 @@ public final class StatusUpdateTask implements Supplier<Effect> {
             }
             started = true;
 
+            final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
             ArrayList<ForkJoinTask<StatusWorkerData>> workers = new ArrayList<>();
             final MovecraftWorld world = this.craft.getMovecraftWorld();
-            new HitBoxSlicer(craft.getHitBox()).forEach(slice -> workers.add(ForkJoinTask.adapt(new StatusWorker(world, slice))));
+            new HitBoxSlicer(craft.getHitBox()).forEach(slice -> workers.add(ForkJoinTask.adapt(new StatusWorker(worker, world, slice))));
 
             Optional<StatusWorkerData> workResult = ForkJoinTask
                     .invokeAll(workers)
@@ -139,13 +145,22 @@ public final class StatusUpdateTask implements Supplier<Effect> {
         }
     }
 
-    protected record StatusWorker(
-            @NotNull MovecraftWorld world,
-            @NotNull Iterable<MovecraftLocation> slice
-    ) implements Callable<StatusWorkerData> {
+    protected static final class StatusWorker extends AbstractWorker<StatusWorkerData> {
+        private final @NotNull MovecraftWorld world;
+        private final @NotNull Iterable<MovecraftLocation> slice;
+
+        protected StatusWorker(
+                @NotNull WorldManagerWorker worker,
+                @NotNull MovecraftWorld world,
+                @NotNull Iterable<MovecraftLocation> slice
+        ) {
+            super(worker);
+            this.world = world;
+            this.slice = slice;
+        }
 
         @Override
-        public StatusWorkerData call() throws Exception {
+        public StatusWorkerData callInternally() {
             final Counter<NamespacedKey> materials = new Counter<>();
             int nonNegligibleBlocks = 0;
             int nonNegligibleSolidBlocks = 0;
@@ -165,6 +180,29 @@ public final class StatusUpdateTask implements Supplier<Effect> {
             }
             return new StatusWorkerData(materials, nonNegligibleBlocks, nonNegligibleSolidBlocks);
         }
-    }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            var that = (StatusWorker) obj;
+            return
+                    Objects.equals(this.world, that.world) &&
+                    Objects.equals(this.slice, that.slice);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(world, slice);
+        }
+
+        @Override
+        public String toString() {
+            return "StatusWorker[" +
+                    "world=" + world + ", " +
+                    "slice=" + slice + ']';
+        }
+
+        }
 
 }

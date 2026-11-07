@@ -3,6 +3,7 @@ package net.countercraft.movecraft.processing.tasks;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.TrackedLocation;
+import net.countercraft.movecraft.async.AbstractWorker;
 import net.countercraft.movecraft.async.FuelBurnRunnable;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
@@ -10,7 +11,9 @@ import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.features.fuel.CraftFurnaceUtil;
 import net.countercraft.movecraft.features.fuel.FuelUtil;
 import net.countercraft.movecraft.processing.MovecraftWorld;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.effects.Effect;
+import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.util.Tags;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -23,7 +26,6 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ForkJoinTask;
 import java.util.function.Supplier;
@@ -59,7 +61,8 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
         if (furnaceLocations.size() > 0) {
             ArrayList<ForkJoinTask<BurnerWorkerData>> workers = new ArrayList<>();
             final Queue<MovecraftLocation> burnersToUpdate = new ConcurrentLinkedQueue<>();
-            furnaceLocations.forEach(trackedLocation -> workers.add(ForkJoinTask.adapt(new BurnerWorker(craft.getMovecraftWorld(), trackedLocation, craft, burnersToUpdate))));
+            final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
+            furnaceLocations.forEach(trackedLocation -> workers.add(ForkJoinTask.adapt(new BurnerWorker(worker, craft.getMovecraftWorld(), trackedLocation, craft, burnersToUpdate))));
             Optional<BurnerWorkerData> workResult = ForkJoinTask
                     .invokeAll(workers)
                     .stream()
@@ -153,15 +156,28 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
         }
     }
 
-    record BurnerWorker(
-            MovecraftWorld world,
-            TrackedLocation burnerLocation,
-            Craft craft,
-            Queue<MovecraftLocation> burnersToUpdate
-    ) implements Callable<BurnerWorkerData> {
+    static final class BurnerWorker extends AbstractWorker<BurnerWorkerData> {
+        private final MovecraftWorld world;
+        private final TrackedLocation burnerLocation;
+        private final Craft craft;
+        private final Queue<MovecraftLocation> burnersToUpdate;
+
+        BurnerWorker(
+                WorldManagerWorker worker,
+                MovecraftWorld world,
+                TrackedLocation burnerLocation,
+                Craft craft,
+                Queue<MovecraftLocation> burnersToUpdate
+        ) {
+            super(worker);
+            this.world = world;
+            this.burnerLocation = burnerLocation;
+            this.craft = craft;
+            this.burnersToUpdate = burnersToUpdate;
+        }
 
         @Override
-        public BurnerWorkerData call() throws Exception {
+        public BurnerWorkerData callInternally() {
             final MovecraftLocation location = this.burnerLocation.getAbsoluteLocation();
             final BlockState state = world.getState(location);
 
@@ -174,7 +190,7 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
                         fuelLevel += CraftFurnaceUtil.getFurnaceFuelLevel(burnerInventory, craft.getCraftProperties());
 
                         // Special logic for furnace visualization
-                        if (craft.getCraftProperties().get(PropertyKeys.FURNACE_FUEL_VISUALIZATION) ) {
+                        if (craft.getCraftProperties().get(PropertyKeys.FURNACE_FUEL_VISUALIZATION)) {
                             burnersToUpdate.add(location);
                         }
                     }
@@ -183,5 +199,31 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
 
             return new BurnerWorkerData(fuelLevel, burnerCount);
         }
-    }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            var that = (BurnerWorker) obj;
+            return Objects.equals(this.world, that.world) &&
+                    Objects.equals(this.burnerLocation, that.burnerLocation) &&
+                    Objects.equals(this.craft, that.craft) &&
+                    Objects.equals(this.burnersToUpdate, that.burnersToUpdate);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(world, burnerLocation, craft, burnersToUpdate);
+        }
+
+        @Override
+        public String toString() {
+            return "BurnerWorker[" +
+                    "world=" + world + ", " +
+                    "burnerLocation=" + burnerLocation + ", " +
+                    "craft=" + craft + ", " +
+                    "burnersToUpdate=" + burnersToUpdate + ']';
+        }
+
+        }
 }

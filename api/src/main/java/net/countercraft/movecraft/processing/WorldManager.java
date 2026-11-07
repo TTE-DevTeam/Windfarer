@@ -137,12 +137,16 @@ public final class WorldManager implements Executor {
         this.executeMain(command);
     }
 
-    void setThreadLocalWorker(WorldManagerWorker worker) {
+    public void setThreadLocalWorker(WorldManagerWorker worker) {
         this.currentWorker.set(worker);
     }
 
-    void removeThreadLocalWorker() {
-        this.currentWorker.remove();
+    public void removeThreadLocalWorker() {
+        //this.currentWorker.remove();
+    }
+
+    public @Nullable WorldManagerWorker getCurrentWorker() {
+        return this.currentWorker.get();
     }
 
         
