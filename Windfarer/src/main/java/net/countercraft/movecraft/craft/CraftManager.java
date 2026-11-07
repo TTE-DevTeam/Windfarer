@@ -31,6 +31,7 @@ import net.countercraft.movecraft.features.status.StatusUpdateTask;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.processing.CachedMovecraftWorld;
 import net.countercraft.movecraft.processing.WorldManager;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.processing.functions.CraftSupplier;
 import net.countercraft.movecraft.processing.tasks.UpdateFuelBurnersTask;
@@ -238,13 +239,13 @@ public class CraftManager implements Iterable<Craft>{
                         @NotNull World world, @Nullable Entity pilot,
                         @NotNull Audience audience,
                         @NotNull Function<Craft, Effect> postDetection) {
-        WorldManager.INSTANCE.submitAndRunNow(new DetectionTask(
+        WorldManager.INSTANCE.submit(new DetectionTask(
                 startPoint, CachedMovecraftWorld.of(world),
                 type, supplier,
                 world, pilot,
                 audience,
                 postDetection
-        ));
+        ), WorldManagerWorkers.HIGH_PRIORITY);
     }
 
     public void detectSubcraft(@NotNull MovecraftLocation startPoint,
@@ -252,13 +253,13 @@ public class CraftManager implements Iterable<Craft>{
                        @NotNull World world, @Nullable Entity pilot,
                        @NotNull Audience audience,
                        @NotNull Function<Craft, Effect> postDetection) {
-        WorldManager.INSTANCE.submitHighPriority(new DetectionTask(
+        WorldManager.INSTANCE.submit(new DetectionTask(
                 startPoint, CachedMovecraftWorld.of(world),
                 type, supplier,
                 world, pilot,
                 audience,
                 postDetection
-        ));
+        ), WorldManagerWorkers.HIGH_PRIORITY);
     }
 
     public void detect(@NotNull MovecraftLocation startPoint,
@@ -267,14 +268,14 @@ public class CraftManager implements Iterable<Craft>{
                        @NotNull Audience audience,
                        @NotNull Function<Craft, Effect> postDetection,
                        @Nullable Function<@Nullable Craft, Effect> alwaysRunAfter) {
-        WorldManager.INSTANCE.submitAndRunNow(new DetectionTask(
+        WorldManager.INSTANCE.submit(new DetectionTask(
                 startPoint, CachedMovecraftWorld.of(world),
                 type, supplier,
                 world, pilot,
                 audience,
                 postDetection,
                 alwaysRunAfter
-        ));
+        ), WorldManagerWorkers.HIGH_PRIORITY);
     }
 
     public void add(@NotNull Craft c) {
@@ -349,8 +350,9 @@ public class CraftManager implements Iterable<Craft>{
         // Turn off furnaces
         // TODO: Not sure if this will work at all
         // TODO: FInd a prettier solution! THis is a pretty ugly workaround...
+        // TODO: Move releasing into it's own task!
         Bukkit.getScheduler().runTaskLater(Movecraft.getInstance(), () -> {
-            WorldManager.INSTANCE.submitAndRunNow(new UpdateFuelBurnersTask(craft, false));
+            WorldManager.INSTANCE.submit(new UpdateFuelBurnersTask(craft, false), WorldManagerWorkers.HIGH_PRIORITY);
         }, 10);
 
         if(craft.getHitBox().isEmpty())

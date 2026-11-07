@@ -8,6 +8,7 @@ import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
 import net.countercraft.movecraft.processing.WorldManager;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.tasks.DeleteCraftTask;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,7 +30,7 @@ public class DeleteCraftCommand extends AbstractCraftCommand {
         for (Craft craft : crafts) {
             final DeleteCraftTask deleteCraftTask = new DeleteCraftTask(craft.getHitBox(), craft.getWorld());
             if (CraftManager.getInstance().tryRelease(craft, CraftReleaseEvent.Reason.SUNK, true)) {
-                WorldManager.INSTANCE.submit(deleteCraftTask);
+                WorldManager.INSTANCE.submit(deleteCraftTask, WorldManagerWorkers.LOW_PRIORITY);
             }
         }
         return Command.SINGLE_SUCCESS;

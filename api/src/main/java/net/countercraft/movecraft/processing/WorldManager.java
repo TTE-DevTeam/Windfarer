@@ -1,84 +1,28 @@
 package net.countercraft.movecraft.processing;
 
-import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.processing.effects.Effect;
+import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.util.CompletableFutureTask;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import java.lang.ThreadLocal;
 
 /**
  *
  */
-// TODO: Refactor in oder to allow the existence of multiple thread pools with different priority levels
+// DONE: Refactor in oder to allow the existence of multiple thread pools with different priority levels
 public final class WorldManager implements Executor {
 
-    final ThreadPoolExecutor HIGH_PRIORITY_POOL;
-    final ThreadPoolExecutor NORMAL_POOL;
-
     public static final WorldManager INSTANCE = new WorldManager();
-    protected static final Runnable POISON = new Runnable() {
-        @Override
-        public void run() {/* No-op */}
-        @Override
-        public String toString(){
-            return "POISON TASK";
-        }
-    };
-
-    protected final ConcurrentLinkedQueue<Effect> worldChanges = new ConcurrentLinkedQueue<>();
-
-    protected final ConcurrentLinkedQueue<Supplier<@Nullable Effect>> tasks = new ConcurrentLinkedQueue<>();
-    protected final BlockingQueue<Runnable> currentTasks = new LinkedBlockingQueue<>();
-    protected final ConcurrentLinkedQueue<Supplier<@Nullable Effect>> highPriorityTasks = new ConcurrentLinkedQueue<>();
-
-    protected final AtomicInteger pendingTasks = new AtomicInteger(0);
     protected volatile boolean running = false;
+    protected final ThreadLocal<WorldManagerWorker> currentWorker = new ThreadLocal<>();
 
     protected WorldManager(){
-        HIGH_PRIORITY_POOL = new ThreadPoolExecutor(
-                Settings.highPriorityThreadCount,
-                Settings.highPriorityThreadCount,
-                0L,
-                TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(),
-                new ThreadFactory() {
-                    private final AtomicInteger id = new AtomicInteger();
-
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        Thread t = new Thread(r);
-                        t.setName("WorldManager-HP-Worker-" + id.incrementAndGet());
-                        t.setDaemon(true);
-                        return t;
-                    }
-                }
-        );
-        NORMAL_POOL = new ThreadPoolExecutor(
-                Settings.normalPriorityThreadCount,
-                Settings.normalPriorityThreadCount,
-                0L,
-                TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(),
-                new ThreadFactory() {
-                    private final AtomicInteger id = new AtomicInteger();
-
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        Thread t = new Thread(r);
-                        t.setName("WorldManager-Worker-" + id.incrementAndGet());
-                        t.setDaemon(true);
-                        return t;
-                    }
-                }
-        );
+        currentWorker.set(null);
     }
 
     // TODO: Add a blocking task that keeps the main thread (whatever is calling this method) occupied, this allows for faster detection at the cost of occupying the main thread
@@ -88,182 +32,22 @@ public final class WorldManager implements Executor {
         if (!Bukkit.isPrimaryThread()) {
             throw new RuntimeException("WorldManager must be executed on the main thread.");
         }
-        // If we have nothing to start and nothing to wait for, we can quit early :)
-        final boolean hasOpenUrgentTasks = !(highPriorityTasks.isEmpty());
-        final boolean hasOpenNormalTasks = !(tasks.isEmpty() && currentTasks.isEmpty()  && worldChanges.isEmpty() && pendingTasks.get() == 0);
-        if (!(hasOpenNormalTasks || hasOpenUrgentTasks))
-            return;
-        running = true;
-        // TODO: Allow the task to also supply lists of effects instead of a single one
-        // TODO: Add a option on how long or how many tasks we can start
-        if (hasOpenUrgentTasks) {
-            runHighPriorityTasks();
-        }
-        if (hasOpenNormalTasks) {
-            runNormalTasks();
+
+        WorldManagerWorkers[] workers = WorldManagerWorkers.values();
+        boolean anyoneNeedsTheWorld = false;
+        for (int i = 0; i < workers.length; i++) {
+            WorldManagerWorker worker = workers[i].worker();
+            if (worker.hasUnfinishedWork()) {
+                this.running = true;
+                anyoneNeedsTheWorld = true;
+                worker.run();
+            }
         }
 
         // Once we are fully done, purge the worlds
-        if (highPriorityTasks.isEmpty() && tasks.isEmpty() && currentTasks.isEmpty() && worldChanges.isEmpty() && pendingTasks.get() == 0) {
+        if (!anyoneNeedsTheWorld) {
             CachedMovecraftWorld.purge();
             running = false;
-        }
-    }
-
-    private void runHighPriorityTasks() {
-        if (!threadPoolHasFreeCapacity(this.HIGH_PRIORITY_POOL, "HighPriorityPool", Settings.highPriorityPoolOverpressure)) {
-            return;
-        }
-        int remaining = 0;
-        int allowedStarts = getThreadPoolCapacity(this.HIGH_PRIORITY_POOL, Settings.highPriorityPoolOverpressure);
-        List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
-        while (!highPriorityTasks.isEmpty() && allowedStarts > 0){
-            remaining++;
-            allowedStarts--;
-            inProgress.add(CompletableFuture.supplyAsync(highPriorityTasks.poll(), HIGH_PRIORITY_POOL).whenComplete((effect, exception) -> {
-                poison();
-                if(exception != null){
-                    exception.printStackTrace();
-                } else if(effect != null) {
-                    worldChanges.add(effect);
-                }
-            }));
-        }
-        // process pre-queued tasks and their requests to the main thread
-        eventLoop: while(true){
-            var runningTasks = new ArrayList<Runnable>();
-            try {
-                runningTasks.add(currentTasks.poll(5, TimeUnit.SECONDS));
-            } catch (InterruptedException e) {
-                continue;
-            }
-            final boolean isEmpty = runningTasks.isEmpty();
-            // If the above poll() call reaches a timeout, it will return null! Thus the null check!
-            final boolean firstIsNull = runningTasks.get(0) == null;
-            if (isEmpty || firstIsNull) {
-                Bukkit.getLogger().severe("WorldManager timed out on task query! Dumping " + inProgress.size() + " tasks. IsEmpty: <" + isEmpty + "> FirstIsNull: <" + firstIsNull + ">");
-                inProgress.forEach(task -> task.cancel(true));
-                Bukkit.getLogger().severe("Discarding <" + worldChanges.size() + "> queued world changes!");
-                worldChanges.clear();
-                break;
-            }
-            currentTasks.drainTo(runningTasks);
-            for (var runnable : runningTasks){
-                if (runnable == POISON){
-                    remaining--;
-                    if (remaining == 0){
-                        break eventLoop;
-                    }
-                }
-                runnable.run();
-            }
-        }
-        // process world updates on the main thread
-        Effect sideEffect;
-        while ((sideEffect = worldChanges.poll()) != null) {
-            sideEffect.run();
-        }
-    }
-
-    private int getThreadPoolCapacity(ThreadPoolExecutor threadPool, int highPriorityPoolOverpressure) {
-        int taskOccupation = (threadPool.getActiveCount() + threadPool.getQueue().size());
-        int capacity = threadPool.getMaximumPoolSize() + highPriorityPoolOverpressure;
-
-        return Math.max(capacity - taskOccupation, 0);
-    }
-
-    private boolean threadPoolHasFreeCapacity(ThreadPoolExecutor threadPool, String name, int overpressure) {
-        int active = threadPool.getActiveCount();
-        int queued = threadPool.getQueue().size();
-        long completed = threadPool.getCompletedTaskCount();
-        int workers = threadPool.getMaximumPoolSize();
-        int freeWorkers = workers - active;
-
-        if (Settings.Debug) {
-            Bukkit.getLogger().info("Occupation of threadpool: " + name);
-            Bukkit.getLogger().info("Active: " + active);
-            Bukkit.getLogger().info("Queued: " + queued);
-            Bukkit.getLogger().info("Completed: " + completed);
-            Bukkit.getLogger().info("Free workers: " + freeWorkers);
-        }
-
-        return getThreadPoolCapacity(threadPool, overpressure) > 0;
-    }
-
-    private void runNormalTasks() {
-        // Issue is, all the collected effects will be run in the same tick...
-        if (threadPoolHasFreeCapacity(NORMAL_POOL, "NormalPriorityPool", Settings.normalPriorityPoolOverpressure)) {
-            int allowedStarts = getThreadPoolCapacity(this.NORMAL_POOL, Settings.normalPriorityPoolOverpressure);
-            while (!tasks.isEmpty() && allowedStarts > 0) {
-                // DONE: Will this block our mainthread while the task is calculating?
-                // => No, it simply builds a list of completableFutures, it waits later down the line (when polling from "currentTasks")
-                final Supplier<@Nullable Effect> task = tasks.poll();
-                startTask(task);
-                allowedStarts--;
-            }
-        }
-
-        // Run all requests to main thread now!
-        final long startTimeTasks = System.currentTimeMillis();
-        while (!currentTasks.isEmpty()) {
-            Runnable task = currentTasks.poll();
-            if (task == POISON) {
-                // Ensure this never goes below zero
-                pendingTasks.updateAndGet(val -> Math.max(0, val -1));
-            } else {
-                task.run();
-            }
-            long timeElapsed = System.currentTimeMillis() - startTimeTasks;
-            if (timeElapsed >= Settings.maxElapsedTimeForSyncTaskProcessing)
-                break;
-        }
-
-        // process world updates on the main thread
-        // DONE: Limit the amount of time a effect has to run, otherwise, all effects from "now" must run in the same tick!
-        final long startTime = System.currentTimeMillis();
-        Effect sideEffect;
-        while ((sideEffect = worldChanges.poll()) != null) {
-            sideEffect.run();
-            long timeElapsed = System.currentTimeMillis() - startTime;
-            if (timeElapsed >= Settings.maxElapsedTimeForWorldChanges)
-                break;
-        }
-    }
-
-    protected void startTask(Supplier<@Nullable Effect> task) {
-        List<CompletableFuture<Effect>> inProgress = new ArrayList<>();
-        pendingTasks.getAndIncrement();
-        // NoOpTask tasks do not provide us any effects, we do not need to wait for those and can just start them normally
-        if (!(task instanceof NoOpTask)) {
-            inProgress.add(CompletableFuture.supplyAsync(task, NORMAL_POOL).whenComplete((effect, exception) -> {
-                // Once the task is complete, we add poison to currentTasks, which also holds all requests to the main thread
-                poison();
-                if(exception != null){
-                    exception.printStackTrace();
-                } else if(effect != null) {
-                    // And if there were no exceptions, we add all or THE effect the task produced
-                    addEffect(effect);
-                }
-            }));
-        } else {
-            inProgress.add(CompletableFuture.supplyAsync(task, NORMAL_POOL).whenComplete((effect, exception) -> {
-                // Once the task is complete, we add poison to currentTasks, which also holds all requests to the main thread
-                poison();
-                if(exception != null){
-                    exception.printStackTrace();
-                }
-            }));
-        }
-    }
-
-    protected void addEffect(@Nullable Effect effect) {
-        if (effect instanceof Effect.MultiEffect multiEffect) {
-            final Iterator<Effect> iterator = multiEffect.iterator();
-            while (iterator.hasNext()) {
-                addEffect(iterator.next());
-            }
-        } else {
-            worldChanges.add(effect);
         }
     }
 
@@ -274,8 +58,12 @@ public final class WorldManager implements Executor {
         if(Bukkit.isPrimaryThread()){
             throw new RejectedExecutionException("Cannot schedule on main thread from the main thread");
         }
+        final WorldManagerWorker currentWorker = this.currentWorker.get();
+        if (currentWorker == null) {
+            throw new RejectedExecutionException("No current worker for this thread!");
+        }
         var task = new CompletableFutureTask<>(callable);
-        currentTasks.add(task);
+        currentWorker.submitEffectToCurrentTasks(task);
         return task.join();
     }
 
@@ -286,37 +74,57 @@ public final class WorldManager implements Executor {
         });
     }
 
-    protected void poison(){
-        currentTasks.add(POISON);
-    }
-
+    @Deprecated(forRemoval = true)
     public void submitHighPriority(Runnable task){
-        highPriorityTasks.add(() -> {
+        WorldManagerWorkers.HIGH_PRIORITY.worker().submit(() -> {
             task.run();
             return null;
         });
     }
 
+    @Deprecated(forRemoval = true)
     public void submit(Runnable task){
-        tasks.add(() -> {
+        WorldManagerWorkers.NORMAL_PRIORITY.worker().submit(() -> {
             task.run();
             return null;
         });
     }
 
+    @Deprecated(forRemoval = true)
     public void submitHighPriority(Supplier<@Nullable Effect> task){
-        highPriorityTasks.add(task);
+        WorldManagerWorkers.HIGH_PRIORITY.worker().submit(task);
     }
 
+    @Deprecated(forRemoval = true)
     public void submit(Supplier<@Nullable Effect> task){
-        tasks.add(task);
+        WorldManagerWorkers.NORMAL_PRIORITY.worker().submit(task);
     }
 
+    @Deprecated(forRemoval = true)
     public void submitAndRunNow(Supplier<@Nullable Effect> task){
         if (this.isRunning()) {
-            this.startTask(task);
+            WorldManagerWorkers.NORMAL_PRIORITY.worker().startTask(task);
         } else {
             this.submit(task);
+        }
+    }
+
+    public void submit(Supplier<@Nullable Effect> task, WorldManagerWorkers worker) {
+        worker.worker().submit(task);
+    }
+
+    public void submit(Runnable task, WorldManagerWorkers worker) {
+        worker.worker().submit(() -> {
+            task.run();
+            return null;
+        });
+    }
+
+    public void submitAndRunNow(Supplier<@Nullable Effect> task, WorldManagerWorkers worker){
+        if (this.isRunning()) {
+            worker.worker().startTask(task);
+        } else {
+            this.submit(task, worker);
         }
     }
 
@@ -328,4 +136,14 @@ public final class WorldManager implements Executor {
     public void execute(@NotNull Runnable command) {
         this.executeMain(command);
     }
+
+    void setThreadLocalWorker(WorldManagerWorker worker) {
+        this.currentWorker.set(worker);
+    }
+
+    void removeThreadLocalWorker() {
+        this.currentWorker.remove();
+    }
+
+        
 }
