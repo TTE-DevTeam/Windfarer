@@ -4,6 +4,7 @@ import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
+import net.countercraft.movecraft.async.AbstractWorker;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SubCraft;
@@ -57,12 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -405,17 +401,24 @@ public class DetectionTask implements Supplier<Effect> {
         if (worker == null) {
             throw new IllegalStateException("No WorldManagerWorker for current thread!");
         }
-        final int threads = Runtime.getRuntime().availableProcessors();
+//        final int threads = Runtime.getRuntime().availableProcessors();
+        final int threads = worker.getThreadCount();
         while(!currentFrontier.isEmpty() && size.intValue() < type.get(PropertyKeys.MAX_SIZE) + threads) {
-            List<ForkJoinTask<?>> tasks = new ArrayList<>();
+//            List<ForkJoinTask<?>> tasks = new ArrayList<>();
+//            for(int j = 0; j < threads ; j++) {
+//                tasks.add(ForkJoinPool.commonPool().submit(new DetectAction(worker, currentFrontier, nextFrontier)));
+//            }
+            List<CompletableFuture<Void>> tasks = new ArrayList<>();
             for(int j = 0; j < threads ; j++) {
-                tasks.add(ForkJoinPool.commonPool().submit(new DetectAction(worker, currentFrontier, nextFrontier)));
+                tasks.add(
+                        worker.submit(
+                                new DetectAction(worker, currentFrontier, nextFrontier)
+                        )
+                );
             }
 
             for(var task : tasks) {
                 task.join();
-                if(task.getException() != null)
-                    task.getException().printStackTrace();
             }
             currentFrontier = nextFrontier;
             nextFrontier = new ConcurrentLinkedQueue<>();
@@ -427,10 +430,9 @@ public class DetectionTask implements Supplier<Effect> {
         return String.format("DetectionTask{%s:%s:%s}", pilot, type, startLocation);
     }
 
-    private class DetectAction implements Runnable {
+    private class DetectAction extends AbstractWorker<Void> {
         private final ConcurrentLinkedQueue<MovecraftLocation> currentFrontier;
         private final ConcurrentLinkedQueue<MovecraftLocation> nextFrontier;
-        private final WorldManagerWorker worldManagerWorker;
         private static DetectionPredicate<MovecraftLocation> chain;
 
         static {
@@ -441,61 +443,57 @@ public class DetectionTask implements Supplier<Effect> {
         }
 
         private DetectAction(final WorldManagerWorker worker, ConcurrentLinkedQueue<MovecraftLocation> currentFrontier, ConcurrentLinkedQueue<MovecraftLocation> nextFrontier) {
+            super(worker);
             this.currentFrontier = currentFrontier;
             this.nextFrontier = nextFrontier;
-            this.worldManagerWorker = worker;
         }
 
         @Override
-        public void run() {
-            WorldManager.INSTANCE.setThreadLocalWorker(worldManagerWorker);
-            try {
-                MovecraftLocation probe;
-                BlockSetProperty directionalDependent = type.get(PropertyKeys.DIRECTIONAL_DEPENDENT_MATERIALS);
+        public Void callInternally() {
+            MovecraftLocation probe;
+            BlockSetProperty directionalDependent = type.get(PropertyKeys.DIRECTIONAL_DEPENDENT_MATERIALS);
 
-                while((probe = currentFrontier.poll()) != null) {
-                    BlockData blockData = movecraftWorld.getData(probe);
-                    NamespacedKey material = NamespacedIDUtil.getBlockID(blockData);
+            while((probe = currentFrontier.poll()) != null) {
+                BlockData blockData = movecraftWorld.getData(probe);
+                NamespacedKey material = NamespacedIDUtil.getBlockID(blockData);
 
-                    if (directionalDependent.contains(material)) {
-                        BlockFace supportFace = SupportUtils.getSupportFace(blockData);
-                        if (supportFace != null) {
-                            MovecraftLocation relativeLoc = probe.getRelative(supportFace);
+                if (directionalDependent.contains(material)) {
+                    BlockFace supportFace = SupportUtils.getSupportFace(blockData);
+                    if (supportFace != null) {
+                        MovecraftLocation relativeLoc = probe.getRelative(supportFace);
 
-                            if (!legal.contains(relativeLoc))
-                                continue;
-                        }
-                    }
-
-                    if(!visited.add(probe))
-                        continue;
-
-                    visitedMaterials.computeIfAbsent(material, Functions.forSupplier(ConcurrentLinkedDeque::new)).add(probe);
-                    // TODO: Use BlockData.getAsString() for validation
-                    if(!ALLOWED_BLOCK_VALIDATOR.validate(probe, type, movecraftWorld, pilot).isSucess())
-                        continue;
-
-                    var result = chain.validate(probe, type, movecraftWorld, pilot);
-
-                    if (result.isSucess()) {
-                        legal.add(probe);
-                        if (Tags.FLUID.contains(material))
-                            fluid.add(probe);
-
-                        size.increment();
-                        materials.computeIfAbsent(material, Functions.forSupplier(ConcurrentLinkedDeque::new)).add(probe);
-                        for (MovecraftLocation shift : type.get(PropertyKeys.DETECTION_DIRECTIONS)) {
-                            var shifted = probe.add(shift);
-                            nextFrontier.add(shifted);
-                        }
-                    } else {
-                        illegal.add(probe);
-                        audience.sendMessage(result.getMessageComponent());
+                        if (!legal.contains(relativeLoc))
+                            continue;
                     }
                 }
-            } finally {
-                WorldManager.INSTANCE.removeThreadLocalWorker();
+
+                if(!visited.add(probe))
+                    continue;
+
+                visitedMaterials.computeIfAbsent(material, Functions.forSupplier(ConcurrentLinkedDeque::new)).add(probe);
+                // TODO: Use BlockData.getAsString() for validation
+                if(!ALLOWED_BLOCK_VALIDATOR.validate(probe, type, movecraftWorld, pilot).isSucess())
+                    continue;
+
+                var result = chain.validate(probe, type, movecraftWorld, pilot);
+
+                if (result.isSucess()) {
+                    legal.add(probe);
+                    if (Tags.FLUID.contains(material))
+                        fluid.add(probe);
+
+                    size.increment();
+                    materials.computeIfAbsent(material, Functions.forSupplier(ConcurrentLinkedDeque::new)).add(probe);
+                    for (MovecraftLocation shift : type.get(PropertyKeys.DETECTION_DIRECTIONS)) {
+                        var shifted = probe.add(shift);
+                        nextFrontier.add(shifted);
+                    }
+                } else {
+                    illegal.add(probe);
+                    audience.sendMessage(result.getMessageComponent());
+                }
             }
+            return null;
         }
     }
 

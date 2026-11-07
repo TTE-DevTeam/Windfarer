@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.CompletableFuture;
 
 public class BlockCollectionUtil {
 
@@ -50,14 +50,26 @@ public class BlockCollectionUtil {
 
         final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
 
-        ArrayList<ForkJoinTask<WorkerData>> workers = new ArrayList<>();
-        new HitBoxSlicer(hitbox).forEach(slice -> workers.add(ForkJoinTask.adapt(new Worker(worker, craft, movecraftWorld, slice, checkPredicate, consumer, Sets.newConcurrentHashSet()))));
-
-        Optional<WorkerData> workResult = ForkJoinTask
-                .invokeAll(workers)
-                .stream()
-                .map(ForkJoinTask::join)
-                .reduce(WorkerData::add);
+//        ArrayList<ForkJoinTask<WorkerData>> workers = new ArrayList<>();
+//        new HitBoxSlicer(hitbox).forEach(slice -> workers.add(ForkJoinTask.adapt(new Worker(worker, craft, movecraftWorld, slice, checkPredicate, consumer, Sets.newConcurrentHashSet()))));
+//
+//        Optional<WorkerData> workResult = ForkJoinTask
+//                .invokeAll(workers)
+//                .stream()
+//                .map(ForkJoinTask::join)
+//                .reduce(WorkerData::add);
+        ArrayList<CompletableFuture<WorkerData>> workers = new ArrayList<>();
+        new HitBoxSlicer(hitbox).forEach(slice ->
+                workers.add(
+                        worker.submit(
+                                new Worker(worker, craft, movecraftWorld, slice, checkPredicate, consumer, Sets.newConcurrentHashSet())
+                        )
+                )
+        );
+        Optional<WorkerData> workResult =
+                workers.stream()
+                        .map(CompletableFuture::join)
+                        .reduce(WorkerData::add);
 
         if(workResult.isEmpty()){
             return null;

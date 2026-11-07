@@ -32,7 +32,6 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -93,15 +92,25 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
                 // Access furnace inventories and determine the next active burner
                 // Also collect the burners in a list to update them later on
                 final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
-                ArrayList<ForkJoinTask<Void>> workers = new ArrayList<>();
+//                ArrayList<ForkJoinTask<Void>> workers = new ArrayList<>();
                 final NamespacedKeyToDoubleProperty fuelTypes = this.craft.getCraftProperties().get(PropertyKeys.FUEL_TYPES);
                 final double finalBurnRate = fuelBurnRate;
                 final AtomicBoolean validatedFound = new AtomicBoolean(false);
                 final AtomicReference<WorkerData> resultReference = new AtomicReference<>(null);
-                furnaces.forEach(location -> workers.add(ForkJoinTask.adapt(new Worker(worker, craft, location, fuelTypes, finalBurnRate, validatedFound, resultReference))));
+//                furnaces.forEach(location -> workers.add(ForkJoinTask.adapt(new Worker(worker, craft, location, fuelTypes, finalBurnRate, validatedFound, resultReference))));
 
                 // Invokes all, the workers check towards the AtomicBoolean if there still is something to do
-                ForkJoinTask.invokeAll(workers);
+//                ForkJoinTask.invokeAll(workers);
+                for (TrackedLocation location : furnaces) {
+                    Worker workerTmp = new Worker(worker, craft, location, fuelTypes, finalBurnRate, validatedFound, resultReference);
+                    try {
+                        workerTmp.call();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        continue;
+                    }
+                }
+
 
                 Optional<WorkerData> result = Optional.ofNullable(resultReference.get());
                 if(!result.isEmpty()){
@@ -282,7 +291,7 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
     }
 
     // TODO: Find better name
-        private static final class Worker extends AbstractWorker<Void> {
+    private static final class Worker extends AbstractWorker<Void> {
         private final @NotNull Craft craft;
         private final @NotNull TrackedLocation location;
         private final @NotNull NamespacedKeyToDoubleProperty fuelTypes;

@@ -10,7 +10,6 @@ import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
 import net.countercraft.movecraft.features.status.events.CraftStatusUpdateEvent;
 import net.countercraft.movecraft.processing.MovecraftWorld;
-import net.countercraft.movecraft.processing.WorldManager;
 import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
@@ -27,8 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 // Credits for parallel Status go to @oh-noey
@@ -70,15 +68,26 @@ public final class StatusUpdateTask implements Supplier<Effect> {
             started = true;
 
             final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
-            ArrayList<ForkJoinTask<StatusWorkerData>> workers = new ArrayList<>();
+            ArrayList<CompletableFuture<StatusWorkerData>> workers = new ArrayList<>();
             final MovecraftWorld world = this.craft.getMovecraftWorld();
-            new HitBoxSlicer(craft.getHitBox()).forEach(slice -> workers.add(ForkJoinTask.adapt(new StatusWorker(worker, world, slice))));
+            new HitBoxSlicer(craft.getHitBox())
+                    .forEach(
+                            slice ->
+                                    workers.add(
+                                            worker.submit(new StatusWorker(worker, world, slice))
+                                            //ForkJoinTask.adapt(new StatusWorker(worker, world, slice))
+                                    )
+                    );
 
-            Optional<StatusWorkerData> workResult = ForkJoinTask
-                    .invokeAll(workers)
-                    .stream()
-                    .map(ForkJoinTask::join)
-                    .reduce(StatusWorkerData::add);
+//            Optional<StatusWorkerData> workResult = ForkJoinTask
+//                    .invokeAll(workers)
+//                    .stream()
+//                    .map(ForkJoinTask::join)
+//                    .reduce(StatusWorkerData::add);
+            Optional<StatusWorkerData> workResult =
+                    workers.stream()
+                            .map(CompletableFuture::join)
+                            .reduce(StatusWorkerData::add);
 
             if (workResult.isEmpty()) {
                 return Effect.NONE;

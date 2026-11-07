@@ -26,8 +26,8 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ForkJoinTask;
 import java.util.function.Supplier;
 
 import static net.countercraft.movecraft.features.fuel.FuelDataTags.CURRENT_FUEL_ITEM;
@@ -59,15 +59,28 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
 
         final Set<TrackedLocation> furnaceLocations = FuelUtil.getFuelBurners(craft);
         if (furnaceLocations.size() > 0) {
-            ArrayList<ForkJoinTask<BurnerWorkerData>> workers = new ArrayList<>();
+//            ArrayList<ForkJoinTask<BurnerWorkerData>> workers = new ArrayList<>();
+            ArrayList<CompletableFuture<BurnerWorkerData>> workers = new ArrayList<>();
             final Queue<MovecraftLocation> burnersToUpdate = new ConcurrentLinkedQueue<>();
             final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
-            furnaceLocations.forEach(trackedLocation -> workers.add(ForkJoinTask.adapt(new BurnerWorker(worker, craft.getMovecraftWorld(), trackedLocation, craft, burnersToUpdate))));
-            Optional<BurnerWorkerData> workResult = ForkJoinTask
-                    .invokeAll(workers)
-                    .stream()
-                    .map(ForkJoinTask::join)
-                    .reduce(BurnerWorkerData::add);
+//            furnaceLocations.forEach(trackedLocation -> workers.add(ForkJoinTask.adapt(new BurnerWorker(worker, craft.getMovecraftWorld(), trackedLocation, craft, burnersToUpdate))));
+//            Optional<BurnerWorkerData> workResult = ForkJoinTask
+//                    .invokeAll(workers)
+//                    .stream()
+//                    .map(ForkJoinTask::join)
+//                    .reduce(BurnerWorkerData::add);
+            furnaceLocations.forEach(trackedLocation ->
+                    workers.add(
+                            worker.submit(
+                                new BurnerWorker(worker, craft.getMovecraftWorld(), trackedLocation, craft, burnersToUpdate)
+                            )
+                    )
+            );
+
+            Optional<BurnerWorkerData> workResult =
+                workers.stream()
+                        .map(CompletableFuture::join)
+                        .reduce(BurnerWorkerData::add);
 
             if (workResult.isPresent()) {
                 BurnerWorkerData burnerWorkerData = workResult.get();
