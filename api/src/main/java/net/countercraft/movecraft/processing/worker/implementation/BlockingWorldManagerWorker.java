@@ -34,6 +34,7 @@ public class BlockingWorldManagerWorker extends BaseWorldManagerWorker {
                 inProgress.clear();
                 Bukkit.getLogger().severe("Discarding <" + worldChanges.size() + "> queued world changes!");
                 worldChanges.clear();
+                currentTasks.clear();
                 pendingTasks.set(0);
                 break;
             }
