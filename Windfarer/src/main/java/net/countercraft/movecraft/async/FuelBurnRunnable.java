@@ -1,7 +1,6 @@
 package net.countercraft.movecraft.async;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import net.countercraft.movecraft.TrackedLocation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
@@ -18,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 // TODO: Migrate to processing system and run async if possible!
 public class FuelBurnRunnable implements Runnable {
@@ -34,7 +34,7 @@ public class FuelBurnRunnable implements Runnable {
     public static final CraftDataTagKey<Set<TrackedLocation>> FURNACES = CraftDataTagRegistry.INSTANCE.registerTagKey(FuelDataTags.FURNACES_KEY, FuelUtil::getFuelBurners);
 
     // TODO: Replace once a proper status concept has been established!
-    public static final Set<UUID> craftsInProgress = Sets.newConcurrentHashSet();
+    public static final Set<UUID> craftsInProgress = ConcurrentHashMap.newKeySet();
 
 
     @Override
