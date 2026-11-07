@@ -190,7 +190,7 @@ public class CraftRotateCommand extends UpdateCommand {
                 0,
                 0,
                 0,
-                new BitmapHitBox(this.craft.getHitBox())
+                new SynchronizedBitmapHitBox(this.craft.getHitBox())
         ));
     }
 

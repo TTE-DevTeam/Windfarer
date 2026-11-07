@@ -192,7 +192,7 @@ public class CraftTranslateCommand extends UpdateCommand {
                 displacement.getX(),
                 displacement.getY(),
                 displacement.getZ(),
-                new BitmapHitBox(this.craft.getHitBox())
+                new SynchronizedBitmapHitBox(this.craft.getHitBox())
         ));
     }
 

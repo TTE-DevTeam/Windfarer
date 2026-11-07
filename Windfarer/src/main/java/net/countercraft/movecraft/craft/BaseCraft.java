@@ -20,10 +20,7 @@ import net.countercraft.movecraft.processing.WorldManager;
 import net.countercraft.movecraft.util.Counter;
 import net.countercraft.movecraft.util.Tags;
 import net.countercraft.movecraft.util.TimingData;
-import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
-import net.countercraft.movecraft.util.hitboxes.HitBox;
-import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
-import net.countercraft.movecraft.util.hitboxes.SetHitBox;
+import net.countercraft.movecraft.util.hitboxes.*;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -61,7 +58,7 @@ public abstract class BaseCraft implements Craft {
     @NotNull
     protected volatile HitBox hitBox;
     @NotNull
-    protected MutableHitBox fluidLocations;
+    protected volatile MutableHitBox fluidLocations;
     @NotNull
     protected World w;
     @NotNull TimingData stats = new TimingData();
@@ -102,9 +99,9 @@ public abstract class BaseCraft implements Craft {
         Hidden.uuidToCraft.put(uuid, this);
         this.craftProperties = type.createCraftProperties(this);
         this.w = world;
-        hitBox = new BitmapHitBox();
-        collapsedHitBox = new BitmapHitBox();
-        fluidLocations = new BitmapHitBox();
+        hitBox = new SynchronizedBitmapHitBox();
+        collapsedHitBox = new SynchronizedBitmapHitBox();
+        fluidLocations = new SynchronizedBitmapHitBox();
         lastCruiseUpdate = System.currentTimeMillis();
         cruising = false;
         disabled = false;
@@ -132,7 +129,9 @@ public abstract class BaseCraft implements Craft {
     }
 
     public void setHitBox(@NotNull HitBox hitBox) {
-        this.hitBox = hitBox;
+        // The hitbox is read from several threads (main thread, async tasks, status task),
+        // so only thread-safe instances are published. Everything else is copied.
+        this.hitBox = hitBox instanceof SynchronizedBitmapHitBox ? hitBox : new SynchronizedBitmapHitBox(hitBox);
     }
 
     @NotNull
@@ -554,6 +553,8 @@ public abstract class BaseCraft implements Craft {
         //TODO: Remove this temporary system in favor of passthrough blocks
         // Find the waterline from the surrounding terrain or from the static level in the craft type
         // DONE: Use waterlevel of the world instead?
+        // Read the volatile reference only once, otherwise the bounds below could come from different hitboxes
+        final HitBox hitBox = this.hitBox;
         if (getCraftProperties().hasInSelfOrAnyParent(PropertyKeys.STATIC_WATER_LEVEL, true) || hitBox.isEmpty()) {
             return getCraftProperties().get(PropertyKeys.STATIC_WATER_LEVEL, this.getMovecraftWorld());
         }
@@ -637,7 +638,8 @@ public abstract class BaseCraft implements Craft {
 
     @Override
     public void setFluidLocations(@NotNull MutableHitBox fluidLocations) {
-        this.fluidLocations = fluidLocations;
+        // Same reasoning as in setHitBox: only publish thread-safe instances
+        this.fluidLocations = fluidLocations instanceof SynchronizedBitmapHitBox ? fluidLocations : new SynchronizedBitmapHitBox(fluidLocations);
     }
 
     @Override

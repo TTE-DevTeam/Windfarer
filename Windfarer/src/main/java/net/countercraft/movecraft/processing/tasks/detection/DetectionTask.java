@@ -256,7 +256,7 @@ public class DetectionTask implements Supplier<Effect> {
             return () -> audience.sendMessage(message);
         }
 
-        var hitbox = new BitmapHitBox(legal);
+        var hitbox = new SynchronizedBitmapHitBox(legal);
         var parents = findParents(hitbox);
 
         var supplied = supplier.apply(type, world, pilot, parents);
@@ -277,7 +277,7 @@ public class DetectionTask implements Supplier<Effect> {
 
         craft.setAudience(audience);
         craft.setHitBox(hitbox);
-        craft.setFluidLocations(new BitmapHitBox(fluid));
+        craft.setFluidLocations(new SynchronizedBitmapHitBox(fluid));
         craft.setOrigBlockCount(craft.getHitBox().size());
 
         detectSigns(craft);

@@ -35,10 +35,7 @@ import net.countercraft.movecraft.mapUpdater.update.BlockCreateCommand;
 import net.countercraft.movecraft.mapUpdater.update.ExplosionUpdateCommand;
 import net.countercraft.movecraft.mapUpdater.update.UpdateCommand;
 import net.countercraft.movecraft.util.MathUtils;
-import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
-import net.countercraft.movecraft.util.hitboxes.HitBox;
-import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
-import net.countercraft.movecraft.util.hitboxes.SetHitBox;
+import net.countercraft.movecraft.util.hitboxes.*;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -464,7 +461,7 @@ public class AsyncManager extends BukkitRunnable {
         MapUpdateManager.getInstance().scheduleUpdates(updateCommands);
 
         // Recalculate hitbox
-        BitmapHitBox newHitBox = new BitmapHitBox(oldHitbox);
+        SynchronizedBitmapHitBox newHitBox = new SynchronizedBitmapHitBox(oldHitbox);
         newHitBox.removeAll(toRemove);
         craft.setHitBox(newHitBox);
     }

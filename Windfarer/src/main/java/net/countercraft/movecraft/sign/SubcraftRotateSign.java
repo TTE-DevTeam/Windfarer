@@ -38,6 +38,7 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
 
         // TODO: Migrate to use controller
         // TODO: Introduce action queue for crafts to avoid beavering and to overall achieve a cleaner process
+        // TODO: Start over asynchronous task that locks the parent craft in place!
         CraftManager.getInstance().detectSubcraft(
                 startPoint,
                 subcraftType, (type, w, p, parents) -> {

@@ -37,6 +37,7 @@ import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.NamespacedIDUtil;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
+import net.countercraft.movecraft.util.hitboxes.SynchronizedBitmapHitBox;
 import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -81,10 +82,10 @@ public class RotationTask extends FuelAwareAsyncTask {
         this.rotation = rotation;
         this.w = w;
         this.isSubCraft = isSubCraft;
-        this.newHitBox = new BitmapHitBox();
+        this.newHitBox = new SynchronizedBitmapHitBox();
         this.oldHitBox = new BitmapHitBox(c.getHitBox());
         this.oldFluidList = new BitmapHitBox(c.getFluidLocations());
-        this.newFluidList = new BitmapHitBox(c.getFluidLocations());
+        this.newFluidList = new SynchronizedBitmapHitBox(c.getFluidLocations());
         if (rotationProcessor != null) {
             this.rotationProcessor = rotationProcessor;
         }

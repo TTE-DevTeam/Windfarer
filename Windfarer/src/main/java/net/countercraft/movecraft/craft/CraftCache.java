@@ -6,6 +6,7 @@ import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
+import net.countercraft.movecraft.util.hitboxes.SynchronizedBitmapHitBox;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
@@ -143,7 +144,7 @@ public class CraftCache implements Runnable {
                         continue;
 
                     final HitBox hitBox;
-                    if (Bukkit.isPrimaryThread()) {
+                    if (Bukkit.isPrimaryThread() || craft.getHitBox() instanceof SynchronizedBitmapHitBox) {
                         // Use it DIRECTLY
                         hitBox = craft.getHitBox();
                     } else {

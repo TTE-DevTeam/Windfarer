@@ -66,10 +66,10 @@ public class TranslationTask extends FuelAwareAsyncTask {
         this.dx = dx;
         this.dy = dy;
         this.dz = dz;
-        newHitBox = new BitmapHitBox();
+        newHitBox = new SynchronizedBitmapHitBox();
         oldHitBox = c.getHitBox();
         oldFluidList = new BitmapHitBox(c.getFluidLocations());
-        newFluidList = new BitmapHitBox();
+        newFluidList = new SynchronizedBitmapHitBox();
     }
 
     @Override
@@ -323,7 +323,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
                         Material.AIR.createBlockData());
                 updates.add(new BlockCreateCommand(craft.getWorld(), location, phaseBlock));
             }
-            newHitBox = new BitmapHitBox();
+            newHitBox = new SynchronizedBitmapHitBox();
         }
 
         if (!collisionBox.isEmpty()) {
