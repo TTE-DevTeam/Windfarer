@@ -45,57 +45,61 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
 
     @Override
     public Effect get() {
-        final long startTime = System.currentTimeMillis();
-        if (Settings.Debug)
-            Movecraft.getInstance().getLogger().info(String.format("Starting fuel burner update task for craft <%s>...", craft.getUUID()));
-        // TODO: Add API for additional fuel sources and how full they are
-        // Step 0): Determine if we can modify furnaces or not
-        // Step 1): Collect the data about every furnace on our craft that still exists, use the tracked locations for that
-        // Step 2): For every fuel source, determine how full it is
-        // Step 3): Special case furnaces: set the lit and progress state of the furnace => Do this in a effect and collec tit
-        // Step 4): Calculate, how full the craft's total fuel supply is and apply it onto the craft
+        try {
+            final long startTime = System.currentTimeMillis();
+            if (Settings.Debug)
+                Movecraft.getInstance().getLogger().info(String.format("Starting fuel burner update task for craft <%s>...", craft.getUUID()));
+            // TODO: Add API for additional fuel sources and how full they are
+            // Step 0): Determine if we can modify furnaces or not
+            // Step 1): Collect the data about every furnace on our craft that still exists, use the tracked locations for that
+            // Step 2): For every fuel source, determine how full it is
+            // Step 3): Special case furnaces: set the lit and progress state of the furnace => Do this in a effect and collec tit
+            // Step 4): Calculate, how full the craft's total fuel supply is and apply it onto the craft
 
-        final boolean furnaceNMSAvailable = Movecraft.getInstance().getNMSHelper() != null;
+            final boolean furnaceNMSAvailable = Movecraft.getInstance().getNMSHelper() != null;
 
-        final Set<TrackedLocation> furnaceLocations = FuelUtil.getFuelBurners(craft);
-        if (furnaceLocations.size() > 0) {
+            final Set<TrackedLocation> furnaceLocations = FuelUtil.getFuelBurners(craft);
+            if (furnaceLocations.size() > 0) {
 //            ArrayList<ForkJoinTask<BurnerWorkerData>> workers = new ArrayList<>();
-            ArrayList<CompletableFuture<BurnerWorkerData>> workers = new ArrayList<>();
-            final Queue<MovecraftLocation> burnersToUpdate = new ConcurrentLinkedQueue<>();
-            final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
+                ArrayList<CompletableFuture<BurnerWorkerData>> workers = new ArrayList<>();
+                final Queue<MovecraftLocation> burnersToUpdate = new ConcurrentLinkedQueue<>();
+                final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
 //            furnaceLocations.forEach(trackedLocation -> workers.add(ForkJoinTask.adapt(new BurnerWorker(worker, craft.getMovecraftWorld(), trackedLocation, craft, burnersToUpdate))));
 //            Optional<BurnerWorkerData> workResult = ForkJoinTask
 //                    .invokeAll(workers)
 //                    .stream()
 //                    .map(ForkJoinTask::join)
 //                    .reduce(BurnerWorkerData::add);
-            furnaceLocations.forEach(trackedLocation ->
-                    workers.add(
-                            worker.submit(
-                                new BurnerWorker(worker, craft.getMovecraftWorld(), trackedLocation, craft, burnersToUpdate)
-                            )
-                    )
-            );
+                furnaceLocations.forEach(trackedLocation ->
+                        workers.add(
+                                worker.submit(
+                                        new BurnerWorker(worker, craft.getMovecraftWorld(), trackedLocation, craft, burnersToUpdate)
+                                )
+                        )
+                );
 
-            Optional<BurnerWorkerData> workResult =
-                workers.stream()
-                        .map(CompletableFuture::join)
-                        .reduce(BurnerWorkerData::add);
+                Optional<BurnerWorkerData> workResult =
+                        workers.stream()
+                                .map(CompletableFuture::join)
+                                .reduce(BurnerWorkerData::add);
 
-            if (workResult.isPresent()) {
-                BurnerWorkerData burnerWorkerData = workResult.get();
-                // TODO: If we lose furnaces, we no longer count them here, do we want that?
-                // TODO: THis is going to be temporary only anyway...
-                craft.setDataTag(FUEL_PERCENTAGE, burnerWorkerData.cumulativeFuelLevel() / burnerWorkerData.validBurnerCount());
+                if (workResult.isPresent()) {
+                    BurnerWorkerData burnerWorkerData = workResult.get();
+                    // TODO: If we lose furnaces, we no longer count them here, do we want that?
+                    // TODO: THis is going to be temporary only anyway...
+                    craft.setDataTag(FUEL_PERCENTAGE, burnerWorkerData.cumulativeFuelLevel() / burnerWorkerData.validBurnerCount());
+                }
             }
-        }
 
-        if (Settings.Debug)
-            Movecraft.getInstance().getLogger().info(String.format("Finished fuel burner update task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
-        if (furnaceNMSAvailable) {
-            return makeBurnerProgressEffect(furnaceLocations).andThen(new RemoveCraftFromProcessingList(craft.getUUID()));
-        } else {
-            return new RemoveCraftFromProcessingList(craft.getUUID());
+            if (Settings.Debug)
+                Movecraft.getInstance().getLogger().info(String.format("Finished fuel burner update task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
+            if (furnaceNMSAvailable) {
+                return makeBurnerProgressEffect(furnaceLocations).andThen(new RemoveCraftFromProcessingList(craft.getUUID()));
+            } else {
+                return new RemoveCraftFromProcessingList(craft.getUUID());
+            }
+        } finally {
+            craft.setProcessing(false);
         }
     }
 
