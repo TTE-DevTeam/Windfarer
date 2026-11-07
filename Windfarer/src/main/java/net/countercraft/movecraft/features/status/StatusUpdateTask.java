@@ -16,6 +16,7 @@ import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.util.Counter;
 import net.countercraft.movecraft.util.NamespacedIDUtil;
 import net.countercraft.movecraft.util.Tags;
+import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.HitBoxSlicer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -30,6 +31,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 // Credits for parallel Status go to @oh-noey
+// TODO: Sometimes rarely the craft gets stuck in ... itself when turning and then it's hitbox gets corrupted which then leads to issues in the StatusUpdateTask
 // https://github.com/APDevTeam/Movecraft/blob/oh-noey/parallel-status/Movecraft/src/main/java/net/countercraft/movecraft/features/status/StatusManager.java
 public final class StatusUpdateTask implements Supplier<Effect> {
     private final Craft craft;
@@ -70,7 +72,8 @@ public final class StatusUpdateTask implements Supplier<Effect> {
             final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
             ArrayList<CompletableFuture<StatusWorkerData>> workers = new ArrayList<>();
             final MovecraftWorld world = this.craft.getMovecraftWorld();
-            new HitBoxSlicer(craft.getHitBox())
+            final BitmapHitBox hitBox = new BitmapHitBox(craft.getHitBox());
+            new HitBoxSlicer(hitBox)
                     .forEach(
                             slice ->
                                     workers.add(
