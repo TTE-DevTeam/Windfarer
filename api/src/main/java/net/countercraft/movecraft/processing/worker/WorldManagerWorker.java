@@ -5,6 +5,8 @@ import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.effects.Effect;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -15,7 +17,9 @@ public interface WorldManagerWorker {
 
     void startTask(Supplier<@Nullable Effect> task);
 
-    public void submit(Supplier<@Nullable Effect> task);
+    public <T> CompletableFuture<T> submit(Supplier<T> task);
+    public <T> CompletableFuture<T> submit(Callable<T> callable);
+    public void submitTaskToQueue(Supplier<@Nullable Effect> task);
     public void submitEffectToCurrentTasks(Runnable runnable);
 
     void dumpDebugInfo(Consumer<String> consumer);
@@ -29,4 +33,6 @@ public interface WorldManagerWorker {
         }
 
     }
+
+    int getThreadCount();
 }

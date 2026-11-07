@@ -76,7 +76,7 @@ public final class WorldManager implements Executor {
 
     @Deprecated(forRemoval = true)
     public void submitHighPriority(Runnable task){
-        WorldManagerWorkers.HIGH_PRIORITY.worker().submit(() -> {
+        WorldManagerWorkers.HIGH_PRIORITY.worker().submitTaskToQueue(() -> {
             task.run();
             return null;
         });
@@ -84,7 +84,7 @@ public final class WorldManager implements Executor {
 
     @Deprecated(forRemoval = true)
     public void submit(Runnable task){
-        WorldManagerWorkers.NORMAL_PRIORITY.worker().submit(() -> {
+        WorldManagerWorkers.NORMAL_PRIORITY.worker().submitTaskToQueue(() -> {
             task.run();
             return null;
         });
@@ -92,12 +92,12 @@ public final class WorldManager implements Executor {
 
     @Deprecated(forRemoval = true)
     public void submitHighPriority(Supplier<@Nullable Effect> task){
-        WorldManagerWorkers.HIGH_PRIORITY.worker().submit(task);
+        WorldManagerWorkers.HIGH_PRIORITY.worker().submitTaskToQueue(task);
     }
 
     @Deprecated(forRemoval = true)
     public void submit(Supplier<@Nullable Effect> task){
-        WorldManagerWorkers.NORMAL_PRIORITY.worker().submit(task);
+        WorldManagerWorkers.NORMAL_PRIORITY.worker().submitTaskToQueue(task);
     }
 
     @Deprecated(forRemoval = true)
@@ -110,11 +110,11 @@ public final class WorldManager implements Executor {
     }
 
     public void submit(Supplier<@Nullable Effect> task, WorldManagerWorkers worker) {
-        worker.worker().submit(task);
+        worker.worker().submitTaskToQueue(task);
     }
 
     public void submit(Runnable task, WorldManagerWorkers worker) {
-        worker.worker().submit(() -> {
+        worker.worker().submitTaskToQueue(() -> {
             task.run();
             return null;
         });
