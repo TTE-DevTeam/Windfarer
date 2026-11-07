@@ -59,8 +59,8 @@ public class WindfarerThreadPool extends ThreadPoolExecutor {
         printer.accept("Task statistics: ");
         final long total = completed + active;
         for (Map.Entry<Class<?>, AtomicLong> entry : this.statisticMap.entrySet()) {
-            double pct = entry.getValue().get() / total;
-            printer.accept("  " + entry.getKey().getName() + ": " + entry.getValue() + " (" + pct + ")");
+            double pct = ((double)entry.getValue().get() / (double)total);
+            printer.accept("  " + entry.getKey().getName() + ": " + entry.getValue().get() + " (" + pct + ")");
         }
     }
 
@@ -71,7 +71,7 @@ public class WindfarerThreadPool extends ThreadPoolExecutor {
         return Math.max(capacity - taskOccupation, 0);
     }
 
-    public CompletableFuture<Effect> enqueueTask(final Supplier<Effect> task, final WorldManagerWorker worker) {
+    public <T> CompletableFuture<T> enqueueTask(final Supplier<T> task, final WorldManagerWorker worker) {
         this.statisticMap.computeIfAbsent(task.getClass(), k -> new AtomicLong(0)).incrementAndGet();
         
         return CompletableFuture.supplyAsync(() -> {
