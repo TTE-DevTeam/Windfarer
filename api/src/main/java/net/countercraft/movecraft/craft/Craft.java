@@ -99,6 +99,9 @@ public interface Craft {
     @Deprecated
     void setProcessing(boolean processing);
 
+    @Deprecated
+    boolean setProcessingActiveIfAvailable();
+
     /**
      * Gets a HitBox representing the current locations that this craft controls
      *

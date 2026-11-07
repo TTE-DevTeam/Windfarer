@@ -9,6 +9,7 @@ import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.type.*;
 import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
+import net.countercraft.movecraft.events.CraftChangeDisabledStatusEvent;
 import net.countercraft.movecraft.events.CraftSetAudienceEvent;
 import net.countercraft.movecraft.events.CraftStartCruiseEvent;
 import net.countercraft.movecraft.events.CraftStopCruiseEvent;
@@ -119,6 +120,10 @@ public abstract class BaseCraft implements Craft {
 
     public void setProcessing(boolean processing) {
         this.processing.set(processing);
+    }
+
+    public boolean setProcessingActiveIfAvailable() {
+        return processing.compareAndSet(false, true);
     }
 
     @NotNull
@@ -303,6 +308,12 @@ public abstract class BaseCraft implements Craft {
 
     @Override
     public void setDisabled(boolean disabled) {
+        if (disabled != this.disabled) {
+            CraftChangeDisabledStatusEvent event = new CraftChangeDisabledStatusEvent(this, this.disabled, disabled);
+            if (!event.callEvent()) {
+                return;
+            }
+        }
         this.disabled = disabled;
     }
 

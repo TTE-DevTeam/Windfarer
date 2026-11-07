@@ -10,8 +10,6 @@ import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoublePrope
 import net.countercraft.movecraft.features.status.events.CraftStatusUpdateEvent;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.effects.Effect;
-import net.countercraft.movecraft.processing.functions.Result;
-import net.countercraft.movecraft.util.BlockCollectionUtil;
 import net.countercraft.movecraft.util.Counter;
 import net.countercraft.movecraft.util.NamespacedIDUtil;
 import net.countercraft.movecraft.util.Tags;
@@ -26,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ForkJoinTask;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 // Credits for parallel Status go to @oh-noey
@@ -43,62 +40,89 @@ public final class StatusUpdateTask implements Supplier<Effect> {
 
     @Override
     public @NotNull Effect get() {
-        final long startTime = System.currentTimeMillis();
         if (Settings.Debug)
             Movecraft.getInstance().getLogger().info(String.format("Starting status update task for craft <%s>...", craft.getUUID()));
-        ArrayList<ForkJoinTask<StatusWorkerData>> workers = new ArrayList<>();
-        final MovecraftWorld world = this.craft.getMovecraftWorld();
-        new HitBoxSlicer(craft.getHitBox()).forEach(slice -> workers.add(ForkJoinTask.adapt(new StatusWorker(world, slice))));
 
-        Optional<StatusWorkerData> workResult = ForkJoinTask
-                .invokeAll(workers)
-                .stream()
-                .map(ForkJoinTask::join)
-                .reduce(StatusWorkerData::add);
+        boolean started = false;
+        try {
+            // Stop the craft from attempting anything funny
+            final long startTime = System.currentTimeMillis();
+            while (!craft.setProcessingActiveIfAvailable()) {
+                // Wait
+                if (System.currentTimeMillis() - startTime > 5000) {
+                    Movecraft.getInstance().getLogger().warning(String.format("Status task for craft <%s> timed out as craft was/is busy!", craft.getUUID()));
+                    return Effect.NONE;
+                }
 
-        if (workResult.isEmpty()) {
-            return Effect.NONE;
-        }
-        final Counter<NamespacedKey> materials = workResult.get().counter();
-        final int nonNegligibleBlocks = workResult.get().nonNegligibleBlocks();
-        final int nonNegligibleSolidBlocks = workResult.get().nonNegligibleSolidBlocks();
-
-        Counter<RequiredBlockEntry> flyblocks = new Counter<>();
-        Counter<RequiredBlockEntry> moveblocks = new Counter<>();
-
-        // Pre-fill the moveblocks counter to avoid ignoring moveblocks
-        for (RequiredBlockEntry entry : craft.getCraftProperties().get(PropertyKeys.MOVE_BLOCKS)) {
-            moveblocks.add(entry, 0);
-        }
-
-        for (NamespacedKey material : materials.getKeySet()) {
-            for (RequiredBlockEntry entry : craft.getCraftProperties().get(PropertyKeys.FLY_BLOCKS)) {
-                if (entry == null)
-                    continue;
-                if (entry.contains(material)) {
-                    flyblocks.add(entry, materials.get(material));
+                // The craft is busy, so let's give it some more time to process
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return Effect.NONE;
                 }
             }
+            started = true;
 
+            ArrayList<ForkJoinTask<StatusWorkerData>> workers = new ArrayList<>();
+            final MovecraftWorld world = this.craft.getMovecraftWorld();
+            new HitBoxSlicer(craft.getHitBox()).forEach(slice -> workers.add(ForkJoinTask.adapt(new StatusWorker(world, slice))));
+
+            Optional<StatusWorkerData> workResult = ForkJoinTask
+                    .invokeAll(workers)
+                    .stream()
+                    .map(ForkJoinTask::join)
+                    .reduce(StatusWorkerData::add);
+
+            if (workResult.isEmpty()) {
+                return Effect.NONE;
+            }
+            final Counter<NamespacedKey> materials = workResult.get().counter();
+            final int nonNegligibleBlocks = workResult.get().nonNegligibleBlocks();
+            final int nonNegligibleSolidBlocks = workResult.get().nonNegligibleSolidBlocks();
+
+            Counter<RequiredBlockEntry> flyblocks = new Counter<>();
+            Counter<RequiredBlockEntry> moveblocks = new Counter<>();
+
+            // Pre-fill the moveblocks counter to avoid ignoring moveblocks
             for (RequiredBlockEntry entry : craft.getCraftProperties().get(PropertyKeys.MOVE_BLOCKS)) {
-                // DONE: For whatever reason, this can be null?!
-                if (entry == null)
-                    continue;
-                if (entry.contains(material)) {
-                    moveblocks.add(entry, materials.get(material));
+                moveblocks.add(entry, 0);
+            }
+
+            for (NamespacedKey material : materials.getKeySet()) {
+                for (RequiredBlockEntry entry : craft.getCraftProperties().get(PropertyKeys.FLY_BLOCKS)) {
+                    if (entry == null)
+                        continue;
+                    if (entry.contains(material)) {
+                        flyblocks.add(entry, materials.get(material));
+                    }
+                }
+
+                for (RequiredBlockEntry entry : craft.getCraftProperties().get(PropertyKeys.MOVE_BLOCKS)) {
+                    // DONE: For whatever reason, this can be null?!
+                    if (entry == null)
+                        continue;
+                    if (entry.contains(material)) {
+                        moveblocks.add(entry, materials.get(material));
+                    }
                 }
             }
-        }
 
-        craft.setDataTag(Craft.BLOCKS, materials);
-        craft.setDataTag(Craft.FLYBLOCKS, flyblocks);
-        craft.setDataTag(Craft.MOVEBLOCKS, moveblocks);
-        craft.setDataTag(Craft.NON_NEGLIGIBLE_BLOCKS, nonNegligibleBlocks);
-        craft.setDataTag(Craft.NON_NEGLIGIBLE_SOLID_BLOCKS, nonNegligibleSolidBlocks);
-        craft.setDataTag(StatusManager.LAST_STATUS_CHECK, System.currentTimeMillis());
-        if (Settings.Debug)
-            Movecraft.getInstance().getLogger().info(String.format("Finished status update task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
-        return () -> Bukkit.getPluginManager().callEvent(new CraftStatusUpdateEvent(craft));
+            craft.setDataTag(Craft.BLOCKS, materials);
+            craft.setDataTag(Craft.FLYBLOCKS, flyblocks);
+            craft.setDataTag(Craft.MOVEBLOCKS, moveblocks);
+            craft.setDataTag(Craft.NON_NEGLIGIBLE_BLOCKS, nonNegligibleBlocks);
+            craft.setDataTag(Craft.NON_NEGLIGIBLE_SOLID_BLOCKS, nonNegligibleSolidBlocks);
+            if (Settings.Debug)
+                Movecraft.getInstance().getLogger().info(String.format("Finished status update task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
+            return () -> Bukkit.getPluginManager().callEvent(new CraftStatusUpdateEvent(craft));
+        } finally {
+            craft.setDataTag(StatusManager.STATUS_CHECK_ACTIVE, false);
+            if (started) {
+                craft.setDataTag(StatusManager.LAST_STATUS_CHECK, System.currentTimeMillis());
+            }
+            craft.setProcessing(false);
+        }
     }
 
     // Credit: @ohnoey

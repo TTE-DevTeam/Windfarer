@@ -31,7 +31,7 @@ public class WorldListener implements Listener {
         for (Craft craft : craftsInWorld) {
             // Clear the collapsed hitbox, otherwise a wreck task will be queued!
             craft.getCollapsedHitBox().clear();
-            if (!CraftManager.getInstance().tryRelease(craft, CraftReleaseEvent.Reason.FORCE, true)) {
+            if (!CraftManager.getInstance().tryRelease(craft, CraftReleaseEvent.Reason.WORLD_UNLOAD, true)) {
                 allSuccessful = false;
             }
         }
