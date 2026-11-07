@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class BaseWorldManagerWorker implements WorldManagerWorker {
@@ -152,6 +153,16 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
     @Override
     public void submitEffectToCurrentTasks(Runnable runnable) {
         currentTasks.add(runnable);
+    }
+
+    @Override
+    public void dumpDebugInfo(Consumer<String> consumer) {
+        consumer.accept("Has unfinished work: " + this.hasUnfinishedWork());
+        consumer.accept("Running tasks: " + inProgress.size());
+        consumer.accept("Pending tasks counter: " + pendingTasks.get());
+        consumer.accept("Queued tasks: " + tasks.size());
+        consumer.accept("Current tasks: " + currentTasks.size());
+        threadPool.dumpDebugInformation(consumer);
     }
 
     protected void addEffect(@Nullable Effect effect) {

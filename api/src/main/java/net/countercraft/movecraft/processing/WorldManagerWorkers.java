@@ -5,6 +5,9 @@ import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.processing.worker.implementation.BlockingWorldManagerWorker;
 import net.countercraft.movecraft.processing.worker.implementation.NonBlockignWorldManagerWorker;
 
+import java.util.function.Consumer;
+
+// TODO: Replace with registry later to allow for addons to define their own workers
 public enum WorldManagerWorkers {
 
     HIGH_PRIORITY(new BlockingWorldManagerWorker(-1, 5000, Settings.highPriorityThreadCount, Settings.highPriorityPoolOverpressure, "HIGH_PRIORITY")),
@@ -20,6 +23,10 @@ public enum WorldManagerWorkers {
 
     WorldManagerWorker worker() {
         return worker;
+    }
+
+    public void sendDebugInfo(Consumer<String> consumer) {
+        worker().dumpDebugInfo(consumer);
     }
 
 }
