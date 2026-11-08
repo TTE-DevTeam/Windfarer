@@ -421,7 +421,7 @@ public class SynchronizedBitmapHitBoxTest {
                         }
                         case 3 -> {
                             final List<MovecraftLocation> l = randomLocations(random, 50, 30, 100);
-                            l.remove(sentinel);
+                            l.removeIf(sentinel::equals);
                             box.addAll(l);
                             added.addAll(l);
                         }
