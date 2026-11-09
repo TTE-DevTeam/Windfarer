@@ -35,4 +35,8 @@ public interface WorldManagerWorker {
     }
 
     int getThreadCount();
+
+    default boolean isBlocking() {
+        return false;
+    }
 }

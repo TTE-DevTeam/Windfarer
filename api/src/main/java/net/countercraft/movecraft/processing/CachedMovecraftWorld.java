@@ -2,6 +2,7 @@ package net.countercraft.movecraft.processing;
 
 import com.google.common.collect.MapMaker;
 import net.countercraft.movecraft.MovecraftLocation;
+import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.support.AsyncChunk;
 import org.bukkit.*;
 import org.bukkit.block.BlockState;
@@ -99,11 +100,19 @@ public final class CachedMovecraftWorld implements MovecraftWorld{
         if((test = chunkCache.get(chunkLocation)) != null){
             return test;
         }
-        test = WorldManager.INSTANCE.executeMain(() -> {
-            AsyncChunk<?> temp;
-            if((temp = chunkCache.get(chunkLocation)) != null) return temp;
-            return AsyncChunk.of(world.getChunkAt(location.toBukkit(world)));
-        });
+        // getChunkAtAsync is pretty, but the future is finalized on the game's mainthread
+        // If the worker for this thread is a blocking one, we need to use the old way
+        final WorldManagerWorker worker = WorldManager.INSTANCE.getCurrentWorker();
+        if (worker != null && worker.isBlocking()) {
+            test = WorldManager.INSTANCE.executeMain(() -> {
+                AsyncChunk<?> temp;
+                if((temp = chunkCache.get(chunkLocation)) != null) return temp;
+                return AsyncChunk.of(world.getChunkAt(location.toBukkit(world)));
+            });
+        } else {
+            // Use standard API instead of querying the mainthread via our own pseudo async API!
+            test = AsyncChunk.of(world.getChunkAtAsyncUrgently(location.toBukkit(world)).join());
+        }
         var previous = chunkCache.putIfAbsent(chunkLocation, test);
         return previous == null ? test : previous;
     }

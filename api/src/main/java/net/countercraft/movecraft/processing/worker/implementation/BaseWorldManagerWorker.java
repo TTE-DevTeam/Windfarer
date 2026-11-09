@@ -2,7 +2,6 @@ package net.countercraft.movecraft.processing.worker.implementation;
 
 import net.countercraft.movecraft.processing.NoOpTask;
 import net.countercraft.movecraft.processing.WindfarerThreadPool;
-import net.countercraft.movecraft.processing.WorldManager;
 import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import org.jetbrains.annotations.Nullable;

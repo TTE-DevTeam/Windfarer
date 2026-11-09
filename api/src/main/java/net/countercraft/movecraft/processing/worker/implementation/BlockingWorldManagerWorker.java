@@ -50,4 +50,9 @@ public class BlockingWorldManagerWorker extends BaseWorldManagerWorker {
             }
         }
     }
+
+    @Override
+    public boolean isBlocking() {
+        return true;
+    }
 }
