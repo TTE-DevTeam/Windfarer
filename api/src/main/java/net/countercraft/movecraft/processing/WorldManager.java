@@ -142,7 +142,7 @@ public final class WorldManager implements Executor {
     }
 
     public void removeThreadLocalWorker() {
-        //this.currentWorker.remove();
+        this.currentWorker.remove();
     }
 
     public @Nullable WorldManagerWorker getCurrentWorker() {
