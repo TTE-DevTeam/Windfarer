@@ -30,12 +30,22 @@ public class BlockingWorldManagerWorker extends BaseWorldManagerWorker {
             final boolean firstIsNull = runningTasks.get(0) == null;
             if (isEmpty || firstIsNull) {
                 Bukkit.getLogger().severe("WorldManager timed out on task query! Dumping " + inProgress.size() + " tasks. IsEmpty: <" + isEmpty + "> FirstIsNull: <" + firstIsNull + ">");
-                inProgress.forEach(task -> task.cancel(true));
-                inProgress.clear();
+                if (inProgress.removeIf(task -> {
+                    int poolActiveBefore = this.threadPool.getActiveCount();
+                    if (task.cancel(true) && poolActiveBefore > this.threadPool.getActiveCount()) {
+                        pendingTasks.getAndDecrement();
+                        return true;
+                    } else {
+                        Bukkit.getLogger().severe("FAILED to cancel running task! It somehow is STILL active!");
+                        return false;
+                    }
+                })) {
+                    // Purge all not-yet-started cancelled tasks
+                    this.threadPool.purge();
+                }
                 Bukkit.getLogger().severe("Discarding <" + worldChanges.size() + "> queued world changes!");
                 worldChanges.clear();
                 currentTasks.clear();
-                pendingTasks.set(0);
                 break;
             }
             currentTasks.drainTo(runningTasks);
