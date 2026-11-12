@@ -72,7 +72,8 @@ public class WindfarerThreadPool extends ThreadPoolExecutor {
 
     public <T> CompletableFuture<T> enqueueTask(final Supplier<T> task, final WorldManagerWorker worker) {
         this.statisticMap.computeIfAbsent(task.getClass(), k -> new AtomicLong(0)).incrementAndGet();
-        
+
+        // TODO: Add a context in form of a stacktrace from where it was spawned! Otherwise we lose ALL context on what this actually runs or who created it
         return CompletableFuture.supplyAsync(() -> {
             try {
                 WorldManager.INSTANCE.setThreadLocalWorker(worker);
