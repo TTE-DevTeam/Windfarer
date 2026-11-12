@@ -76,37 +76,27 @@ public final class WorldManager implements Executor {
 
     @Deprecated(forRemoval = true)
     public void submitHighPriority(Runnable task){
-        WorldManagerWorkers.HIGH_PRIORITY.worker().submitTaskToQueue(() -> {
-            task.run();
-            return null;
-        });
+        submit(task, WorldManagerWorkers.HIGH_PRIORITY);
     }
 
     @Deprecated(forRemoval = true)
     public void submit(Runnable task){
-        WorldManagerWorkers.NORMAL_PRIORITY.worker().submitTaskToQueue(() -> {
-            task.run();
-            return null;
-        });
+        submit(task, WorldManagerWorkers.LOW_PRIORITY);
     }
 
     @Deprecated(forRemoval = true)
     public void submitHighPriority(Supplier<@Nullable Effect> task){
-        WorldManagerWorkers.HIGH_PRIORITY.worker().submitTaskToQueue(task);
+        submit(task, WorldManagerWorkers.HIGH_PRIORITY);
     }
 
     @Deprecated(forRemoval = true)
     public void submit(Supplier<@Nullable Effect> task){
-        WorldManagerWorkers.NORMAL_PRIORITY.worker().submitTaskToQueue(task);
+        submit(task, WorldManagerWorkers.LOW_PRIORITY);
     }
 
     @Deprecated(forRemoval = true)
     public void submitAndRunNow(Supplier<@Nullable Effect> task){
-        if (this.isRunning()) {
-            WorldManagerWorkers.NORMAL_PRIORITY.worker().startTask(task);
-        } else {
-            this.submit(task);
-        }
+        submitAndRunNow(task, WorldManagerWorkers.LOW_PRIORITY);
     }
 
     public void submit(Supplier<@Nullable Effect> task, WorldManagerWorkers worker) {

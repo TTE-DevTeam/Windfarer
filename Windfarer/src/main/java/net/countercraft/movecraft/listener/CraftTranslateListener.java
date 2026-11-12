@@ -5,6 +5,7 @@ import net.countercraft.movecraft.craft.CraftCache;
 import net.countercraft.movecraft.events.CraftFinishMovementEvent;
 import net.countercraft.movecraft.events.CraftPreTranslateEvent;
 import net.countercraft.movecraft.processing.WorldManager;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.tasks.UpdateBannersTask;
 import net.countercraft.movecraft.util.ContactBlockHelper;
 import org.bukkit.event.EventHandler;
@@ -23,7 +24,7 @@ public class CraftTranslateListener implements Listener {
         // TODO: This thing is super slow, introduce caching of relevant blocks with TrackedLocations
         UpdateBannersTask task = UpdateBannersTask.createTask(craft);
         if (task != null) {
-            WorldManager.INSTANCE.submit(task);
+            WorldManager.INSTANCE.submit(task, WorldManagerWorkers.NORMAL_PRIORITY);
         }
 
         if (!event.getOldWorld().equals(craft.getWorld().getUID())) {

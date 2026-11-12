@@ -10,6 +10,7 @@ import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.features.fuel.FuelDataTags;
 import net.countercraft.movecraft.features.fuel.FuelUtil;
 import net.countercraft.movecraft.processing.WorldManager;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.tasks.FuelBurnTask;
 import net.countercraft.movecraft.processing.tasks.UpdateFuelBurnersTask;
 import org.bukkit.inventory.ItemStack;
@@ -62,14 +63,14 @@ public class FuelBurnRunnable implements Runnable {
 
     @Deprecated(forRemoval = true)
     public static void updateFurnaces(Craft craft, boolean active) {
-        WorldManager.INSTANCE.submit(new UpdateFuelBurnersTask(craft, active));
+        WorldManager.INSTANCE.submit(new UpdateFuelBurnersTask(craft, active), WorldManagerWorkers.LOW_PRIORITY);
     }
 
     public static void runFuelBurnLogic(Craft craft, boolean isStick) {
         // Burn current item or find a new one
         double fuelBurnRate = getFuelBurnRate(craft, isStick);
         // New logic starts a task per craft which handles like everything
-        WorldManager.INSTANCE.submit(new FuelBurnTask(craft, fuelBurnRate));
+        WorldManager.INSTANCE.submit(new FuelBurnTask(craft, fuelBurnRate), WorldManagerWorkers.NORMAL_PRIORITY);
     }
 
     static double getFuelBurnRateStickMovement(final Craft craft) {
