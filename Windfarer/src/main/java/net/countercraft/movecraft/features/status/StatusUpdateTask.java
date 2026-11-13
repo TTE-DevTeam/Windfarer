@@ -5,6 +5,7 @@ import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.async.AbstractWorker;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
+import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
@@ -52,8 +53,13 @@ public final class StatusUpdateTask implements Supplier<Effect> {
         try {
             // Stop the craft from attempting anything funny
             final long startTime = System.currentTimeMillis();
+            // TODO: It can happen that a StatusTask was queued for execution for a craft that, once this task runs, is long sunk or removed!
             while (!craft.setProcessingActiveIfAvailable()) {
-                // Wait
+                // First: check if this craft is already dead
+                if (!CraftManager.getInstance().isStillAlive(this.craft)) {
+                    return Effect.NONE;
+                }
+                // Then, wait
                 if (System.currentTimeMillis() - startTime > 5000) {
                     Movecraft.getInstance().getLogger().warning(String.format("Status task for craft <%s> timed out as craft was/is busy!", craft.getUUID()));
                     return Effect.NONE;

@@ -562,4 +562,8 @@ public class CraftManager implements Iterable<Craft>{
         return overboards.getOrDefault(player, 0L);
     }
     //endregion
+
+    public boolean isStillAlive(final Craft craft) {
+        return this.crafts.contains(craft);
+    }
 }

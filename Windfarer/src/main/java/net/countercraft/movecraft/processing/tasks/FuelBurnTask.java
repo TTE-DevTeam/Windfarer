@@ -63,7 +63,11 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
             //this.craft.setProcessing(true);
             // Stop the craft from attempting anything funny
             while (!craft.setProcessingActiveIfAvailable()) {
-                // Wait
+                // First: check if this craft is already dead
+                if (!CraftManager.getInstance().isStillAlive(this.craft)) {
+                    return Effect.NONE;
+                }
+                // Then, wait
                 if (System.currentTimeMillis() - startTime > 5000) {
                     Movecraft.getInstance().getLogger().warning(String.format("Fuel-burn task for craft <%s> timed out as craft was/is busy!", craft.getUUID()));
                     return Effect.NONE;
