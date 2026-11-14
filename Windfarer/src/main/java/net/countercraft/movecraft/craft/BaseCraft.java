@@ -223,7 +223,22 @@ public abstract class BaseCraft implements Craft {
                 && !(this instanceof SinkingCraft))
             return;
 
-        Movecraft.getInstance().getAsyncManager().submitTask(new TranslationTask(this, world, dx, dy, dz), this);
+        final boolean relativeToCurrentWorld = world.equals(w);
+        final World targetWorld = world;
+        final int targetDx = dx;
+        final int targetDy = dy;
+        final int targetDz = dz;
+        Movecraft.getInstance().getAsyncManager().submitTask(
+                () -> new TranslationTask(
+                        this,
+                        relativeToCurrentWorld ? getWorld() : targetWorld,
+                        targetDx,
+                        targetDy,
+                        targetDz,
+                        relativeToCurrentWorld
+                ),
+                this
+        );
     }
 
     // TODO: replace with RotationController!
@@ -234,13 +249,21 @@ public abstract class BaseCraft implements Craft {
             return false;
         }
         setLastRotateTime(System.nanoTime());
-        Movecraft.getInstance().getAsyncManager().submitTask(new RotationTask(this, originPoint, rotation, getWorld(), rotationProcessor), this);
+        final MovecraftLocation originOffset = originPoint.subtract(getCraftOrigin());
+        Movecraft.getInstance().getAsyncManager().submitTask(
+                () -> new RotationTask(this, getCraftOrigin().add(originOffset), rotation, getWorld(), rotationProcessor),
+                this
+        );
         return true;
     }
 
     @Override
     public boolean rotate(MovecraftRotation rotation, MovecraftLocation originPoint, boolean isSubCraft, BiConsumer<Craft, MovecraftRotation> rotationProcessor) {
-        Movecraft.getInstance().getAsyncManager().submitTask(new RotationTask(this, originPoint, rotation, getWorld(), isSubCraft, rotationProcessor), this);
+        final MovecraftLocation originOffset = originPoint.subtract(getCraftOrigin());
+        Movecraft.getInstance().getAsyncManager().submitTask(
+                () -> new RotationTask(this, getCraftOrigin().add(originOffset), rotation, getWorld(), isSubCraft, rotationProcessor),
+                this
+        );
         return true;
     }
 

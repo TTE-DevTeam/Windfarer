@@ -39,9 +39,6 @@ import java.util.function.Supplier;
 
 import static net.countercraft.movecraft.features.fuel.FuelDataTags.IS_FUELED;
 
-// Problematic methods (highest to lowest9:
-//   - updateFurnaces (getBlockState(), BlockState.update())
-//   - burnFuel()
 public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effect> {
 
     private final double fuelBurnRate;
@@ -53,7 +50,8 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
 
     @Override
     public Effect get() {
-        boolean started = false;
+        boolean processingLockAcquired = false;
+        boolean completionOwnsProcessingLock = false;
         try {
             final long startTime = System.currentTimeMillis();
             if (Settings.Debug)
@@ -81,7 +79,7 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
                     return Effect.NONE;
                 }
             }
-            started = true;
+            processingLockAcquired = true;
 
             boolean hasFuel = false;
             double fuelBurnRate = this.fuelBurnRate;
@@ -190,22 +188,43 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
 
             // TODO: Reset the furnace trackedlocations after a while
 
-            //craft.setProcessing(false);
-
             additionalSteps.add(new SinkOutOfFuelCraftsAndApplyIsFueled(craft, hasFuel));
-            // Update burner effect at last
+
+            // Reuse the burner update logic without invoking UpdateFuelBurnersTask#get(),
+            // which is an independently submitted task and must not release our lock.
             this.burnersActive = hasFuel;
-            Effect updateBurnersEffect = super.get();
-            additionalSteps.add(updateBurnersEffect);
+            additionalSteps.add(createBurnerUpdateEffect());
+
             if (Settings.Debug)
                 Movecraft.getInstance().getLogger().info(String.format("Finished fuel burn task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
-            return new Effect.AndEffect(additionalSteps);
+
+            // The lock remains held until the main-thread effects have been applied. This
+            // prevents movement from starting between calculation and fuel/world updates.
+            Effect completionEffect = new FinishFuelTask(craft, new Effect.AndEffect(additionalSteps));
+            completionOwnsProcessingLock = true;
+            return completionEffect;
         } finally {
-            if (!started) {
+            if (!completionOwnsProcessingLock) {
+                if (processingLockAcquired) {
+                    craft.setProcessing(false);
+                }
                 FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
             }
         }
 
+    }
+
+    private record FinishFuelTask(Craft craft, Effect delegate) implements Effect {
+
+        @Override
+        public void run() {
+            try {
+                delegate.run();
+            } finally {
+                craft.setProcessing(false);
+                FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
+            }
+        }
     }
 
     private record ReduceBurningFuelEffect(
@@ -243,16 +262,9 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
 
         @Override
         public void run() {
-            // Only sink it here if it is not moving. If it is moving, it is sunk via the task itself!
-            // We are moving, that means our result could be faulty
-            if (!craft.isNotProcessing() && !fueled) {
-                if (Settings.Debug) {
-                    Movecraft.getInstance().getLogger().info("Craft <" + craft.getUUID().toString() +"> technically cant burn any more fuel but is currently busy, we will try again later!");
-                }
-                return;
-            }
-
-            // We were fueld, but now we are no longer fueled
+            // FuelBurnTask owns the processing lock until this effect has run, so no
+            // movement/status task can invalidate the result between calculation and sink.
+            // We were fueled, but now we are no longer fueled.
             if (craft.getDataTag(IS_FUELED)) {
                 if (craft.getCraftProperties().get(PropertyKeys.SINK_WHEN_OUT_OF_FUEL) && !fueled) {
                     if (Settings.Debug) {

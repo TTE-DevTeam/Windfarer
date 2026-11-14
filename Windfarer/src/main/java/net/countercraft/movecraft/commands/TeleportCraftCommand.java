@@ -42,9 +42,10 @@ public class TeleportCraftCommand extends AbstractCraftCommand {
             final MovecraftLocation pos = new MovecraftLocation(blockPosition.blockX(), blockPosition.blockY(), blockPosition.blockZ());
 
             for (Craft craft : crafts) {
-                final MovecraftLocation delta = pos.subtract(craft.getCraftOrigin());
-                TranslationTask translationTask = new TranslationTask(craft, world, delta.getX(), delta.getY(), delta.getZ());
-                Movecraft.getInstance().getAsyncManager().submitTask(translationTask, craft);
+                Movecraft.getInstance().getAsyncManager().submitTask(() -> {
+                    final MovecraftLocation delta = pos.subtract(craft.getCraftOrigin());
+                    return new TranslationTask(craft, world, delta.getX(), delta.getY(), delta.getZ());
+                }, craft);
             }
         } catch(CommandSyntaxException cse) {
             context.getSource().getSender().sendMessage(cse.getMessage());

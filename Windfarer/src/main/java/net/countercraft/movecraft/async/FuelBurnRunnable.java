@@ -50,9 +50,7 @@ public class FuelBurnRunnable implements Runnable {
                 continue;
             }
 
-            if (craftsInProgress.add(craft.getUUID())) {
-                runFuelBurnLogic(craft, false);
-            }
+            runFuelBurnLogic(craft, false);
         }
     }
 
@@ -67,10 +65,19 @@ public class FuelBurnRunnable implements Runnable {
     }
 
     public static void runFuelBurnLogic(Craft craft, boolean isStick) {
-        // Burn current item or find a new one
-        double fuelBurnRate = getFuelBurnRate(craft, isStick);
-        // New logic starts a task per craft which handles like everything
-        WorldManager.INSTANCE.submit(new FuelBurnTask(craft, fuelBurnRate), WorldManagerWorkers.NORMAL_PRIORITY);
+        // All entry points (periodic fuel updates and movement checks) share the same
+        // per-craft guard so they cannot enqueue overlapping fuel tasks.
+        if (!craftsInProgress.add(craft.getUUID())) {
+            return;
+        }
+
+        try {
+            double fuelBurnRate = getFuelBurnRate(craft, isStick);
+            WorldManager.INSTANCE.submit(new FuelBurnTask(craft, fuelBurnRate), WorldManagerWorkers.NORMAL_PRIORITY);
+        } catch (RuntimeException exception) {
+            craftsInProgress.remove(craft.getUUID());
+            throw exception;
+        }
     }
 
     static double getFuelBurnRateStickMovement(final Craft craft) {
