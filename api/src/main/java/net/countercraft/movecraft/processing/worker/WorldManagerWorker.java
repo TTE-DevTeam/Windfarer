@@ -19,6 +19,15 @@ public interface WorldManagerWorker {
 
     public <T> CompletableFuture<T> submit(Supplier<T> task);
     public <T> CompletableFuture<T> submit(Callable<T> callable);
+
+    /**
+     * Keep this worker active while work is executing outside its own thread pool.
+     * The future should complete only after its final callback has been queued.
+     */
+    void trackAsyncWork(CompletableFuture<?> future);
+
+    /** Queue an effect to be executed by the worker on the main thread. */
+    void submitEffectToWorldChanges(Effect effect);
     public void submitTaskToQueue(Supplier<@Nullable Effect> task);
     public void submitEffectToCurrentTasks(Runnable runnable);
 

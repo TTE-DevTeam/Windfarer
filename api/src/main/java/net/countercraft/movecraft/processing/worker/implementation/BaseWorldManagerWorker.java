@@ -34,6 +34,7 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
     protected final ConcurrentLinkedQueue<Supplier<@Nullable Effect>> tasks = new ConcurrentLinkedQueue<>();
     protected final BlockingQueue<Runnable> currentTasks = new LinkedBlockingQueue<>();
     protected final AtomicInteger pendingTasks = new AtomicInteger(0);
+    protected final AtomicInteger trackedAsyncWork = new AtomicInteger(0);
     protected final Set<CompletableFuture<Effect>> inProgress = ConcurrentHashMap.newKeySet();
 
     public BaseWorldManagerWorker(long maxTimeForWorldChanges, long maxTimeForMainThreadRequests, final int poolSize, final int poolOverpressure, final String identifier) {
@@ -44,7 +45,7 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
 
     @Override
     public boolean hasUnfinishedWork() {
-        return !(this.tasks.isEmpty() && this.currentTasks.isEmpty() && this.worldChanges.isEmpty() && this.pendingTasks.get() == 0 && inProgress.isEmpty() && threadPool.getActiveCount() == 0);
+        return !(this.tasks.isEmpty() && this.currentTasks.isEmpty() && this.worldChanges.isEmpty() && this.pendingTasks.get() == 0 && this.trackedAsyncWork.get() == 0 && inProgress.isEmpty() && threadPool.getActiveCount() == 0);
     }
 
     @Override
@@ -147,6 +148,12 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
     }
 
     @Override
+    public void trackAsyncWork(CompletableFuture<?> future) {
+        trackedAsyncWork.incrementAndGet();
+        future.whenComplete((result, exception) -> trackedAsyncWork.decrementAndGet());
+    }
+
+    @Override
     public <T> CompletableFuture<T> submit(Callable<T> callable) {
         return this.threadPool.enqueueTask(() -> {
             try {
@@ -168,10 +175,16 @@ public class BaseWorldManagerWorker implements WorldManagerWorker {
     }
 
     @Override
+    public void submitEffectToWorldChanges(Effect effect) {
+        addEffect(effect);
+    }
+
+    @Override
     public void dumpDebugInfo(Consumer<String> consumer) {
         consumer.accept("Has unfinished work: " + this.hasUnfinishedWork());
         consumer.accept("Running tasks: " + inProgress.size());
         consumer.accept("Pending tasks counter: " + pendingTasks.get());
+        consumer.accept("Tracked async work: " + trackedAsyncWork.get());
         consumer.accept("Queued tasks: " + tasks.size());
         consumer.accept("Current tasks: " + currentTasks.size());
         threadPool.dumpDebugInformation(consumer);
