@@ -11,6 +11,7 @@ import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
 import net.countercraft.movecraft.features.status.events.CraftStatusUpdateEvent;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.WorldManagerWorkers;
+import net.countercraft.movecraft.processing.WorldManagerExecutors;
 import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.util.Counter;
@@ -30,7 +31,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -38,13 +38,6 @@ import java.util.logging.Level;
 
 // Credits for parallel Status go to @oh-noey
 public final class StatusUpdateTask implements Supplier<Effect> {
-    /**
-     * Use the JVM-wide work-stealing pool instead of creating another pool per worker/priority.
-     * Its default parallelism is max(1, availableProcessors - 1). This limits the status
-     * pool's own worker count, but does not reserve CPU capacity from other server threads.
-     */
-    private static final ForkJoinPool STATUS_EXECUTOR = ForkJoinPool.commonPool();
-
     private final Craft craft;
 
     public StatusUpdateTask(@NotNull Craft craft) {
@@ -139,7 +132,7 @@ public final class StatusUpdateTask implements Supplier<Effect> {
     private CompletableFuture<Boolean> acquireProcessingAsync(long deadlineNanos) {
         return CompletableFuture
                 .supplyAsync(() -> CraftManager.getInstance().isStillAlive(craft)
-                        && craft.setProcessingActiveIfAvailable(), STATUS_EXECUTOR)
+                        && craft.setProcessingActiveIfAvailable(), WorldManagerExecutors.WORK_STEALING_POOL)
                 .thenCompose(acquired -> {
                     if (acquired) {
                         return CompletableFuture.completedFuture(true);
@@ -154,7 +147,7 @@ public final class StatusUpdateTask implements Supplier<Effect> {
                     return CompletableFuture
                             .runAsync(
                                     () -> { },
-                                    CompletableFuture.delayedExecutor(10, TimeUnit.MILLISECONDS, STATUS_EXECUTOR)
+                                    CompletableFuture.delayedExecutor(10, TimeUnit.MILLISECONDS, WorldManagerExecutors.WORK_STEALING_POOL)
                             )
                             .thenCompose(ignored -> acquireProcessingAsync(deadlineNanos));
                 });
@@ -172,7 +165,7 @@ public final class StatusUpdateTask implements Supplier<Effect> {
                     List<Iterable<MovecraftLocation>> slices = new ArrayList<>();
                     new HitBoxSlicer(hitBoxSnapshot).forEach(slices::add);
                     return slices;
-                }, STATUS_EXECUTOR)
+                }, WorldManagerExecutors.WORK_STEALING_POOL)
                 .thenCompose(slices -> {
                     if (slices.isEmpty()) {
                         return CompletableFuture.completedFuture(Optional.empty());
@@ -186,7 +179,7 @@ public final class StatusUpdateTask implements Supplier<Effect> {
                             } catch (Exception exception) {
                                 throw new CompletionException(exception);
                             }
-                        }, STATUS_EXECUTOR));
+                        }, WorldManagerExecutors.WORK_STEALING_POOL));
                     }
 
                     // allOf is a completion barrier, not a blocking wait. thenApply runs

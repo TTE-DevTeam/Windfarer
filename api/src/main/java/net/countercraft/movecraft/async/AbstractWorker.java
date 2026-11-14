@@ -15,11 +15,18 @@ public abstract class AbstractWorker<V> implements Callable<V> {
 
     @Override
     public V call() throws Exception {
+        // AbstractWorkers are sometimes invoked inline by another worker. Preserve
+        // that caller's context instead of clearing its ThreadLocal on return.
+        WorldManagerWorker previousWorker = WorldManager.INSTANCE.getCurrentWorker();
         WorldManager.INSTANCE.setThreadLocalWorker(this.worker);
         try {
             return callInternally();
         } finally {
-            WorldManager.INSTANCE.removeThreadLocalWorker();
+            if (previousWorker == null) {
+                WorldManager.INSTANCE.removeThreadLocalWorker();
+            } else {
+                WorldManager.INSTANCE.setThreadLocalWorker(previousWorker);
+            }
         }
     }
 
