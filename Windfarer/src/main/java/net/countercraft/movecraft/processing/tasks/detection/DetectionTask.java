@@ -299,6 +299,7 @@ public class DetectionTask implements Supplier<Effect> {
         }
 
         Movecraft.getInstance().getLogger().info(String.format("Finished detection task for pilot <%s>! Time taken: %dms", pilot == null ? "NULL" : pilot.getUniqueId(), System.currentTimeMillis() - startTime));
+        CraftManager.getInstance().addCraftInPostDetection(craft);
         return ((Effect) () -> {
             // Notify player and console
             craft.getAudience().sendMessage(Component.text(String.format(
@@ -328,15 +329,19 @@ public class DetectionTask implements Supplier<Effect> {
         ).andThen(
                 () -> {
                     if (this.alwaysRunAfter != null) {
-                        this.alwaysRunAfter.apply(craft);
+                        try {
+                            this.alwaysRunAfter.apply(craft);
+                        } catch(Exception exception) {
+                            exception.printStackTrace();
+                        }
                     }
                 }
         ).andThen(
-                // Add craft to CraftManager
-                () -> CraftManager.getInstance().add(craft)
-        ).andThen(
                 // Apply post detection effect
                 postDetection.apply(craft)
+        ).andThen(
+                // Add craft to CraftManager
+                () -> CraftManager.getInstance().add(craft)
         );
     }
 
