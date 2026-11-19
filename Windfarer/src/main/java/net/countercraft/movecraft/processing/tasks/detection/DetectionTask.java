@@ -332,11 +332,11 @@ public class DetectionTask implements Supplier<Effect> {
                     }
                 }
         ).andThen(
-                // Apply post detection effect
-                postDetection.apply(craft)
-        ).andThen(
                 // Add craft to CraftManager
                 () -> CraftManager.getInstance().add(craft)
+        ).andThen(
+                // Apply post detection effect
+                postDetection.apply(craft)
         );
     }
 
