@@ -32,7 +32,7 @@ public class BlockingWorldManagerWorker extends BaseWorldManagerWorker {
                 Bukkit.getLogger().severe("WorldManager timed out on task query! Dumping " + inProgress.size() + " tasks. IsEmpty: <" + isEmpty + "> FirstIsNull: <" + firstIsNull + ">");
                 if (inProgress.removeIf(task -> {
                     int poolActiveBefore = this.threadPool.getActiveCount();
-                    if (task.cancel(true) && poolActiveBefore > this.threadPool.getActiveCount()) {
+                    if (task.cancel(true)) {
                         pendingTasks.getAndDecrement();
                         return true;
                     } else {
