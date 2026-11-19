@@ -14,6 +14,7 @@ import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
 import net.countercraft.movecraft.events.CraftDetectEvent;
 import net.countercraft.movecraft.events.CraftGatherAdditionalDetectionStepsEvent;
 import net.countercraft.movecraft.events.CraftPilotEvent;
+import net.countercraft.movecraft.features.status.StatusUpdateTask;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.WorldManager;
@@ -283,6 +284,9 @@ public class DetectionTask implements Supplier<Effect> {
         craft.setOrigBlockCount(craft.getHitBox().size());
 
         detectSigns(craft);
+
+        calculateAndSetStatusValues(craft);
+
         Set<Effect> additionalEffects = new HashSet<>();
         runAdditionalSteps(craft, additionalEffects);
 
@@ -334,6 +338,29 @@ public class DetectionTask implements Supplier<Effect> {
                 // Add craft to CraftManager
                 () -> CraftManager.getInstance().add(craft)
         );
+    }
+
+    private void calculateAndSetStatusValues(Craft craft) {
+        // Compute datatags for status and throw StatusEvent as Effect
+        final Counter<NamespacedKey> counter = new Counter<>();
+        final HitBox hitBox = craft.getHitBox();
+        // TODO: Is this fast enough?
+        this.materials.entrySet().forEach((entry) -> {
+            int count = 0;
+            for (MovecraftLocation locTmp : entry.getValue()) {
+                if (hitBox.contains(locTmp)) {
+                    count++;
+                }
+            }
+            if (count > 0) {
+                counter.add(entry.getKey(), count);
+            }
+        });
+        final int fireBlocks = counter.get(Material.FIRE.getKey());
+        final int nonNegligable = hitBox.size() - fireBlocks;
+        final int nonNegligableSolid = nonNegligable - this.fluid.size();
+
+        StatusUpdateTask.fillMoveBlockAndFlyBlockDatatags(counter, nonNegligable, nonNegligableSolid, craft);
     }
 
     protected void runAdditionalSteps(final Craft craft, Set<Effect> additionalEffects) {

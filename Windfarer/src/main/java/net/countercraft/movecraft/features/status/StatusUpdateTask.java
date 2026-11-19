@@ -199,11 +199,7 @@ public final class StatusUpdateTask implements Supplier<Effect> {
                 });
     }
 
-    private Effect applyStatusData(@NotNull StatusWorkerData result) {
-        final Counter<NamespacedKey> materials = result.counter();
-        final int nonNegligibleBlocks = result.nonNegligibleBlocks();
-        final int nonNegligibleSolidBlocks = result.nonNegligibleSolidBlocks();
-
+    public static void fillMoveBlockAndFlyBlockDatatags(final Counter<NamespacedKey> blockCounter, final int nonNegligibleBlocks, final int nonNegligibleSolidBlocks, final Craft craft) {
         Counter<RequiredBlockEntry> flyblocks = new Counter<>();
         Counter<RequiredBlockEntry> moveblocks = new Counter<>();
 
@@ -212,13 +208,13 @@ public final class StatusUpdateTask implements Supplier<Effect> {
             moveblocks.add(entry, 0);
         }
 
-        for (NamespacedKey material : materials.getKeySet()) {
+        for (NamespacedKey material : blockCounter.getKeySet()) {
             for (RequiredBlockEntry entry : craft.getCraftProperties().get(PropertyKeys.FLY_BLOCKS)) {
                 if (entry == null) {
                     continue;
                 }
                 if (entry.contains(material)) {
-                    flyblocks.add(entry, materials.get(material));
+                    flyblocks.add(entry, blockCounter.get(material));
                 }
             }
 
@@ -227,16 +223,20 @@ public final class StatusUpdateTask implements Supplier<Effect> {
                     continue;
                 }
                 if (entry.contains(material)) {
-                    moveblocks.add(entry, materials.get(material));
+                    moveblocks.add(entry, blockCounter.get(material));
                 }
             }
         }
 
-        craft.setDataTag(Craft.BLOCKS, materials);
+        craft.setDataTag(Craft.BLOCKS, blockCounter);
         craft.setDataTag(Craft.FLYBLOCKS, flyblocks);
         craft.setDataTag(Craft.MOVEBLOCKS, moveblocks);
         craft.setDataTag(Craft.NON_NEGLIGIBLE_BLOCKS, nonNegligibleBlocks);
         craft.setDataTag(Craft.NON_NEGLIGIBLE_SOLID_BLOCKS, nonNegligibleSolidBlocks);
+    }
+
+    private Effect applyStatusData(@NotNull StatusWorkerData result) {
+        fillMoveBlockAndFlyBlockDatatags(result.counter(), result.nonNegligibleBlocks(), result.nonNegligibleSolidBlocks(), craft);
 
         return () -> Bukkit.getPluginManager().callEvent(new CraftStatusUpdateEvent(craft));
     }
@@ -255,6 +255,10 @@ public final class StatusUpdateTask implements Supplier<Effect> {
             current = current.getCause();
         }
         return current;
+    }
+
+    public static boolean isNonNegligibleBlock(final Material material) {
+        return material != Material.FIRE && !material.isAir();
     }
 
     protected record StatusWorkerData(
@@ -299,11 +303,11 @@ public final class StatusUpdateTask implements Supplier<Effect> {
                 NamespacedKey namespacedKey = NamespacedIDUtil.getBlockID(data);
                 materials.add(namespacedKey);
 
-                if (type != Material.FIRE && !type.isAir()) {
+                if (isNonNegligibleBlock(type)) {
                     nonNegligibleBlocks++;
-                }
-                if (type != Material.FIRE && !type.isAir() && !Tags.FLUID.contains(type)) {
-                    nonNegligibleSolidBlocks++;
+                    if (!Tags.FLUID.contains(type)) {
+                        nonNegligibleSolidBlocks++;
+                    }
                 }
             }
             return new StatusWorkerData(materials, nonNegligibleBlocks, nonNegligibleSolidBlocks);
