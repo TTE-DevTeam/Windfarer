@@ -28,6 +28,7 @@ import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.TypesReloadedEvent;
 import net.countercraft.movecraft.exception.NonCancellableReleaseException;
 import net.countercraft.movecraft.features.status.StatusUpdateTask;
+import net.countercraft.movecraft.features.status.events.CraftStatusUpdateEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.processing.CachedMovecraftWorld;
 import net.countercraft.movecraft.processing.WorldManager;
@@ -289,7 +290,9 @@ public class CraftManager implements Iterable<Craft>{
         crafts.add(c);
 
         // Immediately fire the Status update to make moveblocks apply and to have up-to-date values
-        WorldManager.INSTANCE.submit(new StatusUpdateTask(c), WorldManagerWorkers.NORMAL_PRIORITY);
+        // The detection task already calculated this though, so we just throw the event
+        CraftStatusUpdateEvent event = new CraftStatusUpdateEvent(c);
+        event.callEvent();
     }
 
     public void sink(@NotNull Craft craft) {
