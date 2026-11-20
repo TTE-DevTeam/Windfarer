@@ -332,6 +332,7 @@ public class CraftManager implements Iterable<Craft>{
 
     public void removeCraft(final Craft craft) {
         crafts.remove(craft);
+        craftsInPostDetection.remove(craft);
         CraftCache.removeCraft(craft);
         if (craft instanceof PlayerCraft)
             playerCrafts.remove(((PlayerCraft) craft).getPilotUUID());
