@@ -485,12 +485,15 @@ movecraft:
     move_break_blocks:
       - "#minecraft:replaceable"
       - "#minecraft:leaves"
-      - "minecraft:water"
-      - "minecraft:kelp"
+      - "#minecraft:lily_pad"
+      - "#minecraft:frogspawn"
     passthrough_blocks:
-      - "#minecraft:air"
       - "minecraft:bubble_column"
       - "minecraft:kelp"
+      - "minecraft:kelp_plant"
+      - "minecraft:seagrass"
+      - "minecraft:tall_seagrass"
+      - "minecraft:sea_pickle"
     collision:
       explosion:
         focused: false
