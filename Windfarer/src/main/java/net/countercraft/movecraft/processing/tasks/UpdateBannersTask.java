@@ -10,6 +10,8 @@ import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagRegistry;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.effects.Effect;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
+import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.processing.functions.Result;
 import net.countercraft.movecraft.util.FilteredTrackedLocations;
 import net.countercraft.movecraft.util.Tags;
@@ -25,6 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 import java.util.function.Supplier;
 
 // DONE: Add cache for banners
@@ -58,13 +62,37 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
         final long startTime = System.currentTimeMillis();
         if (Settings.Debug)
             Movecraft.getInstance().getLogger().info(String.format("Starting banner update task for craft <%s>...", craft.getUUID()));
-        FilteredTrackedLocations banners = this.craft.getDataTag(BANNER_LOCATIONS);
-        for (TrackedLocation trackedLocation : banners) {
-            this.updateLocations.add(trackedLocation.getAbsoluteLocation());
-        }
-        if (Settings.Debug)
-            Movecraft.getInstance().getLogger().info(String.format("Finished banner update task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
-        return this;
+
+        final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
+        final FilteredTrackedLocations banners = this.craft.getDataTag(BANNER_LOCATIONS);
+        final CompletableFuture<Void> completion = banners.getSetAsync()
+                .thenAccept(locations -> {
+                    for (TrackedLocation trackedLocation : locations) {
+                        this.updateLocations.add(trackedLocation.getAbsoluteLocation());
+                    }
+                    if (Settings.Debug) {
+                        Movecraft.getInstance().getLogger().info(String.format(
+                                "Finished banner update task for craft <%s>! Time taken: %dms",
+                                craft.getUUID(), System.currentTimeMillis() - startTime
+                        ));
+                    }
+                    // The actual Bukkit block updates remain an Effect and are run by
+                    // WorldManager on the primary thread.
+                    worker.submitEffectToWorldChanges(this);
+                })
+                .whenComplete((ignored, throwable) -> {
+                    if (throwable != null) {
+                        craftsInProgress.remove(craft.getUUID());
+                        Movecraft.getInstance().getLogger().log(
+                                Level.SEVERE,
+                                "Failed to collect banner locations for craft " + craft.getUUID(),
+                                throwable
+                        );
+                    }
+                });
+
+        worker.trackAsyncWork(completion);
+        return Effect.NONE;
     }
 
     protected static Result isBannerBlock(MovecraftLocation location, MovecraftWorld world, Craft craftTmp) {
@@ -83,16 +111,19 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
 
     @Override
     public void run() {
-        //boolean processing = !this.craft.isNotProcessing();
-        //this.craft.setProcessing(true);
-        for (MovecraftLocation location : this.updateLocations) {
-            Block block = location.toBukkit(this.world).getBlock();
-            BlockState state = block.getState();
-            if (state instanceof Banner banner) {
-                banner.update(false, false);
+        try {
+            //boolean processing = !this.craft.isNotProcessing();
+            //this.craft.setProcessing(true);
+            for (MovecraftLocation location : this.updateLocations) {
+                Block block = location.toBukkit(this.world).getBlock();
+                BlockState state = block.getState();
+                if (state instanceof Banner banner) {
+                    banner.update(false, false);
+                }
             }
+            //this.craft.setProcessing(processing);
+        } finally {
+            craftsInProgress.remove(this.craft.getUUID());
         }
-        craftsInProgress.remove(this.craft.getUUID());
-        //this.craft.setProcessing(processing);
     }
 }

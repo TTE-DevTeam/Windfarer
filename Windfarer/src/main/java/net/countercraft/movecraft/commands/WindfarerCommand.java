@@ -6,6 +6,7 @@ import net.countercraft.movecraft.commands.argument.type.EnumArgumentType;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.localisation.I18nSupport;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.sign.AbstractCraftPilotSign;
 import net.countercraft.movecraft.sign.AbstractMovecraftSign;
 import net.countercraft.movecraft.sign.MovecraftSignRegistry;
@@ -27,7 +28,8 @@ public class WindfarerCommand {
         RELOAD_TYPES,
         TYPE_LIST,
         ACTIVE_CRAFTS,
-        REGISTERED_SIGNS
+        REGISTERED_SIGNS,
+        ASYNC_WORKER_STATUS
     }
 
     public static void register(final Commands commands) {
@@ -76,8 +78,19 @@ public class WindfarerCommand {
             case REGISTERED_SIGNS:
                 processRegisteredSigns(sender);
                 break;
+            case ASYNC_WORKER_STATUS:
+                processAsyncWorkerStatus(sender);
+                break;
             default:
                 processVersion(sender);
+        }
+    }
+
+    private static void processAsyncWorkerStatus(CommandSender sender) {
+        sender.sendMessage(I18nSupport.getInternationalisedComponent("Windfarer - WorldManager report"));
+        for (WorldManagerWorkers workerType : WorldManagerWorkers.values()) {
+            sender.sendMessage("Report of worker: " + workerType.name());
+            workerType.sendDebugInfo(s -> sender.sendMessage(Component.text(s)));
         }
     }
 

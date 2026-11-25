@@ -3,6 +3,8 @@ package net.countercraft.movecraft.processing.tasks;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.TrackedLocation;
+import net.countercraft.movecraft.async.AbstractWorker;
+import net.countercraft.movecraft.async.FuelBurnRunnable;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
@@ -15,7 +17,9 @@ import net.countercraft.movecraft.features.fuel.FuelDataTags;
 import net.countercraft.movecraft.features.fuel.FuelUtil;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.WorldManager;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.effects.Effect;
+import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.util.Tags;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -28,21 +32,13 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ForkJoinTask;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static net.countercraft.movecraft.features.fuel.FuelDataTags.IS_FUELED;
 
-// Problematic methods (highest to lowest9:
-//   - updateFurnaces (getBlockState(), BlockState.update())
-//   - burnFuel()
 public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effect> {
 
     private final double fuelBurnRate;
@@ -54,119 +50,181 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
 
     @Override
     public Effect get() {
-        final long startTime = System.currentTimeMillis();
-        if (Settings.Debug)
-            Movecraft.getInstance().getLogger().info(String.format("Starting fuel burn task for craft <%s>...", craft.getUUID()));
-        // TODO: new craft status concept! Stop the craft from moving while we do something
-        // TODO: Add API for additional fuel sources and how to use them
-        //this.craft.setProcessing(true);
-
-        boolean hasFuel = false;
-        double fuelBurnRate = this.fuelBurnRate;
-        List<Effect> additionalSteps = new ArrayList<>(2);
-
-        // If the specified rate is 0 and we are here, then we burn fuel, but not currently!
-        // TODO: Sure? This will break fuel consumption!
-        // TODO: Properly treat crafts without passive fuel burning! Those need to calculate their values!
-        // We also pass in a burn rate of 0, if we are not moving for example
-        if (fuelBurnRate <= 0.0D) {
-            craft.setBurningFuel(0.0);
-        }
-        // Fuel item burning
-        // We currently have somethign that we are burning
-        else if (craft.getBurningFuel() >= fuelBurnRate) {
-            hasFuel = true;
-            additionalSteps.add(new ReduceBurningFuelEffect(craft, fuelBurnRate));
-        }
-        // Find a new fuel item to burn, save to tag, remove item from furnace, throw event
-        // We burnt the item we had, if we had any. Search for something new to burn
-        else {
-            Effect consumeFuelEffect = null;
-            Effect fuelCraftEffect = null;
-            // TODO: Refactor into a expandable list of callable functions
-            // Step 0): Initialize variables for burn process
-            ItemStack fuelItem = null;
-            double burnTime = 0;
-            // After that, find our source for a new fuel item
-            // Step 1): Check for fuel in the burners
-            Set<TrackedLocation> furnaces = FuelUtil.getFuelBurners(this.craft);
-            if (!furnaces.isEmpty()) {
-                // Access furnace inventories and determine the next active burner
-                // Also collect the burners in a list to update them later on
-                ArrayList<ForkJoinTask<Void>> workers = new ArrayList<>();
-                final NamespacedKeyToDoubleProperty fuelTypes = this.craft.getCraftProperties().get(PropertyKeys.FUEL_TYPES);
-                final double finalBurnRate = fuelBurnRate;
-                final AtomicBoolean validatedFound = new AtomicBoolean(false);
-                final AtomicReference<WorkerData> resultReference = new AtomicReference<>(null);
-                furnaces.forEach(location -> workers.add(ForkJoinTask.adapt(new Worker(craft, location, fuelTypes, finalBurnRate, validatedFound, resultReference))));
-
-                // Invokes all, the workers check towards the AtomicBoolean if there still is something to do
-                ForkJoinTask.invokeAll(workers);
-
-                Optional<WorkerData> result = Optional.ofNullable(resultReference.get());
-                if(!result.isEmpty()){
-                    fuelItem = result.get().fuelItemStack;
+        boolean processingLockAcquired = false;
+        boolean completionOwnsProcessingLock = false;
+        try {
+            final long startTime = System.currentTimeMillis();
+            if (Settings.Debug)
+                Movecraft.getInstance().getLogger().info(String.format("Starting fuel burn task for craft <%s>...", craft.getUUID()));
+            // TODO: new craft status concept! Stop the craft from moving while we do something
+            // TODO: Add API for additional fuel sources and how to use them
+            //this.craft.setProcessing(true);
+            // Stop the craft from attempting anything funny
+            while (!craft.setProcessingActiveIfAvailable()) {
+                // First: check if this craft is already dead
+                if (!CraftManager.getInstance().isStillAlive(this.craft)) {
+                    return Effect.NONE;
                 }
-                hasFuel = fuelItem != null;
-                if (hasFuel) {
-                    int stackSize = fuelItem.getAmount();
-                    int consumeQty = 1;
-                    burnTime = result.get().burnTime();
-                    if (fuelBurnRate > burnTime) {
-                        consumeQty = (int) (fuelBurnRate / burnTime);
-                        consumeQty = Math.min(consumeQty, stackSize);
-                        burnTime *= consumeQty;
-                    }
-                    fuelItem = fuelItem.asQuantity(consumeQty);
+                // Then, wait
+                if (System.currentTimeMillis() - startTime > 5000) {
+                    Movecraft.getInstance().getLogger().warning(String.format("Fuel-burn task for craft <%s> timed out as craft was/is busy!", craft.getUUID()));
+                    return Effect.NONE;
+                }
 
-                    consumeFuelEffect = new ConsumeFuelItemInBurner(
+                // The craft is busy, so let's give it some more time to process
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return Effect.NONE;
+                }
+            }
+            processingLockAcquired = true;
+
+            boolean hasFuel = false;
+            double fuelBurnRate = this.fuelBurnRate;
+            List<Effect> additionalSteps = new ArrayList<>(2);
+
+            // If the specified rate is 0 and we are here, then we burn fuel, but not currently!
+            // TODO: Sure? This will break fuel consumption!
+            // TODO: Properly treat crafts without passive fuel burning! Those need to calculate their values!
+            // We also pass in a burn rate of 0, if we are not moving for example
+            if (fuelBurnRate <= 0.0D) {
+                craft.setBurningFuel(0.0);
+            }
+            // Fuel item burning
+            // We currently have somethign that we are burning
+            else if (craft.getBurningFuel() >= fuelBurnRate) {
+                hasFuel = true;
+                additionalSteps.add(new ReduceBurningFuelEffect(craft, fuelBurnRate));
+            }
+            // Find a new fuel item to burn, save to tag, remove item from furnace, throw event
+            // We burnt the item we had, if we had any. Search for something new to burn
+            else {
+                Effect consumeFuelEffect = null;
+                Effect fuelCraftEffect = null;
+                // TODO: Refactor into a expandable list of callable functions
+                // Step 0): Initialize variables for burn process
+                ItemStack fuelItem = null;
+                double burnTime = 0;
+                // After that, find our source for a new fuel item
+                // Step 1): Check for fuel in the burners
+                Set<TrackedLocation> furnaces = FuelUtil.getFuelBurners(this.craft);
+                if (!furnaces.isEmpty()) {
+                    // Access furnace inventories and determine the next active burner
+                    // Also collect the burners in a list to update them later on
+                    final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
+//                ArrayList<ForkJoinTask<Void>> workers = new ArrayList<>();
+                    final NamespacedKeyToDoubleProperty fuelTypes = this.craft.getCraftProperties().get(PropertyKeys.FUEL_TYPES);
+                    final double finalBurnRate = fuelBurnRate;
+                    final AtomicBoolean validatedFound = new AtomicBoolean(false);
+                    final AtomicReference<WorkerData> resultReference = new AtomicReference<>(null);
+//                furnaces.forEach(location -> workers.add(ForkJoinTask.adapt(new Worker(worker, craft, location, fuelTypes, finalBurnRate, validatedFound, resultReference))));
+
+                    // Invokes all, the workers check towards the AtomicBoolean if there still is something to do
+//                ForkJoinTask.invokeAll(workers);
+                    for (TrackedLocation location : furnaces) {
+                        Worker workerTmp = new Worker(worker, craft, location, fuelTypes, finalBurnRate, validatedFound, resultReference);
+                        try {
+                            workerTmp.call();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            continue;
+                        }
+                    }
+
+
+                    Optional<WorkerData> result = Optional.ofNullable(resultReference.get());
+                    if(!result.isEmpty()){
+                        fuelItem = result.get().fuelItemStack;
+                    }
+                    hasFuel = fuelItem != null;
+                    if (hasFuel) {
+                        int stackSize = fuelItem.getAmount();
+                        int consumeQty = 1;
+                        burnTime = result.get().burnTime();
+                        if (fuelBurnRate > burnTime) {
+                            consumeQty = (int) (fuelBurnRate / burnTime);
+                            consumeQty = Math.min(consumeQty, stackSize);
+                            burnTime *= consumeQty;
+                        }
+                        fuelItem = fuelItem.asQuantity(consumeQty);
+
+                        consumeFuelEffect = new ConsumeFuelItemInBurner(
+                                this.craft,
+                                result.get().location().getAbsoluteLocation(),
+                                consumeQty
+                        );
+                    }
+                }
+
+                // Step 2): Check fuel tanks
+                if (!hasFuel) {
+                    // TODO: Run logic to search fuel in fuel tanks
+                }
+
+                // Step 3): Check solid fuel
+                if (!hasFuel) {
+                    // TODO: Implement
+                }
+
+                // Step 4): If we found any fuel, build the effect
+                hasFuel = hasFuel && fuelItem != null && burnTime > 0.0D;
+                if (hasFuel) {
+                    fuelCraftEffect = new ApplyCraftFuel(
                             this.craft,
-                            result.get().location().getAbsoluteLocation(),
-                            consumeQty
+                            fuelItem.clone(),
+                            burnTime
                     );
                 }
+
+                if (consumeFuelEffect != null) {
+                    additionalSteps.add(consumeFuelEffect);
+                }
+                if (fuelCraftEffect != null) {
+                    additionalSteps.add(fuelCraftEffect);
+                }
             }
 
-            // Step 2): Check fuel tanks
-            if (!hasFuel) {
-                // TODO: Run logic to search fuel in fuel tanks
-            }
+            // TODO: Reset the furnace trackedlocations after a while
 
-            // Step 3): Check solid fuel
-            if (!hasFuel) {
-                // TODO: Implement
-            }
+            additionalSteps.add(new SinkOutOfFuelCraftsAndApplyIsFueled(craft, hasFuel));
 
-            // Step 4): If we found any fuel, build the effect
-            hasFuel = hasFuel && fuelItem != null && burnTime > 0.0D;
-            if (hasFuel) {
-                fuelCraftEffect = new ApplyCraftFuel(
-                        this.craft,
-                        fuelItem.clone(),
-                        burnTime
-                );
-            }
+            // Reuse the burner update logic without invoking UpdateFuelBurnersTask#get(),
+            // which is an independently submitted task and must not release our lock.
+            this.burnersActive = hasFuel;
+            additionalSteps.add(createBurnerUpdateEffect());
 
-            if (consumeFuelEffect != null) {
-                additionalSteps.add(consumeFuelEffect);
-            }
-            if (fuelCraftEffect != null) {
-                additionalSteps.add(fuelCraftEffect);
+            if (Settings.Debug)
+                Movecraft.getInstance().getLogger().info(String.format("Finished fuel burn task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
+
+            // The lock remains held until the main-thread effects have been applied. This
+            // prevents movement from starting between calculation and fuel/world updates.
+            Effect completionEffect = new FinishFuelTask(craft, new Effect.AndEffect(additionalSteps));
+            completionOwnsProcessingLock = true;
+            return completionEffect;
+        } finally {
+            if (!completionOwnsProcessingLock) {
+                if (processingLockAcquired) {
+                    craft.setProcessing(false);
+                }
+                FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
             }
         }
 
-        // TODO: Reset the furnace trackedlocations after a while
+    }
 
-        //craft.setProcessing(false);
+    private record FinishFuelTask(Craft craft, Effect delegate) implements Effect {
 
-        additionalSteps.add(new SinkOutOfFuelCraftsAndApplyIsFueled(craft, hasFuel));
-        // Update burner effect at last
-        this.burnersActive = hasFuel;
-        Effect updateBurnersEffect = super.get();
-        additionalSteps.add(updateBurnersEffect);
-        if (Settings.Debug)
-            Movecraft.getInstance().getLogger().info(String.format("Finished fuel burn task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
-        return new Effect.AndEffect(additionalSteps);
+        @Override
+        public void run() {
+            try {
+                delegate.run();
+            } finally {
+                craft.setProcessing(false);
+                FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
+            }
+        }
     }
 
     private record ReduceBurningFuelEffect(
@@ -204,16 +262,9 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
 
         @Override
         public void run() {
-            // Only sink it here if it is not moving. If it is moving, it is sunk via the task itself!
-            // We are moving, that means our result could be faulty
-            if (!craft.isNotProcessing() && !fueled) {
-                if (Settings.Debug) {
-                    Movecraft.getInstance().getLogger().info("Craft <" + craft.getUUID().toString() +"> technically cant burn any more fuel but is currently busy, we will try again later!");
-                }
-                return;
-            }
-
-            // We were fueld, but now we are no longer fueled
+            // FuelBurnTask owns the processing lock until this effect has run, so no
+            // movement/status task can invalidate the result between calculation and sink.
+            // We were fueled, but now we are no longer fueled.
             if (craft.getDataTag(IS_FUELED)) {
                 if (craft.getCraftProperties().get(PropertyKeys.SINK_WHEN_OUT_OF_FUEL) && !fueled) {
                     if (Settings.Debug) {
@@ -282,17 +333,35 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
     }
 
     // TODO: Find better name
-    private record Worker(
-            @NotNull Craft craft,
-            @NotNull TrackedLocation location,
-            @NotNull NamespacedKeyToDoubleProperty fuelTypes,
-            @NotNull double fuelBurnRateIn,
-            AtomicBoolean validatedFound,
-            AtomicReference<WorkerData> resultReference) implements Callable<Void> {
+    private static final class Worker extends AbstractWorker<Void> {
+        private final @NotNull Craft craft;
+        private final @NotNull TrackedLocation location;
+        private final @NotNull NamespacedKeyToDoubleProperty fuelTypes;
+        private final @NotNull double fuelBurnRateIn;
+        private final AtomicBoolean validatedFound;
+        private final AtomicReference<WorkerData> resultReference;
+
+        private Worker(
+                @NotNull WorldManagerWorker worker,
+                @NotNull Craft craft,
+                @NotNull TrackedLocation location,
+                @NotNull NamespacedKeyToDoubleProperty fuelTypes,
+                @NotNull double fuelBurnRateIn,
+                AtomicBoolean validatedFound,
+                AtomicReference<WorkerData> resultReference
+        ) {
+            super(worker);
+            this.craft = craft;
+            this.location = location;
+            this.fuelTypes = fuelTypes;
+            this.fuelBurnRateIn = fuelBurnRateIn;
+            this.validatedFound = validatedFound;
+            this.resultReference = resultReference;
+        }
 
         @Override
         // Return null if we do not want this furnace to be the active burner
-        public Void call() {
+        public Void callInternally() {
             if (validatedFound.get()) {
                 return null;
             }
@@ -343,6 +412,36 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
             return null;
         }
 
-    }
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            var that = (Worker) obj;
+            return Objects.equals(this.craft, that.craft) &&
+                    Objects.equals(this.location, that.location) &&
+                    Objects.equals(this.fuelTypes, that.fuelTypes) &&
+                    Double.doubleToLongBits(this.fuelBurnRateIn) == Double.doubleToLongBits(that.fuelBurnRateIn) &&
+                    Objects.equals(this.validatedFound, that.validatedFound) &&
+                    Objects.equals(this.resultReference, that.resultReference);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(craft, location, fuelTypes, fuelBurnRateIn, validatedFound, resultReference);
+        }
+
+        @Override
+        public String toString() {
+            return "Worker[" +
+                    "craft=" + craft + ", " +
+                    "location=" + location + ", " +
+                    "fuelTypes=" + fuelTypes + ", " +
+                    "fuelBurnRateIn=" + fuelBurnRateIn + ", " +
+                    "validatedFound=" + validatedFound + ", " +
+                    "resultReference=" + resultReference + ']';
+        }
+
+
+        }
 
 }

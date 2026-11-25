@@ -48,6 +48,7 @@ import static net.countercraft.movecraft.util.MathUtils.withinWorldBorder;
 // TODO: Ability to toggle harvesters on and off
 public class TranslationTask extends FuelAwareAsyncTask {
     private World world;
+    private final boolean followCraftWorld;
     private int dx, dy, dz;
     private MutableHitBox newHitBox;
     private HitBox oldHitBox;
@@ -61,19 +62,37 @@ public class TranslationTask extends FuelAwareAsyncTask {
     private float volume = 0.0f;
 
     public TranslationTask(Craft c, World world, int dx, int dy, int dz) {
+        this(c, world, dx, dy, dz, false);
+    }
+
+    /**
+     * @param followCraftWorld true when this is a relative movement in the craft's
+     *                         current world; false when the destination world is explicit
+     */
+    public TranslationTask(Craft c, World world, int dx, int dy, int dz, boolean followCraftWorld) {
         super(c);
         this.world = world;
+        this.followCraftWorld = followCraftWorld;
         this.dx = dx;
         this.dy = dy;
         this.dz = dz;
-        newHitBox = new BitmapHitBox();
+        newHitBox = new SynchronizedBitmapHitBox();
         oldHitBox = c.getHitBox();
         oldFluidList = new BitmapHitBox(c.getFluidLocations());
-        newFluidList = new BitmapHitBox();
+        newFluidList = new SynchronizedBitmapHitBox();
     }
 
     @Override
     protected void execute() throws InterruptedException, ExecutionException {
+        // A task may have waited in AsyncManager while another operation owned the craft.
+        // Refresh its snapshots now, after the processing lock has been acquired.
+        oldHitBox = new SynchronizedBitmapHitBox(craft.getHitBox());
+        oldFluidList = new BitmapHitBox(craft.getFluidLocations());
+        newHitBox = new SynchronizedBitmapHitBox();
+        newFluidList = new SynchronizedBitmapHitBox();
+        if (followCraftWorld) {
+            world = craft.getWorld();
+        }
 
         //Check if there's anything to move
         if (oldHitBox.isEmpty())
@@ -323,7 +342,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
                         Material.AIR.createBlockData());
                 updates.add(new BlockCreateCommand(craft.getWorld(), location, phaseBlock));
             }
-            newHitBox = new BitmapHitBox();
+            newHitBox = new SynchronizedBitmapHitBox();
         }
 
         if (!collisionBox.isEmpty()) {

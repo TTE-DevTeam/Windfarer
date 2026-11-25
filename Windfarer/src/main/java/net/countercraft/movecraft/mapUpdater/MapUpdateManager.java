@@ -57,6 +57,7 @@ public class MapUpdateManager extends BukkitRunnable {
 
 
         UpdateCommand next = updates.poll();
+        // TODO: Limit how many or how long updates can be processed per single tick!
         while(next != null) {
             next.doUpdate();
             next = updates.poll();

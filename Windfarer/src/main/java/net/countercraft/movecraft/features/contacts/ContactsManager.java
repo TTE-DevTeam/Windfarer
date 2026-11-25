@@ -125,6 +125,9 @@ public class ContactsManager extends BukkitRunnable implements Listener {
         Map<UUID, Integer> inRangeDistanceSquared = new HashMap<>();
 
         MovecraftLocation baseCenter;
+        if (base.getHitBox().isEmpty()) {
+            return new ArrayList<>();
+        }
         try {
             baseCenter = base.getHitBox().getMidPoint();
         } catch(EmptyHitBoxException e) {

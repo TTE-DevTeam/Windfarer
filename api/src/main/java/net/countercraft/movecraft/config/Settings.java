@@ -60,9 +60,9 @@ public class Settings {
     public static long maxElapsedTimeForWorldChanges = 50000;
     public static long maxElapsedTimeForSyncTaskProcessing = 50000;
 
-    public static int highPriorityThreadCount = 2;
+    public static int highPriorityThreadCount = Runtime.getRuntime().availableProcessors() / 2;
     // How many more tasks can be queued in addition to highPriorityThreadCount?
-    public static int highPriorityPoolOverpressure = 2;
+    public static int highPriorityPoolOverpressure = 8;
     public static int normalPriorityThreadCount = Runtime.getRuntime().availableProcessors();;
     public static int normalPriorityPoolOverpressure = 0;
 

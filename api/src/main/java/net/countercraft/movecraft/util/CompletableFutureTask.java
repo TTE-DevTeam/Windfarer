@@ -13,7 +13,12 @@ public final class CompletableFutureTask<T> extends CompletableFuture<T> impleme
 
     @Override
     public void run(){
-        this.complete(function.get());
+        try {
+            this.complete(function.get());
+        } catch (Throwable exception) {
+            // A failed main-thread callback must wake the worker waiting in join().
+            this.completeExceptionally(exception);
+        }
     }
 
 

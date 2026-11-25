@@ -40,6 +40,7 @@ import net.countercraft.movecraft.features.status.StatusSign;
 import net.countercraft.movecraft.listener.*;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.mapUpdater.MapUpdateManager;
+import net.countercraft.movecraft.processing.CachedMovecraftWorld;
 import net.countercraft.movecraft.processing.WorldManager;
 import net.countercraft.movecraft.sign.*;
 import net.countercraft.movecraft.util.BukkitTeleport;
@@ -75,10 +76,15 @@ public class Movecraft extends JavaPlugin {
     @Override
     public void onDisable() {
         shuttingDown = true;
+        // Release Windfarer's per-chunk plugin tickets before the plugin shuts down.
+        CachedMovecraftWorld.invalidateAll();
+        WorldManager.INSTANCE.setPlugin(null);
     }
 
     @Override
     public void onEnable() {
+        // Provide the API module with the plugin instance required for chunk tickets and main-thread callbacks.
+        WorldManager.INSTANCE.setPlugin(this);
         // FIRST: Register config serialization!
         ConfigurationSerialization.registerClass(ConfiguredSound.class, "Movecraft_ConfiguredSound");
         ConfigurationSerialization.registerClass(RequiredBlockEntry.class, "Movecraft_RequiredBlockEntry");

@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutionException;
 public abstract class AbstractAsyncTask extends BukkitRunnable {
 
     protected final Craft craft;
+    private volatile Throwable executionFailure;
 
     protected AbstractAsyncTask(Craft craft) {
         this.craft = craft;
@@ -17,12 +18,19 @@ public abstract class AbstractAsyncTask extends BukkitRunnable {
     public void run() {
         try {
             this.execute();
-            this.submitCompletedTask();
-        } catch(Exception exception) {
-            System.err.println("Internal - Error - Processor thread encountered an error");
+        } catch (Throwable exception) {
+            executionFailure = exception;
+            System.err.println("Internal - Error - Processor task failed");
             exception.printStackTrace();
+        } finally {
+            // AsyncManager owns the processing lock after submission. Always notify it,
+            // including on failure, so the craft is not left locked indefinitely.
+            this.submitCompletedTask();
         }
+    }
 
+    public final Throwable getExecutionFailure() {
+        return executionFailure;
     }
 
     protected abstract void submitCompletedTask();

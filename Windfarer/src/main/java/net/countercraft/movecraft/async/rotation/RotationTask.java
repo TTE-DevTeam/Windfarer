@@ -37,6 +37,7 @@ import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.NamespacedIDUtil;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
 import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
+import net.countercraft.movecraft.util.hitboxes.SynchronizedBitmapHitBox;
 import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -50,9 +51,10 @@ import java.util.function.BiConsumer;
 import static net.countercraft.movecraft.util.MathUtils.withinWorldBorder;
 
 public class RotationTask extends FuelAwareAsyncTask {
-    private final MovecraftLocation originPoint;
+    private MovecraftLocation originPoint;
+    private final MovecraftLocation requestedOriginOffset;
     private final MovecraftRotation rotation;
-    private final World w;
+    private World w;
     private final boolean isSubCraft;
     private boolean failed = false;
     private String failMessage;
@@ -66,10 +68,10 @@ public class RotationTask extends FuelAwareAsyncTask {
         }
     };
 
-    private final MutableHitBox oldHitBox;
-    private final MutableHitBox newHitBox;
-    private final MutableHitBox oldFluidList;
-    private final MutableHitBox newFluidList;
+    private MutableHitBox oldHitBox;
+    private MutableHitBox newHitBox;
+    private MutableHitBox oldFluidList;
+    private MutableHitBox newFluidList;
 
     public RotationTask(Craft c, MovecraftLocation originPoint, MovecraftRotation rotation, World w, boolean isSubCraft) {
         this(c, originPoint, rotation, w, isSubCraft, null);
@@ -78,13 +80,14 @@ public class RotationTask extends FuelAwareAsyncTask {
     public RotationTask(Craft c, MovecraftLocation originPoint, MovecraftRotation rotation, World w, boolean isSubCraft, BiConsumer<Craft, MovecraftRotation> rotationProcessor) {
         super(c);
         this.originPoint = originPoint;
+        this.requestedOriginOffset = originPoint.subtract(c.getCraftOrigin());
         this.rotation = rotation;
         this.w = w;
         this.isSubCraft = isSubCraft;
-        this.newHitBox = new BitmapHitBox();
+        this.newHitBox = new SynchronizedBitmapHitBox();
         this.oldHitBox = new BitmapHitBox(c.getHitBox());
         this.oldFluidList = new BitmapHitBox(c.getFluidLocations());
-        this.newFluidList = new BitmapHitBox(c.getFluidLocations());
+        this.newFluidList = new SynchronizedBitmapHitBox(c.getFluidLocations());
         if (rotationProcessor != null) {
             this.rotationProcessor = rotationProcessor;
         }
@@ -100,6 +103,15 @@ public class RotationTask extends FuelAwareAsyncTask {
 
     @Override
     protected void execute() {
+        // Tasks may wait in AsyncManager's per-craft queue. Rebuild the snapshot only
+        // after the lock is acquired, and keep the requested pivot relative to the
+        // craft origin so a preceding translation does not leave it behind in the world.
+        this.originPoint = craft.getCraftOrigin().add(requestedOriginOffset);
+        this.w = craft.getWorld();
+        this.oldHitBox = new BitmapHitBox(craft.getHitBox());
+        this.newHitBox = new SynchronizedBitmapHitBox();
+        this.oldFluidList = new BitmapHitBox(craft.getFluidLocations());
+        this.newFluidList = new SynchronizedBitmapHitBox(craft.getFluidLocations());
 
         if(oldHitBox.isEmpty())
             return;

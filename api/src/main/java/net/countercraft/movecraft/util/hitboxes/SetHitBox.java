@@ -4,19 +4,17 @@ import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.exception.EmptyHitBoxException;
-import net.countercraft.movecraft.util.collections.BitmapLocationSet;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class SetHitBox implements MutableHitBox{
-    private final Set<MovecraftLocation> locations = new LinkedHashSet<>();
+    private final Set<MovecraftLocation> locations = ConcurrentHashMap.newKeySet();
     private final Long2IntMap localMinY;
     private boolean invalidateBounds = false;
     private int minX = Integer.MAX_VALUE;

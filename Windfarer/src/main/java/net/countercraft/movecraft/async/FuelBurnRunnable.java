@@ -1,7 +1,6 @@
 package net.countercraft.movecraft.async;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import net.countercraft.movecraft.TrackedLocation;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
@@ -11,6 +10,7 @@ import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.features.fuel.FuelDataTags;
 import net.countercraft.movecraft.features.fuel.FuelUtil;
 import net.countercraft.movecraft.processing.WorldManager;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.tasks.FuelBurnTask;
 import net.countercraft.movecraft.processing.tasks.UpdateFuelBurnersTask;
 import org.bukkit.inventory.ItemStack;
@@ -18,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 // TODO: Migrate to processing system and run async if possible!
 public class FuelBurnRunnable implements Runnable {
@@ -34,7 +35,7 @@ public class FuelBurnRunnable implements Runnable {
     public static final CraftDataTagKey<Set<TrackedLocation>> FURNACES = CraftDataTagRegistry.INSTANCE.registerTagKey(FuelDataTags.FURNACES_KEY, FuelUtil::getFuelBurners);
 
     // TODO: Replace once a proper status concept has been established!
-    public static final Set<UUID> craftsInProgress = Sets.newConcurrentHashSet();
+    public static final Set<UUID> craftsInProgress = ConcurrentHashMap.newKeySet();
 
 
     @Override
@@ -49,9 +50,7 @@ public class FuelBurnRunnable implements Runnable {
                 continue;
             }
 
-            if (craftsInProgress.add(craft.getUUID())) {
-                runFuelBurnLogic(craft, false);
-            }
+            runFuelBurnLogic(craft, false);
         }
     }
 
@@ -62,14 +61,23 @@ public class FuelBurnRunnable implements Runnable {
 
     @Deprecated(forRemoval = true)
     public static void updateFurnaces(Craft craft, boolean active) {
-        WorldManager.INSTANCE.submit(new UpdateFuelBurnersTask(craft, active));
+        WorldManager.INSTANCE.submit(new UpdateFuelBurnersTask(craft, active), WorldManagerWorkers.LOW_PRIORITY);
     }
 
     public static void runFuelBurnLogic(Craft craft, boolean isStick) {
-        // Burn current item or find a new one
-        double fuelBurnRate = getFuelBurnRate(craft, isStick);
-        // New logic starts a task per craft which handles like everything
-        WorldManager.INSTANCE.submit(new FuelBurnTask(craft, fuelBurnRate));
+        // All entry points (periodic fuel updates and movement checks) share the same
+        // per-craft guard so they cannot enqueue overlapping fuel tasks.
+        if (!craftsInProgress.add(craft.getUUID())) {
+            return;
+        }
+
+        try {
+            double fuelBurnRate = getFuelBurnRate(craft, isStick);
+            WorldManager.INSTANCE.submit(new FuelBurnTask(craft, fuelBurnRate), WorldManagerWorkers.NORMAL_PRIORITY);
+        } catch (RuntimeException exception) {
+            craftsInProgress.remove(craft.getUUID());
+            throw exception;
+        }
     }
 
     static double getFuelBurnRateStickMovement(final Craft craft) {

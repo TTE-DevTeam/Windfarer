@@ -35,10 +35,7 @@ import net.countercraft.movecraft.mapUpdater.update.BlockCreateCommand;
 import net.countercraft.movecraft.mapUpdater.update.ExplosionUpdateCommand;
 import net.countercraft.movecraft.mapUpdater.update.UpdateCommand;
 import net.countercraft.movecraft.util.MathUtils;
-import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
-import net.countercraft.movecraft.util.hitboxes.HitBox;
-import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
-import net.countercraft.movecraft.util.hitboxes.SetHitBox;
+import net.countercraft.movecraft.util.hitboxes.*;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -56,6 +53,7 @@ import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 @Deprecated
 public class AsyncManager extends BukkitRunnable {
@@ -67,6 +65,7 @@ public class AsyncManager extends BukkitRunnable {
     private int currentTick = 1;
 
     private final Map<AbstractAsyncTask, Craft> ownershipMap = new HashMap<>();
+    private final Queue<PendingAlgorithm> pendingAlgorithms = new ArrayDeque<>();
     private final BlockingQueue<AbstractAsyncTask> finishedAlgorithms = new LinkedBlockingQueue<>();
     private final Set<Craft> clearanceSet = new HashSet<>();
     private final Map<Craft, Integer> cooldownCache = new WeakHashMap<>();
@@ -94,13 +93,82 @@ public class AsyncManager extends BukkitRunnable {
         return this.tickFunctions;
     }
 
+    /**
+     * Queue an operation for its craft. A busy craft is retried on subsequent ticks;
+     * the atomic compare-and-set prevents two operations from acquiring it concurrently.
+     */
     public void submitTask(AbstractAsyncTask task, Craft c) {
-        if (c.isNotProcessing()) {
-            c.setProcessing(true);
-            ownershipMap.put(task, c);
-            task.runTask(Movecraft.getInstance());
+        Objects.requireNonNull(task, "task");
+        submitTask(() -> task, c);
+    }
+
+    /**
+     * Preferred submission form. The task is constructed only after the craft lock has
+     * been acquired, so snapshots such as the hitbox are taken from the craft's current
+     * state rather than from the time the request was queued.
+     */
+    public void submitTask(Supplier<? extends AbstractAsyncTask> taskFactory, Craft c) {
+        Objects.requireNonNull(taskFactory, "taskFactory");
+        Objects.requireNonNull(c, "craft");
+
+        // AsyncManager's ownership maps and queues are tick-thread state. Marshal plugin
+        // calls made from other threads instead of racing its scheduler loop.
+        if (!Bukkit.isPrimaryThread()) {
+            Bukkit.getScheduler().runTask(Movecraft.getInstance(), () -> submitTask(taskFactory, c));
+            return;
+        }
+
+        pendingAlgorithms.add(new PendingAlgorithm(taskFactory, c));
+        startPendingAlgorithms();
+    }
+
+    private void startPendingAlgorithms() {
+        // Inspect only the requests that were queued at the start of this pass. Busy
+        // crafts are appended at the tail, allowing unrelated crafts to make progress.
+        int requestsToInspect = pendingAlgorithms.size();
+        Set<Craft> craftsBlockedThisPass = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (int i = 0; i < requestsToInspect; i++) {
+            PendingAlgorithm pending = pendingAlgorithms.poll();
+            if (pending == null) {
+                return;
+            }
+
+            Craft craft = pending.craft();
+            if (!CraftManager.getInstance().isStillAlive(craft)) {
+                continue;
+            }
+            if (craftsBlockedThisPass.contains(craft)) {
+                pendingAlgorithms.add(pending);
+                continue;
+            }
+
+            if (!craft.setProcessingActiveIfAvailable()) {
+                craftsBlockedThisPass.add(craft);
+                pendingAlgorithms.add(pending);
+                continue;
+            }
+
+            AbstractAsyncTask task = null;
+            try {
+                task = Objects.requireNonNull(pending.taskFactory().get(), "taskFactory returned null");
+                ownershipMap.put(task, craft);
+                task.runTask(Movecraft.getInstance());
+            } catch (RuntimeException exception) {
+                if (task != null) {
+                    ownershipMap.remove(task);
+                }
+                craft.setProcessing(false);
+                String taskName = task == null ? "task factory" : task.getClass().getSimpleName();
+                Movecraft.getInstance().getLogger().severe(
+                        "Could not schedule " + taskName
+                                + " for craft " + craft.getUUID() + ": " + exception.getMessage()
+                );
+                exception.printStackTrace();
+            }
         }
     }
+
+    private record PendingAlgorithm(Supplier<? extends AbstractAsyncTask> taskFactory, Craft craft) {}
 
     public void submitCompletedTask(AbstractAsyncTask task) {
         finishedAlgorithms.add(task);
@@ -115,22 +183,36 @@ public class AsyncManager extends BukkitRunnable {
         for (int i = 0; i < runLength; i++) {
             boolean sentMapUpdate = false;
             AbstractAsyncTask poll = finishedAlgorithms.poll();
-            Craft c = ownershipMap.get(poll);
-
-            if (poll instanceof TranslationTask) {
-                // Process translation task
-
-                TranslationTask task = (TranslationTask) poll;
-                sentMapUpdate = processTranslation(task, c);
-
-            } else if (poll instanceof RotationTask) {
-                // Process rotation task
-                RotationTask task = (RotationTask) poll;
-                sentMapUpdate = processRotation(task, c);
-
+            if (poll == null) {
+                continue;
+            }
+            Craft c = ownershipMap.remove(poll);
+            if (c == null) {
+                // A stale/duplicate completion must not block other queued algorithms.
+                continue;
             }
 
-            ownershipMap.remove(poll);
+            try {
+                Throwable executionFailure = poll.getExecutionFailure();
+                if (executionFailure != null) {
+                    Movecraft.getInstance().getLogger().severe(
+                            "Async operation " + poll.getClass().getSimpleName()
+                                    + " failed for craft " + c.getUUID()
+                                    + "; releasing its processing lock."
+                    );
+                } else if (poll instanceof TranslationTask task) {
+                    sentMapUpdate = processTranslation(task, c);
+                } else if (poll instanceof RotationTask task) {
+                    sentMapUpdate = processRotation(task, c);
+                }
+            } catch (Throwable exception) {
+                Movecraft.getInstance().getLogger().severe(
+                        "Could not apply completed " + poll.getClass().getSimpleName()
+                                + " for craft " + c.getUUID() + "; releasing its processing lock."
+                );
+                exception.printStackTrace();
+                sentMapUpdate = false;
+            }
 
             // only mark the craft as having finished updating if you didn't
             // send any updates to the map updater. Otherwise the map updater
@@ -161,7 +243,7 @@ public class AsyncManager extends BukkitRunnable {
                 c.setFluidLocations(task.getNewFluidList());
                 MapUpdateManager.getInstance().scheduleUpdates(task.getUpdates());
                 CraftManager.getInstance().addReleaseTask(c);
-                return true;
+                return !task.getUpdates().isEmpty();
             }
             return false;
         }
@@ -170,7 +252,7 @@ public class AsyncManager extends BukkitRunnable {
 
         c.setHitBox(task.getNewHitBox());
         c.setFluidLocations(task.getNewFluidList());
-        return true;
+        return !task.getUpdates().isEmpty();
     }
 
     /**
@@ -196,7 +278,7 @@ public class AsyncManager extends BukkitRunnable {
 
         c.setHitBox(task.getNewHitBox());
         c.setFluidLocations(task.getNewFluidList());
-        return true;
+        return !task.getUpdates().isEmpty();
     }
 
     public static void processCruise() {
@@ -464,13 +546,14 @@ public class AsyncManager extends BukkitRunnable {
         MapUpdateManager.getInstance().scheduleUpdates(updateCommands);
 
         // Recalculate hitbox
-        BitmapHitBox newHitBox = new BitmapHitBox(oldHitbox);
+        SynchronizedBitmapHitBox newHitBox = new SynchronizedBitmapHitBox(oldHitbox);
         newHitBox.removeAll(toRemove);
         craft.setHitBox(newHitBox);
     }
 
     public void run() {
         clearAll();
+        startPendingAlgorithms();
 
         Map<Integer, List<Runnable>> functions = this.getTickFunctions();
 
@@ -492,6 +575,7 @@ public class AsyncManager extends BukkitRunnable {
         }
 
         processAlgorithmQueue();
+        startPendingAlgorithms();
 
         // now cleanup craft that are bugged and have not moved in the past 60 seconds,
         //  but have no pilot or are still processing

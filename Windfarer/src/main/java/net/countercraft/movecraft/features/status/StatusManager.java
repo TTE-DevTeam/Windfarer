@@ -13,6 +13,7 @@ import net.countercraft.movecraft.events.CraftStopCruiseEvent;
 import net.countercraft.movecraft.features.status.events.CraftStatusUpdateEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.processing.WorldManager;
+import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.sign.SignListener;
 import net.countercraft.movecraft.util.Counter;
 import net.kyori.adventure.key.Key;
@@ -41,7 +42,7 @@ public class StatusManager extends BukkitRunnable implements Listener {
                 continue;
 
             c.setDataTag(STATUS_CHECK_ACTIVE, true);
-            WorldManager.INSTANCE.submit(new StatusUpdateTask(c));
+            WorldManager.INSTANCE.submit(new StatusUpdateTask(c), WorldManagerWorkers.NORMAL_PRIORITY);
         }
     }
 

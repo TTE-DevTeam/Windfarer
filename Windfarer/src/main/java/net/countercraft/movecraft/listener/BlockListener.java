@@ -27,6 +27,8 @@ import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.Tags;
 import net.countercraft.movecraft.util.hitboxes.BitmapHitBox;
+import net.countercraft.movecraft.util.hitboxes.MutableHitBox;
+import net.countercraft.movecraft.util.hitboxes.SetHitBox;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -167,7 +169,7 @@ public class BlockListener implements Listener {
            if (!craft.getCraftProperties().get(PropertyKeys.MERGE_PISTON_EXTENSIONS))
                 return;
 
-           BitmapHitBox hitBox = new BitmapHitBox();
+           MutableHitBox hitBox = new SetHitBox();
            for (Block b : affectedBlocks) {
                Vector dir = e.getDirection().getDirection();
                hitBox.add(new MovecraftLocation(b.getX() + dir.getBlockX(), b.getY() + dir.getBlockY(), b.getZ() + dir.getBlockZ()));

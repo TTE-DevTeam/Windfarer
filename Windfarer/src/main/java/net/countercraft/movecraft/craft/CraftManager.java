@@ -28,6 +28,7 @@ import net.countercraft.movecraft.events.CraftSinkEvent;
 import net.countercraft.movecraft.events.TypesReloadedEvent;
 import net.countercraft.movecraft.exception.NonCancellableReleaseException;
 import net.countercraft.movecraft.features.status.StatusUpdateTask;
+import net.countercraft.movecraft.features.status.events.CraftStatusUpdateEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.processing.CachedMovecraftWorld;
 import net.countercraft.movecraft.processing.WorldManager;
@@ -74,6 +75,10 @@ public class CraftManager implements Iterable<Craft>{
         instance.postTypeLoad();
     }
 
+    public void addCraftInPostDetection(Craft craft) {
+        craftsInPostDetection.add(craft);
+    }
+
     private void postTypeLoad() {
         TypeSafeCraftType.runTransformers(new LinkedList<>(loadedTypes));
         Set<TypeSafeCraftType> validateList = new HashSet<>(loadedTypes);
@@ -98,6 +103,7 @@ public class CraftManager implements Iterable<Craft>{
      *   leaks.
      */
     @NotNull private final Set<Craft> crafts = new ConcurrentSkipListSet<>(Comparator.comparingInt(Object::hashCode));
+    @NotNull private final Set<Craft> craftsInPostDetection = new ConcurrentSkipListSet<>(Comparator.comparingInt(Object::hashCode));
     /**
      * Map of players to their current craft.
      */
@@ -287,9 +293,12 @@ public class CraftManager implements Iterable<Craft>{
         }
 
         crafts.add(c);
+        craftsInPostDetection.remove(c);
 
         // Immediately fire the Status update to make moveblocks apply and to have up-to-date values
-        WorldManager.INSTANCE.submit(new StatusUpdateTask(c));
+        // The detection task already calculated this though, so we just throw the event
+        CraftStatusUpdateEvent event = new CraftStatusUpdateEvent(c);
+        event.callEvent();
     }
 
     public void sink(@NotNull Craft craft) {
@@ -323,6 +332,7 @@ public class CraftManager implements Iterable<Craft>{
 
     public void removeCraft(final Craft craft) {
         crafts.remove(craft);
+        craftsInPostDetection.remove(craft);
         CraftCache.removeCraft(craft);
         if (craft instanceof PlayerCraft)
             playerCrafts.remove(((PlayerCraft) craft).getPilotUUID());
@@ -562,4 +572,8 @@ public class CraftManager implements Iterable<Craft>{
         return overboards.getOrDefault(player, 0L);
     }
     //endregion
+
+    public boolean isStillAlive(final Craft craft) {
+        return this.crafts.contains(craft) || this.craftsInPostDetection.contains(craft);
+    }
 }

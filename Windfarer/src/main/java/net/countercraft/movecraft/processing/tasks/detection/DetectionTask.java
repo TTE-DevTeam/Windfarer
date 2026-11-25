@@ -4,6 +4,7 @@ import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
+import net.countercraft.movecraft.async.AbstractWorker;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SubCraft;
@@ -13,6 +14,7 @@ import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
 import net.countercraft.movecraft.events.CraftDetectEvent;
 import net.countercraft.movecraft.events.CraftGatherAdditionalDetectionStepsEvent;
 import net.countercraft.movecraft.events.CraftPilotEvent;
+import net.countercraft.movecraft.features.status.StatusUpdateTask;
 import net.countercraft.movecraft.localisation.I18nSupport;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.WorldManager;
@@ -29,6 +31,7 @@ import net.countercraft.movecraft.processing.tasks.detection.validators.NameSign
 import net.countercraft.movecraft.processing.tasks.detection.validators.PilotSignValidator;
 import net.countercraft.movecraft.processing.tasks.detection.validators.SizeValidator;
 import net.countercraft.movecraft.processing.tasks.detection.validators.WaterContactValidator;
+import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
 import net.countercraft.movecraft.sign.AbstractMovecraftSign;
 import net.countercraft.movecraft.sign.CraftSignManager;
 import net.countercraft.movecraft.sign.MovecraftSignRegistry;
@@ -56,18 +59,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+// TODO: It can happen that when a subcraft is piloted just at the wrong time when the craft moves, that the entire high priority pool locks itself up
+// TODO: In that case, a dead task stays inside the threadpool, that must be cleaned up! (Active: x; Current tasks: 1 => There was a missing clear on the currentTasks() list)
 public class DetectionTask implements Supplier<Effect> {
 
     private static final AllowedBlockValidator ALLOWED_BLOCK_VALIDATOR = new AllowedBlockValidator();
@@ -259,7 +259,7 @@ public class DetectionTask implements Supplier<Effect> {
             return () -> audience.sendMessage(message);
         }
 
-        var hitbox = new BitmapHitBox(legal);
+        var hitbox = new SynchronizedBitmapHitBox(legal);
         var parents = findParents(hitbox);
 
         var supplied = supplier.apply(type, world, pilot, parents);
@@ -280,10 +280,13 @@ public class DetectionTask implements Supplier<Effect> {
 
         craft.setAudience(audience);
         craft.setHitBox(hitbox);
-        craft.setFluidLocations(new BitmapHitBox(fluid));
+        craft.setFluidLocations(new SynchronizedBitmapHitBox(fluid));
         craft.setOrigBlockCount(craft.getHitBox().size());
 
         detectSigns(craft);
+
+        calculateAndSetStatusValues(craft);
+
         Set<Effect> additionalEffects = new HashSet<>();
         runAdditionalSteps(craft, additionalEffects);
 
@@ -291,11 +294,12 @@ public class DetectionTask implements Supplier<Effect> {
 
         WorldManager.INSTANCE.executeMain(() -> Bukkit.getPluginManager().callEvent(event));
         if (event.isCancelled()) {
-            Movecraft.getInstance().getLogger().info(String.format("Detection task for pilot <%s> FAILED! DetectEvent was canclled. Message: <%s>", pilot == null ? "NULL" : pilot.getUniqueId(), event.getFailMessage()));
+            Movecraft.getInstance().getLogger().info(String.format("Detection task for pilot <%s> FAILED! DetectEvent was cancelled. Message: <%s>", pilot == null ? "NULL" : pilot.getUniqueId(), event.getFailMessage()));
             return () -> craft.getAudience().sendMessage(Component.text(event.getFailMessage()));
         }
 
         Movecraft.getInstance().getLogger().info(String.format("Finished detection task for pilot <%s>! Time taken: %dms", pilot == null ? "NULL" : pilot.getUniqueId(), System.currentTimeMillis() - startTime));
+        CraftManager.getInstance().addCraftInPostDetection(craft);
         return ((Effect) () -> {
             // Notify player and console
             craft.getAudience().sendMessage(Component.text(String.format(
@@ -325,7 +329,11 @@ public class DetectionTask implements Supplier<Effect> {
         ).andThen(
                 () -> {
                     if (this.alwaysRunAfter != null) {
-                        this.alwaysRunAfter.apply(craft);
+                        try {
+                            this.alwaysRunAfter.apply(craft);
+                        } catch(Exception exception) {
+                            exception.printStackTrace();
+                        }
                     }
                 }
         ).andThen(
@@ -335,6 +343,29 @@ public class DetectionTask implements Supplier<Effect> {
                 // Add craft to CraftManager
                 () -> CraftManager.getInstance().add(craft)
         );
+    }
+
+    private void calculateAndSetStatusValues(Craft craft) {
+        // Compute datatags for status and throw StatusEvent as Effect
+        final Counter<NamespacedKey> counter = new Counter<>();
+        final HitBox hitBox = craft.getHitBox();
+        // TODO: Is this fast enough?
+        this.materials.entrySet().forEach((entry) -> {
+            int count = 0;
+            for (MovecraftLocation locTmp : entry.getValue()) {
+                if (hitBox.contains(locTmp)) {
+                    count++;
+                }
+            }
+            if (count > 0) {
+                counter.add(entry.getKey(), count);
+            }
+        });
+        final int fireBlocks = counter.get(Material.FIRE.getKey());
+        final int nonNegligable = hitBox.size() - fireBlocks;
+        final int nonNegligableSolid = nonNegligable - this.fluid.size();
+
+        StatusUpdateTask.fillMoveBlockAndFlyBlockDatatags(counter, nonNegligable, nonNegligableSolid, craft);
     }
 
     protected void runAdditionalSteps(final Craft craft, Set<Effect> additionalEffects) {
@@ -399,17 +430,29 @@ public class DetectionTask implements Supplier<Effect> {
         ConcurrentLinkedQueue<MovecraftLocation> nextFrontier = new ConcurrentLinkedQueue<>();
         currentFrontier.add(startLocation);
         currentFrontier.addAll(type.get(PropertyKeys.DETECTION_DIRECTIONS).stream().map(startLocation::add).collect(Collectors.toList()));
-        int threads = Runtime.getRuntime().availableProcessors();
+
+        WorldManagerWorker worker = WorldManager.INSTANCE.getCurrentWorker();
+        if (worker == null) {
+            throw new IllegalStateException("No WorldManagerWorker for current thread!");
+        }
+//        final int threads = Runtime.getRuntime().availableProcessors();
+        final int threads = worker.getThreadCount();
         while(!currentFrontier.isEmpty() && size.intValue() < type.get(PropertyKeys.MAX_SIZE) + threads) {
-            List<ForkJoinTask<?>> tasks = new ArrayList<>();
+//            List<ForkJoinTask<?>> tasks = new ArrayList<>();
+//            for(int j = 0; j < threads ; j++) {
+//                tasks.add(ForkJoinPool.commonPool().submit(new DetectAction(worker, currentFrontier, nextFrontier)));
+//            }
+            List<CompletableFuture<Void>> tasks = new ArrayList<>();
             for(int j = 0; j < threads ; j++) {
-                tasks.add(ForkJoinPool.commonPool().submit(new DetectAction(currentFrontier, nextFrontier)));
+                tasks.add(
+                        worker.submit(
+                                new DetectAction(worker, currentFrontier, nextFrontier)
+                        )
+                );
             }
 
             for(var task : tasks) {
                 task.join();
-                if(task.getException() != null)
-                    task.getException().printStackTrace();
             }
             currentFrontier = nextFrontier;
             nextFrontier = new ConcurrentLinkedQueue<>();
@@ -421,7 +464,7 @@ public class DetectionTask implements Supplier<Effect> {
         return String.format("DetectionTask{%s:%s:%s}", pilot, type, startLocation);
     }
 
-    private class DetectAction implements Runnable {
+    private class DetectAction extends AbstractWorker<Void> {
         private final ConcurrentLinkedQueue<MovecraftLocation> currentFrontier;
         private final ConcurrentLinkedQueue<MovecraftLocation> nextFrontier;
         private static DetectionPredicate<MovecraftLocation> chain;
@@ -433,13 +476,14 @@ public class DetectionTask implements Supplier<Effect> {
             }
         }
 
-        private DetectAction(ConcurrentLinkedQueue<MovecraftLocation> currentFrontier, ConcurrentLinkedQueue<MovecraftLocation> nextFrontier) {
+        private DetectAction(final WorldManagerWorker worker, ConcurrentLinkedQueue<MovecraftLocation> currentFrontier, ConcurrentLinkedQueue<MovecraftLocation> nextFrontier) {
+            super(worker);
             this.currentFrontier = currentFrontier;
             this.nextFrontier = nextFrontier;
         }
 
         @Override
-        public void run() {
+        public Void callInternally() {
             MovecraftLocation probe;
             BlockSetProperty directionalDependent = type.get(PropertyKeys.DIRECTIONAL_DEPENDENT_MATERIALS);
 
@@ -483,6 +527,7 @@ public class DetectionTask implements Supplier<Effect> {
                     audience.sendMessage(result.getMessageComponent());
                 }
             }
+            return null;
         }
     }
 

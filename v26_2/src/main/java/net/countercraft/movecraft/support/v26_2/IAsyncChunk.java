@@ -1,5 +1,6 @@
 package net.countercraft.movecraft.support.v26_2;
 
+import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -19,13 +20,14 @@ import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("unused")
 public class IAsyncChunk extends AsyncChunk<CraftChunk> {
-    private final @NotNull LoadingCache<MovecraftLocation, BlockState> stateCache = CacheBuilder.newBuilder().maximumSize(1000).build(new CacheLoader<>() {
+    // Removed CacheBuilder as this lead to concurrency errors and then to deadlocks!
+    private final @NotNull /*Loading*/ Cache<MovecraftLocation, BlockState> stateCache = CacheBuilder.newBuilder().maximumSize(1000).build(/*new CacheLoader<>() {
         @Override
         public BlockState load(@NotNull MovecraftLocation movecraftLocation) {
             var block = chunk.getBlock(movecraftLocation.getX(), movecraftLocation.getY(), movecraftLocation.getZ());
             return WorldManager.INSTANCE.executeMain(() -> block.getState());
         }
-    });
+    }*/);
     
     // getHandle needs to be access in the main thread as of 1.19.4
     private final ChunkAccess handle;
@@ -44,7 +46,15 @@ public class IAsyncChunk extends AsyncChunk<CraftChunk> {
     @NotNull
     @Override
     public BlockState getState(@NotNull MovecraftLocation location) {
-        return stateCache.getUnchecked(location);
+        BlockState cached = stateCache.getIfPresent(location);
+        if (cached != null) {
+            return cached;
+        }
+
+        var block = chunk.getBlock(location.getX(), location.getY(), location.getZ());
+        BlockState loaded = WorldManager.INSTANCE.executeMain(() -> block.getState());
+        stateCache.put(location, loaded);
+        return loaded;
     }
 
     @Override
