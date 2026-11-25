@@ -241,7 +241,12 @@ public class IWorldHandler extends WorldHandler {
 
     private void setBlockFast(@NotNull Level world, @NotNull BlockPos position, @NotNull BlockState data) {
         LevelChunk chunk = world.getChunkAt(position);
+        // TODO: catch indexes access < 0 and find out 
         int chunkSection = (position.getY() >> 4) - WorldUtil.getMinSection(world);
+        if (chunkSection < 0) {
+            // TODO: Log message!
+            return;
+        }
         LevelChunkSection section = chunk.getSections()[chunkSection];
         if (section == null) {
             // Put a GLASS block to initialize the section. It will be replaced next with the real block.
@@ -280,6 +285,7 @@ public class IWorldHandler extends WorldHandler {
 
     private void moveBlockEntity(@NotNull Level nativeWorld, @Nullable Function<BlockState, BlockState> blockStateConverter, @NotNull BlockPos newPosition, @NotNull BlockEntity tile) {
         LevelChunk chunk = nativeWorld.getChunkAt(newPosition);
+        // TODO: Move to static field and cache!
         try {
             var positionField = BlockEntity.class.getDeclaredField("worldPosition");
             positionField.setAccessible(true);
