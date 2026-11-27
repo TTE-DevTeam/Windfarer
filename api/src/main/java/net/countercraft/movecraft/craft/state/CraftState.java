@@ -52,12 +52,14 @@ public final class CraftState {
     );
 
     /**
-     * Set on the direct parent of a subcraft while the subcraft moves. The parent can neither move nor be read,
-     * and only one subcraft per parent moves at a time (sequential, so subcrafts can not overlap).
+     * Set on the direct parent of a subcraft while the subcraft moves. The parent can neither move nor be read
+     * nor be modified from the outside, and only one subcraft per parent moves at a time
+     * (sequential, so subcrafts can not overlap).
+     * It holds the processing flag as well, so that nothing can be cut out of the parent meanwhile.
      */
     public static final CraftState SUBCRAFT_MOVEMENT_PARENT = new CraftState(
             "SUBCRAFT_MOVEMENT_PARENT",
-            EnumSet.of(CraftStateFlag.MODIFY_CRAFT_SHAPE),
+            EnumSet.of(CraftStateFlag.MODIFY_CRAFT_SHAPE, CraftStateFlag.MOVEMENT_PROCESSING),
             EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING,
                     CraftStateFlag.READ_CRAFT_SHAPE, CraftStateFlag.MODIFY_CRAFT_SHAPE)
     );

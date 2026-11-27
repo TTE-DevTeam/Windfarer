@@ -21,6 +21,10 @@ import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftCache;
+import net.countercraft.movecraft.craft.state.CraftState;
+import net.countercraft.movecraft.craft.state.CraftStateFlag;
+import net.countercraft.movecraft.craft.state.CraftStateHandle;
+import net.countercraft.movecraft.craft.state.CraftStateTracker;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.PilotedCraft;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
@@ -163,18 +167,42 @@ public class BlockListener implements Listener {
         if (optCraft.isPresent()) {
             final Craft craft = optCraft.get();
 
-           if (!craft.isNotProcessing())
-               e.setCancelled(true); // prevent pistons on cruising crafts           
+            final CraftStateTracker states = craft.getStateTracker();
+            // prevent pistons on moving crafts and while the shape of the craft changes
+            if (states.isActive(CraftStateFlag.MODIFY_CRAFT_SHAPE)
+                    || states.isActive(CraftStateFlag.MOVEMENT_CALCULATION)
+                    || states.isActive(CraftStateFlag.MOVEMENT_PROCESSING)) {
+                e.setCancelled(true);
+                return;
+            }
             // merge piston extensions to craft if the property is true
-           if (!craft.getCraftProperties().get(PropertyKeys.MERGE_PISTON_EXTENSIONS))
+            if (!craft.getCraftProperties().get(PropertyKeys.MERGE_PISTON_EXTENSIONS))
                 return;
 
-           MutableHitBox hitBox = new SetHitBox();
-           for (Block b : affectedBlocks) {
-               Vector dir = e.getDirection().getDirection();
-               hitBox.add(new MovecraftLocation(b.getX() + dir.getBlockX(), b.getY() + dir.getBlockY(), b.getZ() + dir.getBlockZ()));
-           }
-           craft.setHitBox(craft.getHitBox().union(hitBox));
+            // Only what is not part of the craft yet
+            MutableHitBox missing = new SetHitBox();
+            for (Block b : affectedBlocks) {
+                Vector dir = e.getDirection().getDirection();
+                MovecraftLocation extension = new MovecraftLocation(b.getX() + dir.getBlockX(), b.getY() + dir.getBlockY(), b.getZ() + dir.getBlockZ());
+                if (!craft.getHitBox().contains(extension)) {
+                    missing.add(extension);
+                }
+            }
+            if (missing.isEmpty()) {
+                return;
+            }
+
+            final Optional<CraftStateHandle> shapeState = states.tryAcquire(CraftState.CRAFT_SHAPE_MODIFICATION);
+            if (shapeState.isEmpty()) {
+                // The craft is being read right now, the shape can't be changed
+                e.setCancelled(true);
+                return;
+            }
+            try {
+                craft.setHitBox(craft.getHitBox().union(missing));
+            } finally {
+                shapeState.get().release();
+            }
         }
     }
 

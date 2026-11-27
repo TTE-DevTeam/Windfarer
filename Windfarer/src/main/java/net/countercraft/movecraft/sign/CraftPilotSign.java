@@ -5,6 +5,8 @@ import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.*;
+import net.countercraft.movecraft.craft.state.CraftState;
+import net.countercraft.movecraft.craft.state.CraftStateHandle;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.events.CraftPilotEvent;
@@ -27,6 +29,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 //TODO: This is not very pretty...
@@ -129,9 +132,21 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
                         Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(craft, CraftPilotEvent.Reason.PLAYER));
                         if (craft instanceof SubCraft) { // Subtract craft from the parent
                             Craft parent = ((SubCraft) craft).getParent();
-                            var newHitbox = parent.getHitBox().difference(craft.getHitBox());;
-                            parent.setHitBox(newHitbox);
-                            parent.setOrigBlockCount(parent.getOrigBlockCount() - craft.getHitBox().size());
+                            // Not possible while the parent moves, is read or is modified otherwise. Several subcrafts
+                            // may be cut out at the same time, the state is only held while cutting out.
+                            Optional<CraftStateHandle> shapeState = parent.getStateTracker().tryAcquire(CraftState.CRAFT_SHAPE_MODIFICATION);
+                            if (shapeState.isEmpty()) {
+                                interactor.sendMessage(I18nSupport.getInternationalisedString("Detection - Parent Craft is busy"));
+                                CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.SUB_CRAFT, false);
+                                return;
+                            }
+                            try {
+                                var newHitbox = parent.getHitBox().difference(craft.getHitBox());;
+                                parent.setHitBox(newHitbox);
+                                parent.setOrigBlockCount(parent.getOrigBlockCount() - craft.getHitBox().size());
+                            } finally {
+                                shapeState.get().release();
+                            }
                         }
 
                         if (isCruiseOnPilot) {

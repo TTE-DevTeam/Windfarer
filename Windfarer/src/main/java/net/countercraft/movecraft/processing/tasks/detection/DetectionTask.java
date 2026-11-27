@@ -270,6 +270,12 @@ public class DetectionTask implements Supplier<Effect> {
             result = Result.failWithMessage(I18nSupport.getInternationalisedString("Detection - Must Be Subcraft"));
         }
 
+        // A subcraft may only use blocks of its parent, it must not take blocks of other crafts or of the world
+        if (result.isSucess() && craft instanceof SubCraft subCraft && subCraft.getParent() != null
+                && !hitbox.difference(subCraft.getParent().getHitBox()).isEmpty()) {
+            result = Result.failWithMessage(I18nSupport.getInternationalisedString("Detection - Failed - Subcraft outside of parent"));
+        }
+
         if (!result.isSucess()) {
             Component message = result.getMessageComponent();
             if (this.alwaysRunAfter != null)
