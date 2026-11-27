@@ -70,11 +70,11 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
                 return Effect.NONE;
             }
 
-            // The craft must not move while we do something, wait up to 5s for it without blocking a thread.
-            // handleAsync: continue on the work stealing pool, never on the thread which released the blocking state
-            final CompletableFuture<Void> completion = craft.getStateTracker()
+            // The craft must not move while we do something. Wait up to 5s for it without blocking a thread.
+            // The calculation itself is a regular task of the WorldManager again, so it runs on a worker like all others.
+            final CompletableFuture<Void> reservation = craft.getStateTracker()
                     .reserveStateAndWait(CraftState.FUEL_BURN, 5, TimeUnit.SECONDS)
-                    .handleAsync((handle, throwable) -> {
+                    .handle((handle, throwable) -> {
                         if (throwable != null) {
                             FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
                             if (unwrap(throwable) instanceof TimeoutException) {
@@ -87,27 +87,25 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
                             return null;
                         }
 
-                        Effect effect = Effect.NONE;
                         try {
-                            if (CraftManager.getInstance().isStillAlive(this.craft)) {
-                                // Takes over the ownership of the state
-                                effect = this.calculate(handle, startTime, worker);
-                            } else {
+                            if (!CraftManager.getInstance().isStillAlive(this.craft)) {
                                 handle.release();
                                 FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
+                                return null;
                             }
-                        } catch (Throwable calculationError) {
-                            // calculate() releases the state and the in progress mark on its own
-                            Movecraft.getInstance().getLogger().log(Level.SEVERE, "Failed to calculate fuel burn for craft " + craft.getUUID(), calculationError);
-                        }
-                        if (effect != null && effect != Effect.NONE) {
-                            worker.submitEffectToWorldChanges(effect);
+                            // The task takes over the ownership of the state
+                            WorldManager.INSTANCE.submit(new Calculation(handle, startTime), WorldManagerWorkers.NORMAL_PRIORITY);
+                        } catch (Throwable submitError) {
+                            handle.release();
+                            FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
+                            Movecraft.getInstance().getLogger().log(Level.SEVERE, "Failed to start fuel burn calculation of craft " + craft.getUUID(), submitError);
                         }
                         return null;
-                    }, WorldManagerExecutors.WORK_STEALING_POOL);
+                    });
 
-            // Keep WorldManager alive/aware of this operation after get() returns.
-            worker.trackAsyncWork(completion);
+            // Keep WorldManager alive/aware of this operation after get() returns. The follow-up task is
+            // submitted before this completes.
+            worker.trackAsyncWork(reservation);
             return Effect.NONE;
         } catch (RuntimeException | Error throwable) {
             FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
@@ -124,11 +122,32 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
     }
 
     /**
+     * The calculation as a task of its own, started as soon as the craft state could be set.
+     * Owns the state until the effect it returns has run.
+     */
+    private final class Calculation implements Supplier<Effect> {
+        private final CraftStateHandle stateHandle;
+        private final long startTime;
+
+        private Calculation(CraftStateHandle stateHandle, long startTime) {
+            this.stateHandle = stateHandle;
+            this.startTime = startTime;
+        }
+
+        @Override
+        public Effect get() {
+            // calculate() releases the state and the in progress mark itself if it fails
+            return calculate(this.stateHandle, this.startTime);
+        }
+    }
+
+    /**
      * Searches and prepares the fuel to burn. Owns the given state until the returned effect has run (the effect
      * releases it), or until this method fails.
      */
-    private Effect calculate(final CraftStateHandle stateHandle, final long startTime, final WorldManagerWorker worker) {
+    private Effect calculate(final CraftStateHandle stateHandle, final long startTime) {
         boolean completionOwnsState = false;
+        final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
         try {
 
             boolean hasFuel = false;
