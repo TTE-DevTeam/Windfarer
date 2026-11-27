@@ -25,6 +25,8 @@ import net.countercraft.movecraft.async.rotation.RotationTask;
 import net.countercraft.movecraft.async.translation.TranslationTask;
 import net.countercraft.movecraft.craft.*;
 import net.countercraft.movecraft.craft.controller.AbstractRotationController;
+import net.countercraft.movecraft.craft.state.CraftState;
+import net.countercraft.movecraft.craft.state.CraftStateHandle;
 import net.countercraft.movecraft.craft.controller.directControl.DirectControlController;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
@@ -429,119 +431,130 @@ public class AsyncManager extends BukkitRunnable {
             if (Math.abs(ticksElapsed) < craft.getCraftProperties().get(PropertyKeys.SINK_RATE_TICKS))
                 continue;
 
+            // Changing the shape is not possible while the craft moves or is read, try again in the next tick then
+            final CraftStateHandle shapeState = craft.getStateTracker().tryAcquire(CraftState.CRAFT_SHAPE_MODIFICATION).orElse(null);
+            if (shapeState == null) {
+                continue;
+            }
+
             // Do this first so we stay in sync with the rate
             craft.setLastCruiseUpdate(System.currentTimeMillis());
 
-            // TODO: Refactor into own submethod
-            if (craft.getCraftProperties().get(PropertyKeys.USE_ALTERNATIVE_SINKING_PROCESS)) {
-                // We stay afloat for some time, then we play a sound every now and then
-                // Then we will start to sink
-                // If we fall under a certain minimal percentage of our original size, we will sink normally
-                final int originalSize = craft.getOrigBlockCount();
+            try {
+                // TODO: Refactor into own submethod
+                if (craft.getCraftProperties().get(PropertyKeys.USE_ALTERNATIVE_SINKING_PROCESS)) {
+                    // We stay afloat for some time, then we play a sound every now and then
+                    // Then we will start to sink
+                    // If we fall under a certain minimal percentage of our original size, we will sink normally
+                    final int originalSize = craft.getOrigBlockCount();
 
-                final long craftAge = System.currentTimeMillis() - craft.getOrigPilotTime();
-                final long stayAfloatDuration = (long) craft.getOrigBlockCount() * (long) craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_TIME_BEFORE_DISINITEGRATION);
-                if (stayAfloatDuration > 0 && craftAge <= stayAfloatDuration) {
-                    // Craft is still afloat => Does not begin to sink or disintegrate yet
-                    continue;
-                }
-
-                // craft config values
-                final double maxRemainingPercentageBeforeSinking = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_SINK_MAX_REMAINING_PERCENTAGE);
-                final double disintegrationChance = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_DISINTEGRATION_CHANCE);
-                final double explosionChance = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_EXPLOSION_CHANCE);
-                final int minDisintegrate = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_MIN_DISINTEGRATE_BLOCKS);
-                final int maxDisintegrate = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_MAX_DISINTEGRATE_BLOCKS);
-                final int minExplosions = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_MIN_EXPLOSIONS);
-                final int maxExplosions = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_MAX_EXPLOSIONS);
-
-                Set<MovecraftLocation> toRemove = new HashSet<>();
-                List<MovecraftLocation> blocks = new ArrayList<>(craft.getHitBox().asSet());
-
-                blocks.removeIf(movecraftLocation -> {
-                    Location bukkitLocation = movecraftLocation.toBukkit(craft.getWorld());
-                    if (bukkitLocation.getBlock().isEmpty()) {
-                        return true;
+                    final long craftAge = System.currentTimeMillis() - craft.getOrigPilotTime();
+                    final long stayAfloatDuration = (long) craft.getOrigBlockCount() * (long) craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_TIME_BEFORE_DISINITEGRATION);
+                    if (stayAfloatDuration > 0 && craftAge <= stayAfloatDuration) {
+                        // Craft is still afloat => Does not begin to sink or disintegrate yet
+                        continue;
                     }
-                    Block block = bukkitLocation.getBlock();
-                    boolean hasAirNextToIt = false;
-                    for (BlockFace face : CHECK_DIRECTIONS) {
-                        Block relative = block.getRelative(face);
-                        if (relative.isEmpty()) {
-                            hasAirNextToIt = true;
-                            break;
-                        }
-                    }
-                    return !hasAirNextToIt;
-                });
 
-                Collections.shuffle(blocks);
+                    // craft config values
+                    final double maxRemainingPercentageBeforeSinking = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_SINK_MAX_REMAINING_PERCENTAGE);
+                    final double disintegrationChance = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_DISINTEGRATION_CHANCE);
+                    final double explosionChance = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_EXPLOSION_CHANCE);
+                    final int minDisintegrate = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_MIN_DISINTEGRATE_BLOCKS);
+                    final int maxDisintegrate = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_MAX_DISINTEGRATE_BLOCKS);
+                    final int minExplosions = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_MIN_EXPLOSIONS);
+                    final int maxExplosions = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_MAX_EXPLOSIONS);
 
-                List<UpdateCommand> updateCommands = new ArrayList<>();
-                // Also cause a explosion every now and then
-                if (RANDOM.nextDouble() <= explosionChance) {
-                    int explosions = MathUtils.randomBetween(RANDOM, minExplosions, maxExplosions);
-                    for (int i = 0; i < explosions && !blocks.isEmpty(); i++) {
-                        MovecraftLocation movecraftLocation = blocks.removeFirst();
+                    Set<MovecraftLocation> toRemove = new HashSet<>();
+                    List<MovecraftLocation> blocks = new ArrayList<>(craft.getHitBox().asSet());
+
+                    blocks.removeIf(movecraftLocation -> {
                         Location bukkitLocation = movecraftLocation.toBukkit(craft.getWorld());
                         if (bukkitLocation.getBlock().isEmpty()) {
-                            continue;
+                            return true;
                         }
-                        updateCommands.add(new ExplosionUpdateCommand(bukkitLocation, 4.0F, false));
-                    }
-                }
-                if (RANDOM.nextDouble() <= disintegrationChance) {
-                    int disintegrations = MathUtils.randomBetween(RANDOM, minDisintegrate, maxDisintegrate);
-                    // First: Play sound
-                    // TODO: Change to configured sound instead
-                    final String disintegrationSound = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_DISINTEGRATION_SOUND);
-                    if (!(disintegrationSound == null || disintegrationSound.isBlank())) {
-                        int radius = (int)(Math.max(Math.max(craft.getHitBox().getXLength(), craft.getHitBox().getYLength()), craft.getHitBox().getZLength()) * 1.5D);
-                        Location centerLocation = craft.getCraftOrigin().toBukkit(craft.getWorld());
-                        for (Player player : craft.getWorld().getNearbyPlayers(centerLocation,radius)) {
-                            player.playSound(centerLocation, disintegrationSound, 2.0F, 1.0F);
+                        Block block = bukkitLocation.getBlock();
+                        boolean hasAirNextToIt = false;
+                        for (BlockFace face : CHECK_DIRECTIONS) {
+                            Block relative = block.getRelative(face);
+                            if (relative.isEmpty()) {
+                                hasAirNextToIt = true;
+                                break;
+                            }
+                        }
+                        return !hasAirNextToIt;
+                    });
+
+                    Collections.shuffle(blocks);
+
+                    List<UpdateCommand> updateCommands = new ArrayList<>();
+                    // Also cause a explosion every now and then
+                    if (RANDOM.nextDouble() <= explosionChance) {
+                        int explosions = MathUtils.randomBetween(RANDOM, minExplosions, maxExplosions);
+                        for (int i = 0; i < explosions && !blocks.isEmpty(); i++) {
+                            MovecraftLocation movecraftLocation = blocks.removeFirst();
+                            Location bukkitLocation = movecraftLocation.toBukkit(craft.getWorld());
+                            if (bukkitLocation.getBlock().isEmpty()) {
+                                continue;
+                            }
+                            updateCommands.add(new ExplosionUpdateCommand(bukkitLocation, 4.0F, false));
                         }
                     }
-                    // Second: disintegrate the ship
-                    for (int i = 0; i < disintegrations && !blocks.isEmpty(); i++) {
-                        MovecraftLocation movecraftLocation = blocks.removeFirst();
-                        toRemove.add(movecraftLocation);
-                        updateCommands.add(new BlockCreateCommand(movecraftLocation, Material.AIR.createBlockData(), craft));
+                    if (RANDOM.nextDouble() <= disintegrationChance) {
+                        int disintegrations = MathUtils.randomBetween(RANDOM, minDisintegrate, maxDisintegrate);
+                        // First: Play sound
+                        // TODO: Change to configured sound instead
+                        final String disintegrationSound = craft.getCraftProperties().get(PropertyKeys.ALTERNATIVE_SINKING_DISINTEGRATION_SOUND);
+                        if (!(disintegrationSound == null || disintegrationSound.isBlank())) {
+                            int radius = (int)(Math.max(Math.max(craft.getHitBox().getXLength(), craft.getHitBox().getYLength()), craft.getHitBox().getZLength()) * 1.5D);
+                            Location centerLocation = craft.getCraftOrigin().toBukkit(craft.getWorld());
+                            for (Player player : craft.getWorld().getNearbyPlayers(centerLocation,radius)) {
+                                player.playSound(centerLocation, disintegrationSound, 2.0F, 1.0F);
+                            }
+                        }
+                        // Second: disintegrate the ship
+                        for (int i = 0; i < disintegrations && !blocks.isEmpty(); i++) {
+                            MovecraftLocation movecraftLocation = blocks.removeFirst();
+                            toRemove.add(movecraftLocation);
+                            updateCommands.add(new BlockCreateCommand(movecraftLocation, Material.AIR.createBlockData(), craft));
+                        }
+                    }
+
+                    MapUpdateManager.getInstance().scheduleUpdates(updateCommands);
+
+                    // TODO: Is this truly necessary?
+                    if (toRemove.size() > 0) {
+                        HitBox hitBox = craft.getHitBox();
+                        // If we already use a mutable hitbox, we can simply modify that instead!
+                        if (hitBox instanceof MutableHitBox mutableHitBox) {
+                            mutableHitBox.removeAll(toRemove);
+                        } else {
+                            SetHitBox newHitBox = new SetHitBox(hitBox);
+                            newHitBox.removeAll(toRemove);
+                            craft.setHitBox(newHitBox);
+                        }
+                    }
+
+                    int nonNegligibleBlocks = craft.getDataTag(Craft.NON_NEGLIGIBLE_BLOCKS);
+                    int nonNegligibleSolidBlocks = craft.getDataTag(Craft.NON_NEGLIGIBLE_SOLID_BLOCKS);
+                    final int currentSize = (craft.getCraftProperties().get(PropertyKeys.BLOCKED_BY_WATER) ? nonNegligibleBlocks : nonNegligibleSolidBlocks);
+                    final double remainingSizePercentage = ((double)currentSize) / ((double)originalSize);
+
+                    // We are still not damaged enough to actually sink, so postpone the uninevitable
+                    if (maxRemainingPercentageBeforeSinking <= remainingSizePercentage) {
+                        continue;
                     }
                 }
 
-                MapUpdateManager.getInstance().scheduleUpdates(updateCommands);
-
-                // TODO: Is this truly necessary?
-                if (toRemove.size() > 0) {
-                    HitBox hitBox = craft.getHitBox();
-                    // If we already use a mutable hitbox, we can simply modify that instead!
-                    if (hitBox instanceof MutableHitBox mutableHitBox) {
-                        mutableHitBox.removeAll(toRemove);
-                    } else {
-                        SetHitBox newHitBox = new SetHitBox(hitBox);
-                        newHitBox.removeAll(toRemove);
-                        craft.setHitBox(newHitBox);
-                    }
-                }
-
-                int nonNegligibleBlocks = craft.getDataTag(Craft.NON_NEGLIGIBLE_BLOCKS);
-                int nonNegligibleSolidBlocks = craft.getDataTag(Craft.NON_NEGLIGIBLE_SOLID_BLOCKS);
-                final int currentSize = (craft.getCraftProperties().get(PropertyKeys.BLOCKED_BY_WATER) ? nonNegligibleBlocks : nonNegligibleSolidBlocks);
-                final double remainingSizePercentage = ((double)currentSize) / ((double)originalSize);
-
-                // We are still not damaged enough to actually sink, so postpone the uninevitable
-                if (maxRemainingPercentageBeforeSinking <= remainingSizePercentage) {
+                // The hitbox can be modified here, so check again
+                if (craft.getHitBox().isEmpty()) {
+                    CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.SUNK, false);
                     continue;
+                } else if (craft.getHitBox().getMinY() == craft.getWorld().getMinHeight()) {
+                    removeBottomLayer(craft);
                 }
-            }
-
-            // The hitbox can be modified here, so check again
-            if (craft.getHitBox().isEmpty()) {
-                CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.SUNK, false);
-                continue;
-            } else if (craft.getHitBox().getMinY() == craft.getWorld().getMinHeight()) {
-                removeBottomLayer(craft);
+            } finally {
+                // The movement of the sinking craft below needs the craft to be free
+                shapeState.release();
             }
 
             int dx = 0;

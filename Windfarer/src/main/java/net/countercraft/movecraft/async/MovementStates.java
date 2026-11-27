@@ -38,7 +38,7 @@ public final class MovementStates {
         }
         CraftStateHandle parentHandle = null;
         boolean ownsParent = true;
-        if (craft instanceof SubCraft subCraft) {
+        if (craft instanceof SubCraft subCraft && subCraft.locksParentWhileMoving()) {
             Craft parent = subCraft.getParent();
             CraftStateHandle lifetimeHandle = subCraft.getParentStateHandle();
             if (lifetimeHandle != null && !lifetimeHandle.isReleased()) {

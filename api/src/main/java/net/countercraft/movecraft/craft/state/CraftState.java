@@ -63,6 +63,16 @@ public final class CraftState {
     );
 
     /**
+     * The shape of the craft is changed from the outside (e.g. blocks of a sinking craft disintegrate).
+     * Needs a craft which is neither moving nor read. Several of these may run at the same time.
+     */
+    public static final CraftState CRAFT_SHAPE_MODIFICATION = new CraftState(
+            "CRAFT_SHAPE_MODIFICATION",
+            EnumSet.of(CraftStateFlag.MODIFY_CRAFT_SHAPE),
+            EnumSet.of(CraftStateFlag.READ_CRAFT_SHAPE, CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING)
+    );
+
+    /**
      * Compatibility state for the deprecated {@code setProcessing(true)}: holds and is blocked by everything.
      */
     public static final CraftState LEGACY_PROCESSING = new CraftState(

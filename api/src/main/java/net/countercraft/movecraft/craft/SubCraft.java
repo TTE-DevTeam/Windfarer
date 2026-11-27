@@ -15,6 +15,14 @@ public interface SubCraft extends Craft {
     void setParent(@NotNull Craft parent);
 
     /**
+     * @return true if the parent can neither move nor be read while this subcraft moves. Subcrafts which operate
+     * independently of their parent (e.g. squadrons) return false.
+     */
+    default boolean locksParentWhileMoving() {
+        return true;
+    }
+
+    /**
      * @return the state which is held on the parent for the whole lifetime of this subcraft
      * ({@link net.countercraft.movecraft.craft.state.CraftState#SUBCRAFT_MOVEMENT_PARENT}), or null if none is held
      */
