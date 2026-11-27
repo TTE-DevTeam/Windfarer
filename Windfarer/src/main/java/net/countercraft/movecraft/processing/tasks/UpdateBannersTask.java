@@ -1,6 +1,6 @@
 package net.countercraft.movecraft.processing.tasks;
 
-import com.google.common.collect.Sets;
+import net.countercraft.movecraft.async.MovementStates;
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
 import net.countercraft.movecraft.TrackedLocation;
@@ -22,6 +22,8 @@ import org.bukkit.block.Banner;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,26 +41,37 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
     protected final List<MovecraftLocation> updateLocations = new ArrayList<>();
     protected final Craft craft;
 
-    // TODO: Replace once a proper status concept has been established!
-    private static final Set<UUID> craftsInProgress = Sets.newConcurrentHashSet();
+    // The post movement step of a movement: runs while the craft still holds the states of that movement,
+    // which are released as soon as the banners have been updated (or the update failed)
+    protected final MovementStates states;
 
     private static final NamespacedKey BANNER_LOCATIONS_KEY = new NamespacedKey("windfarer", "tracked_locations/banners");
     protected static final CraftDataTagKey<FilteredTrackedLocations> BANNER_LOCATIONS = CraftDataTagRegistry.INSTANCE.registerTagKey(BANNER_LOCATIONS_KEY, c -> new FilteredTrackedLocations(c, BANNER_LOCATIONS_KEY, 20000, UpdateBannersTask::isBannerBlock));
 
-    public static @Nullable UpdateBannersTask createTask(final Craft craft) {
-        if (craftsInProgress.add(craft.getUUID())) {
-            return new UpdateBannersTask(craft);
-        }
-        return null;
+    /**
+     * @param states the states of the movement this is the post movement step of. They are released by the task.
+     */
+    public static @NotNull UpdateBannersTask createTask(final Craft craft, final MovementStates states) {
+        return new UpdateBannersTask(craft, states);
     }
 
-    protected UpdateBannersTask(Craft craft) {
+    protected UpdateBannersTask(Craft craft, MovementStates states) {
         this.world = craft.getWorld();
         this.craft = craft;
+        this.states = states;
     }
 
     @Override
     public Effect get() {
+        try {
+            return this.collectBanners();
+        } catch (RuntimeException | Error throwable) {
+            this.states.release();
+            throw throwable;
+        }
+    }
+
+    private Effect collectBanners() {
         final long startTime = System.currentTimeMillis();
         if (Settings.Debug)
             Movecraft.getInstance().getLogger().info(String.format("Starting banner update task for craft <%s>...", craft.getUUID()));
@@ -82,7 +95,7 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
                 })
                 .whenComplete((ignored, throwable) -> {
                     if (throwable != null) {
-                        craftsInProgress.remove(craft.getUUID());
+                        this.states.release();
                         Movecraft.getInstance().getLogger().log(
                                 Level.SEVERE,
                                 "Failed to collect banner locations for craft " + craft.getUUID(),
@@ -112,8 +125,6 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
     @Override
     public void run() {
         try {
-            //boolean processing = !this.craft.isNotProcessing();
-            //this.craft.setProcessing(true);
             for (MovecraftLocation location : this.updateLocations) {
                 Block block = location.toBukkit(this.world).getBlock();
                 BlockState state = block.getState();
@@ -121,9 +132,8 @@ public class UpdateBannersTask implements Supplier<Effect>, Effect {
                     banner.update(false, false);
                 }
             }
-            //this.craft.setProcessing(processing);
         } finally {
-            craftsInProgress.remove(this.craft.getUUID());
+            this.states.release();
         }
     }
 }

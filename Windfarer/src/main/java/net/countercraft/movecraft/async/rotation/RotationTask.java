@@ -167,9 +167,6 @@ public class RotationTask extends FuelAwareAsyncTask {
         }
 
         if (failed) {
-            if (this.isSubCraft && parentCraft != getCraft()) {
-                parentCraft.setProcessing(false);
-            }
             return;
         }
 

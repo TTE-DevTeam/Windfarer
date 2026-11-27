@@ -176,8 +176,6 @@ public class CraftRotateCommand extends UpdateCommand {
             sendSignEvents();
         }
 
-        if (!craft.isNotProcessing())
-            craft.setProcessing(false);
         time = System.nanoTime() - time;
         if (Settings.Debug)
             logger.info("Total time: " + (time / 1e6) + " milliseconds. Moving with cooldown of " + craft.getTickCooldown() + ". Speed of: " + String.format("%.2f", craft.getSpeed()));

@@ -33,6 +33,7 @@ import net.countercraft.movecraft.events.RunnableRegistrationEvent;
 import net.countercraft.movecraft.mapUpdater.MapUpdateManager;
 import net.countercraft.movecraft.mapUpdater.update.BlockCreateCommand;
 import net.countercraft.movecraft.mapUpdater.update.ExplosionUpdateCommand;
+import net.countercraft.movecraft.mapUpdater.update.PostMovementCommand;
 import net.countercraft.movecraft.mapUpdater.update.UpdateCommand;
 import net.countercraft.movecraft.util.MathUtils;
 import net.countercraft.movecraft.util.hitboxes.*;
@@ -64,10 +65,10 @@ public class AsyncManager extends BukkitRunnable {
     private int maxInterval;
     private int currentTick = 1;
 
-    private final Map<AbstractAsyncTask, Craft> ownershipMap = new HashMap<>();
+    private final Map<AbstractAsyncTask, Ownership> ownershipMap = new HashMap<>();
     private final Queue<PendingAlgorithm> pendingAlgorithms = new ArrayDeque<>();
     private final BlockingQueue<AbstractAsyncTask> finishedAlgorithms = new LinkedBlockingQueue<>();
-    private final Set<Craft> clearanceSet = new HashSet<>();
+    private final Set<MovementStates> clearanceSet = new HashSet<>();
     private final Map<Craft, Integer> cooldownCache = new WeakHashMap<>();
 
     public AsyncManager() {
@@ -142,7 +143,9 @@ public class AsyncManager extends BukkitRunnable {
                 continue;
             }
 
-            if (!craft.setProcessingActiveIfAvailable()) {
+            // The craft (and the parent of a subcraft) must be free for a movement calculation
+            final MovementStates states = MovementStates.tryAcquire(craft);
+            if (states == null) {
                 craftsBlockedThisPass.add(craft);
                 pendingAlgorithms.add(pending);
                 continue;
@@ -151,13 +154,13 @@ public class AsyncManager extends BukkitRunnable {
             AbstractAsyncTask task = null;
             try {
                 task = Objects.requireNonNull(pending.taskFactory().get(), "taskFactory returned null");
-                ownershipMap.put(task, craft);
+                ownershipMap.put(task, new Ownership(craft, states));
                 task.runTask(Movecraft.getInstance());
             } catch (RuntimeException exception) {
                 if (task != null) {
                     ownershipMap.remove(task);
                 }
-                craft.setProcessing(false);
+                states.release();
                 String taskName = task == null ? "task factory" : task.getClass().getSimpleName();
                 Movecraft.getInstance().getLogger().severe(
                         "Could not schedule " + taskName
@@ -170,6 +173,18 @@ public class AsyncManager extends BukkitRunnable {
 
     private record PendingAlgorithm(Supplier<? extends AbstractAsyncTask> taskFactory, Craft craft) {}
 
+    /** The craft of a running task and the states which are held for it until its movement has ended. */
+    private record Ownership(Craft craft, MovementStates states) {}
+
+    private enum ApplyResult {
+        /** Nothing was sent to the map updater, the states can be released. */
+        NOTHING_SCHEDULED,
+        /** Updates were sent to the map updater, whose post movement step releases the states after them. */
+        SCHEDULED,
+        /** The craft can't be switched to execution right now, the completed task must be processed again later. */
+        DEFERRED
+    }
+
     public void submitCompletedTask(AbstractAsyncTask task) {
         finishedAlgorithms.add(task);
     }
@@ -181,16 +196,18 @@ public class AsyncManager extends BukkitRunnable {
         runLength = Math.min(runLength, queueLength);
 
         for (int i = 0; i < runLength; i++) {
-            boolean sentMapUpdate = false;
+            ApplyResult result = ApplyResult.NOTHING_SCHEDULED;
             AbstractAsyncTask poll = finishedAlgorithms.poll();
             if (poll == null) {
                 continue;
             }
-            Craft c = ownershipMap.remove(poll);
-            if (c == null) {
+            Ownership owned = ownershipMap.remove(poll);
+            if (owned == null) {
                 // A stale/duplicate completion must not block other queued algorithms.
                 continue;
             }
+            final Craft c = owned.craft();
+            final MovementStates states = owned.states();
 
             try {
                 Throwable executionFailure = poll.getExecutionFailure();
@@ -201,9 +218,9 @@ public class AsyncManager extends BukkitRunnable {
                                     + "; releasing its processing lock."
                     );
                 } else if (poll instanceof TranslationTask task) {
-                    sentMapUpdate = processTranslation(task, c);
+                    result = processTranslation(task, c, states);
                 } else if (poll instanceof RotationTask task) {
-                    sentMapUpdate = processRotation(task, c);
+                    result = processRotation(task, c, states);
                 }
             } catch (Throwable exception) {
                 Movecraft.getInstance().getLogger().severe(
@@ -211,14 +228,21 @@ public class AsyncManager extends BukkitRunnable {
                                 + " for craft " + c.getUUID() + "; releasing its processing lock."
                 );
                 exception.printStackTrace();
-                sentMapUpdate = false;
+                result = ApplyResult.NOTHING_SCHEDULED;
             }
 
-            // only mark the craft as having finished updating if you didn't
-            // send any updates to the map updater. Otherwise the map updater
-            // will mark the crafts once it is done with them.
-            if (!sentMapUpdate) {
-                clear(c);
+            if (result == ApplyResult.DEFERRED) {
+                // The craft is still calculating (keeps its states), the result is applied as soon as the
+                // craft can be switched to execution, e.g. after a status update has finished reading it.
+                ownershipMap.put(poll, owned);
+                finishedAlgorithms.add(poll);
+                continue;
+            }
+
+            // only release the craft's states if you didn't send any updates to the
+            // map updater. Otherwise the map updater releases them once it is done.
+            if (result == ApplyResult.NOTHING_SCHEDULED) {
+                clear(states);
             }
         }
     }
@@ -227,32 +251,52 @@ public class AsyncManager extends BukkitRunnable {
      * Processes translation task for its corresponding craft
      * @param task the task to process
      * @param c the craft this task belongs to
-     * @return true if translation task succeded to process, otherwise false
+     * @param states the states held for this movement
+     * @return what happened to the states, see {@link ApplyResult}
      */
-    private boolean processTranslation(@NotNull final TranslationTask task, @NotNull final Craft c) {
+    private ApplyResult processTranslation(@NotNull final TranslationTask task, @NotNull final Craft c, @NotNull final MovementStates states) {
 
         // Check that the craft hasn't been sneakily unpiloted
 
-        if (task.failed()) {
+        if (task.failed() && !task.isCollisionExplosion()) {
             // The craft translation failed
             if (!(c instanceof SinkingCraft))
                 c.getAudience().sendMessage(Component.text(task.getFailMessage()));
+            return ApplyResult.NOTHING_SCHEDULED;
+        }
 
-            if (task.isCollisionExplosion()) {
-                c.setHitBox(task.getNewHitBox());
-                c.setFluidLocations(task.getNewFluidList());
-                MapUpdateManager.getInstance().scheduleUpdates(task.getUpdates());
-                CraftManager.getInstance().addReleaseTask(c);
-                return !task.getUpdates().isEmpty();
-            }
-            return false;
+        // From here on the shape of the craft changes: calculation -> execution
+        if (!states.tryEnterExecution()) {
+            return ApplyResult.DEFERRED;
+        }
+
+        if (task.failed()) {
+            // The craft translation failed with a collision explosion
+            if (!(c instanceof SinkingCraft))
+                c.getAudience().sendMessage(Component.text(task.getFailMessage()));
+
+            c.setHitBox(task.getNewHitBox());
+            c.setFluidLocations(task.getNewFluidList());
+            CraftManager.getInstance().addReleaseTask(c);
+            return scheduleUpdates(c, task.getUpdates(), states);
         }
         // The craft is clear to move, perform the block updates
-        MapUpdateManager.getInstance().scheduleUpdates(task.getUpdates());
-
         c.setHitBox(task.getNewHitBox());
         c.setFluidLocations(task.getNewFluidList());
-        return !task.getUpdates().isEmpty();
+        return scheduleUpdates(c, task.getUpdates(), states);
+    }
+
+    /**
+     * Sends the updates of a movement to the map updater, followed by the post movement steps, which release the movement's states.
+     */
+    private ApplyResult scheduleUpdates(@NotNull Craft craft, @NotNull Collection<UpdateCommand> updates, @NotNull MovementStates states) {
+        if (updates.isEmpty()) {
+            return ApplyResult.NOTHING_SCHEDULED;
+        }
+        MapUpdateManager.getInstance().scheduleUpdates(updates);
+        // The queue of the map updater is FIFO, so this is executed after the updates
+        MapUpdateManager.getInstance().scheduleUpdate(new PostMovementCommand(craft, states));
+        return ApplyResult.SCHEDULED;
     }
 
     /**
@@ -261,24 +305,26 @@ public class AsyncManager extends BukkitRunnable {
      * @param c the craft this task belongs to
      * @return true if translation task succeded to process, otherwise false
      */
-    private boolean processRotation(@NotNull final RotationTask task, @NotNull final Craft c) {
+    private ApplyResult processRotation(@NotNull final RotationTask task, @NotNull final Craft c, @NotNull final MovementStates states) {
         // Check that the craft hasn't been sneakily unpiloted
         if (!(c instanceof PilotedCraft) && !task.getIsSubCraft())
-            return false;
+            return ApplyResult.NOTHING_SCHEDULED;
 
         if (task.isFailed()) {
             // The craft translation failed, don't try to notify
             // them if there is no pilot
             c.getAudience().sendMessage(Component.text(task.getFailMessage()));
-            return false;
+            return ApplyResult.NOTHING_SCHEDULED;
         }
 
-
-        MapUpdateManager.getInstance().scheduleUpdates(task.getUpdates());
+        // From here on the shape of the craft changes: calculation -> execution
+        if (!states.tryEnterExecution()) {
+            return ApplyResult.DEFERRED;
+        }
 
         c.setHitBox(task.getNewHitBox());
         c.setFluidLocations(task.getNewFluidList());
-        return !task.getUpdates().isEmpty();
+        return scheduleUpdates(c, task.getUpdates(), states);
     }
 
     public static void processCruise() {
@@ -586,13 +632,13 @@ public class AsyncManager extends BukkitRunnable {
         }
     }
 
-    private void clear(Craft c) {
-        clearanceSet.add(c);
+    private void clear(MovementStates states) {
+        clearanceSet.add(states);
     }
 
     private void clearAll() {
-        for (Craft c : clearanceSet) {
-            c.setProcessing(false);
+        for (MovementStates states : clearanceSet) {
+            states.release();
         }
 
         clearanceSet.clear();
