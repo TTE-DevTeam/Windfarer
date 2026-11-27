@@ -22,7 +22,6 @@ import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftCache;
 import net.countercraft.movecraft.craft.state.CraftState;
-import net.countercraft.movecraft.craft.state.CraftStateFlag;
 import net.countercraft.movecraft.craft.state.CraftStateHandle;
 import net.countercraft.movecraft.craft.state.CraftStateTracker;
 import net.countercraft.movecraft.craft.CraftManager;
@@ -115,7 +114,7 @@ public class BlockListener implements Listener {
         Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
         if (optCraft.isPresent()) {
             final Craft craft = optCraft.get();
-            if (craft.isNotProcessing())
+            if (!craft.getStateTracker().isMoving())
                 return;
 
             e.setCancelled(true);
@@ -141,7 +140,7 @@ public class BlockListener implements Listener {
         Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
         if (optCraft.isPresent()) {
             final Craft craft = optCraft.get();
-            if (craft.isNotProcessing())
+            if (!craft.getStateTracker().isMoving())
                 return;
 
             e.setNewCurrent(e.getOldCurrent()); // don't allow piston movement on cruising crafts
@@ -169,9 +168,7 @@ public class BlockListener implements Listener {
 
             final CraftStateTracker states = craft.getStateTracker();
             // prevent pistons on moving crafts and while the shape of the craft changes
-            if (states.isActive(CraftStateFlag.MODIFY_CRAFT_SHAPE)
-                    || states.isActive(CraftStateFlag.MOVEMENT_CALCULATION)
-                    || states.isActive(CraftStateFlag.MOVEMENT_PROCESSING)) {
+            if (states.isMovingOrChangingShape()) {
                 e.setCancelled(true);
                 return;
             }
@@ -216,7 +213,7 @@ public class BlockListener implements Listener {
             Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
             if (optCraft.isPresent()) {
                 final Craft craft = optCraft.get();
-                if (craft.isNotProcessing())
+                if (!craft.getStateTracker().isMoving())
                     return;
 
                 e.setCancelled(true);
@@ -259,7 +256,7 @@ public class BlockListener implements Listener {
         Optional<Craft> optCraft = CraftCache.getCraftAt(location.getWorld(), loc);
         if (optCraft.isPresent()) {
             final Craft craft = optCraft.get();
-            if (craft.isNotProcessing())
+            if (!craft.getStateTracker().isMoving())
                 return;
 
             e.setCancelled(true);

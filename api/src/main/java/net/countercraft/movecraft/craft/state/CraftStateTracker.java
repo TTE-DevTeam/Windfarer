@@ -47,6 +47,16 @@ public final class CraftStateTracker {
         return true;
     }
 
+    /** @return true if a movement of the craft is being calculated or applied */
+    public boolean isMoving() {
+        return this.isActive(CraftStateFlag.MOVEMENT_CALCULATION) || this.isActive(CraftStateFlag.MOVEMENT_PROCESSING);
+    }
+
+    /** @return true if the craft is moving (see {@link #isMoving()}) or its shape is being modified */
+    public boolean isMovingOrChangingShape() {
+        return this.isMoving() || this.isActive(CraftStateFlag.MODIFY_CRAFT_SHAPE);
+    }
+
     public boolean isActive(@NotNull CraftStateFlag flag) {
         return this.counts.get(flag.ordinal()) > 0;
     }

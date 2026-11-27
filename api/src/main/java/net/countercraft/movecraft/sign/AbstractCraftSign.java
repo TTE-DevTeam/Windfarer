@@ -68,7 +68,7 @@ public abstract class AbstractCraftSign extends AbstractMovecraftSign {
         }
 
         if (craft instanceof PlayerCraft pc) {
-            if (!pc.isNotProcessing() && !this.ignoreCraftIsBusy) {
+            if (pc.getStateTracker().isMovingOrChangingShape() && !this.ignoreCraftIsBusy) {
                 this.onCraftIsBusy(interactor, craft);
                 return false;
             }

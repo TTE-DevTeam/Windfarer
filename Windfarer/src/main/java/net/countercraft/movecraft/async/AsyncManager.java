@@ -331,7 +331,7 @@ public class AsyncManager extends BukkitRunnable {
 
     public static void processCruise() {
         for (Craft craft : CraftManager.getInstance()) {
-            if (craft == null || !craft.isNotProcessing() || !craft.getCruising())
+            if (craft == null || craft.getStateTracker().isMovingOrChangingShape() || !craft.getCruising())
                 continue;
 
             long ticksElapsed = (System.currentTimeMillis() - craft.getLastCruiseUpdate()) / 50;
