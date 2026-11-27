@@ -93,12 +93,29 @@ public interface Craft {
         return null;
     }
 
+    /**
+     * @return the tracker managing the {@link net.countercraft.movecraft.craft.state.CraftState}s of this craft
+     */
+    @NotNull
+    net.countercraft.movecraft.craft.state.CraftStateTracker getStateTracker();
+
+    /**
+     * @return true if no state flag is set at all
+     * @deprecated Use {@link #getStateTracker()}
+     */
     @Deprecated
     boolean isNotProcessing();
 
+    /**
+     * {@code true} sets a state blocking and holding everything, {@code false} releases only that state.
+     * @deprecated Use {@link #getStateTracker()}
+     */
     @Deprecated
     void setProcessing(boolean processing);
 
+    /**
+     * @deprecated Use {@link #getStateTracker()}
+     */
     @Deprecated
     boolean setProcessingActiveIfAvailable();
 

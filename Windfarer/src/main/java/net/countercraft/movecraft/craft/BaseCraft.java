@@ -6,6 +6,7 @@ import net.countercraft.movecraft.async.translation.TranslationTask;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagContainer;
 import net.countercraft.movecraft.craft.datatag.CraftDataTagKey;
+import net.countercraft.movecraft.craft.state.CraftStateTracker;
 import net.countercraft.movecraft.craft.type.*;
 import net.countercraft.movecraft.craft.type.property.BlockSetProperty;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
@@ -51,7 +52,7 @@ public abstract class BaseCraft implements Craft {
     @NotNull
     protected final MutableHitBox collapsedHitBox;
     @NotNull
-    private final AtomicBoolean processing = new AtomicBoolean();
+    private final CraftStateTracker stateTracker = new CraftStateTracker();
     private final long origPilotTime;
     @NotNull
     private final Map<Location, BlockData> phaseBlocks = new HashMap<>();
@@ -111,16 +112,25 @@ public abstract class BaseCraft implements Craft {
     }
 
 
+    @NotNull
+    @Override
+    public CraftStateTracker getStateTracker() {
+        return this.stateTracker;
+    }
+
+    @Override
     public boolean isNotProcessing() {
-        return !processing.get();
+        return this.stateTracker.isIdle();
     }
 
+    @Override
     public void setProcessing(boolean processing) {
-        this.processing.set(processing);
+        this.stateTracker.setLegacyProcessing(processing);
     }
 
+    @Override
     public boolean setProcessingActiveIfAvailable() {
-        return processing.compareAndSet(false, true);
+        return this.stateTracker.tryAcquireLegacyProcessing();
     }
 
     @NotNull
