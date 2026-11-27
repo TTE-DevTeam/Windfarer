@@ -27,20 +27,34 @@ final class SubcraftParentLock {
      *
      * @return true if the parent is locked, false if the action has to be aborted
      */
-    static boolean acquire(@NotNull SubCraft subcraft, @Nullable Entity interactor) {
+    static boolean acquire(@NotNull SubCraft subcraft, @Nullable Entity interactor, @Nullable ParentDetectionLock detectionLock) {
         final Craft parent = subcraft.getParent();
-        // The click on the sign locked the parent with the legacy lock while the subcraft was detected
-        // TODO: Replace by proper handling of the detection phase
-        parent.setProcessing(false);
+        // The parent was locked while the subcraft was detected, the lock turns into the lifetime state of the subcraft
+        if (detectionLock != null && detectionLock.getParent() == parent) {
+            if (detectionLock.transferTo(subcraft)) {
+                return true;
+            }
+            detectionLock.release();
+            abort(subcraft, interactor);
+            return false;
+        }
+        // Parent differs from the one of the sign (or there was none): lock it now
+        if (detectionLock != null) {
+            detectionLock.release();
+        }
         Optional<CraftStateHandle> handle = parent.getStateTracker().tryAcquire(CraftState.SUBCRAFT_MOVEMENT_PARENT);
         if (handle.isEmpty()) {
-            if (interactor != null) {
-                interactor.sendMessage(I18nSupport.getInternationalisedString("Detection - Parent Craft is busy"));
-            }
-            CraftManager.getInstance().release(subcraft, CraftReleaseEvent.Reason.SUB_CRAFT, false);
+            abort(subcraft, interactor);
             return false;
         }
         subcraft.setParentStateHandle(handle.get());
         return true;
+    }
+
+    private static void abort(@NotNull SubCraft subcraft, @Nullable Entity interactor) {
+        if (interactor != null) {
+            interactor.sendMessage(I18nSupport.getInternationalisedString("Detection - Parent Craft is busy"));
+        }
+        CraftManager.getInstance().release(subcraft, CraftReleaseEvent.Reason.SUB_CRAFT, false);
     }
 }

@@ -86,6 +86,17 @@ public final class CraftState {
     );
 
     /**
+     * Set on the parent of a subcraft while the subcraft is detected (the world is read and the player may still
+     * cancel or fail). Nothing may move or change the parent meanwhile. It is turned into
+     * {@link #SUBCRAFT_MOVEMENT_PARENT} as soon as the subcraft exists.
+     */
+    public static final CraftState SUBCRAFT_DETECTION = new CraftState(
+            "SUBCRAFT_DETECTION",
+            EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION),
+            EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING, CraftStateFlag.MODIFY_CRAFT_SHAPE)
+    );
+
+    /**
      * Compatibility state for the deprecated {@code setProcessing(true)}: holds and is blocked by everything.
      */
     public static final CraftState LEGACY_PROCESSING = new CraftState(

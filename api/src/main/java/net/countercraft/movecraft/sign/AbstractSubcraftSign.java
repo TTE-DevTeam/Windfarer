@@ -26,6 +26,8 @@ import java.util.function.Supplier;
 public abstract class AbstractSubcraftSign extends AbstractCraftSign {
 
     // TODO: Replace by writing to the signs nbt data
+    /** The parent is locked for this long at most while a subcraft is detected */
+    protected static final long DETECTION_LOCK_TIMEOUT_TICKS = 100;
     protected static final Set<MovecraftLocation> IN_USE = Collections.synchronizedSet(new HashSet<>());
 
     protected final Function<String, @Nullable TypeSafeCraftType> craftTypeRetrievalFunction;
@@ -124,18 +126,17 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
         final Location signLoc = sign.block().getLocation();
         final MovecraftLocation startPoint = new MovecraftLocation(signLoc.getBlockX(), signLoc.getBlockY(), signLoc.getBlockZ());
 
-        if (craft != null) {
-            craft.setProcessing(true);
-            // TODO: SOlve this more elegantly...
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    craft.setProcessing(false);
-                }
-            }.runTaskLater(this.pluginInstance.get(), (10));
+        // The parent must not move or change while the subcraft is detected
+        final ParentDetectionLock parentLock = craft == null ? null : ParentDetectionLock.tryAcquire(craft);
+        if (craft != null && parentLock == null) {
+            this.onCraftIsBusy(interactor, craft);
+            return false;
         }
 
         if (!IN_USE.add(startPoint)) {
+            if (parentLock != null) {
+                parentLock.release();
+            }
             this.onActionAlreadyInProgress(interactor);
             return true;
         }
@@ -144,7 +145,18 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
 
         final World world = sign.block().getWorld();
 
-        this.runDetectTask(clickType, subcraftType, craft, world, interactor, startPoint);
+        if (parentLock != null) {
+            // Safety net, the lock must never be held forever, e.g. if detection fails in a way nobody notices.
+            // Does nothing if the lock was released or handed over to the subcraft already.
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    parentLock.release();
+                }
+            }.runTaskLater(this.pluginInstance.get(), DETECTION_LOCK_TIMEOUT_TICKS);
+        }
+
+        this.runDetectTask(clickType, subcraftType, craft, world, interactor, startPoint, parentLock);
 
         // TODO: Change this, it is ugly, should be done by the detect task itself
         new BukkitRunnable() {
@@ -188,7 +200,13 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
         return resultSuper;
     }
 
-    protected abstract void runDetectTask(Action clickType, TypeSafeCraftType subcraftType, Craft parentCraft, World world, Entity interactor, MovecraftLocation startPoint);
+    /**
+     * Detects and handles the subcraft.
+     *
+     * @param parentLock holds the parent craft (if any) during detection. It has to be handed over to the subcraft,
+     *                   or released if nothing is detected. Null if there is no parent craft.
+     */
+    protected abstract void runDetectTask(Action clickType, TypeSafeCraftType subcraftType, Craft parentCraft, World world, Entity interactor, MovecraftLocation startPoint, @Nullable ParentDetectionLock parentLock);
     protected abstract boolean isActionAllowed(final String action);
     protected abstract void onActionAlreadyInProgress(Entity interactor);
     protected abstract Component getDefaultTextFor(int line);

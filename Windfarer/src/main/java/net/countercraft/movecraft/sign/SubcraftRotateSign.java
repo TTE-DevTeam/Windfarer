@@ -9,6 +9,7 @@ import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.events.CraftPilotEvent;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
+import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.processing.functions.Result;
 import net.countercraft.movecraft.util.Pair;
 import net.kyori.adventure.text.Component;
@@ -30,9 +31,12 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
     }
 
     @Override
-    protected void runDetectTask(Action clickType, TypeSafeCraftType subcraftType, Craft parentcraft, World world, Entity interactor, MovecraftLocation startPoint) {
+    protected void runDetectTask(Action clickType, TypeSafeCraftType subcraftType, Craft parentcraft, World world, Entity interactor, MovecraftLocation startPoint, @Nullable ParentDetectionLock parentLock) {
         final MovecraftRotation rotation = MovecraftRotation.fromAction(clickType);
         if (rotation == MovecraftRotation.NONE) {
+            if (parentLock != null) {
+                parentLock.release();
+            }
             return;
         }
 
@@ -55,7 +59,7 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
                 subcraft -> () -> {
                     Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(subcraft, CraftPilotEvent.Reason.SUB_CRAFT));
                     if (subcraft instanceof SubCraft) { // Subtract craft from the parent
-                        if (!SubcraftParentLock.acquire((SubCraft) subcraft, interactor)) {
+                        if (!SubcraftParentLock.acquire((SubCraft) subcraft, interactor, parentLock)) {
                             return;
                         }
                         Craft parent = ((SubCraft) subcraft).getParent();
@@ -77,6 +81,13 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
                             CraftManager.getInstance().release(subcraft, CraftReleaseEvent.Reason.SUB_CRAFT, false);
                         }
                     }.runTaskLater(Movecraft.getInstance(), 3);
+                },
+                // Nothing was detected => the parent is free again (on success the subcraft took over the lock)
+                craft -> {
+                    if (craft == null && parentLock != null) {
+                        parentLock.release();
+                    }
+                    return Effect.NONE;
                 }
         );
     }

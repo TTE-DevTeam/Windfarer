@@ -12,6 +12,7 @@ import net.countercraft.movecraft.craft.type.TypeSafeCraftType;
 import net.countercraft.movecraft.events.CraftPilotEvent;
 import net.countercraft.movecraft.listener.InteractListener;
 import net.countercraft.movecraft.localisation.I18nSupport;
+import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.processing.functions.Result;
 import net.countercraft.movecraft.util.Pair;
 import net.countercraft.movecraft.util.hitboxes.HitBox;
@@ -105,8 +106,11 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
     }
 
     @Override
-    protected void runDetectTask(Action action, TypeSafeCraftType subcraftType, Craft craft, World world, Entity player, MovecraftLocation startPoint) {
+    protected void runDetectTask(Action action, TypeSafeCraftType subcraftType, Craft craft, World world, Entity player, MovecraftLocation startPoint, @Nullable ParentDetectionLock parentLock) {
         if (this.signWrapperCur == null) {
+            if (parentLock != null) {
+                parentLock.release();
+            }
             return;
         }
         Vector movement = this.getMovementVector(this.signWrapperCur, subcraftType);
@@ -114,6 +118,9 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
             movement.multiply(-1);
         }
 
+        if (movement.length() == 0 && parentLock != null) {
+            parentLock.release();
+        }
         if (movement.length() != 0) {
             final int deltaX = Math.toIntExact(Math.round(movement.getX()));
             final int deltaY = Math.toIntExact(Math.round(movement.getY()));
@@ -132,7 +139,7 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
                     Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(subcraft, CraftPilotEvent.Reason.SUB_CRAFT));
                     boolean movementAllowed = true;
                     if (subcraft instanceof SubCraft && ((SubCraft) subcraft).getParent() != null) {
-                        if (!SubcraftParentLock.acquire((SubCraft) subcraft, player)) {
+                        if (!SubcraftParentLock.acquire((SubCraft) subcraft, player, parentLock)) {
                             return;
                         }
                         Craft parent = ((SubCraft) subcraft).getParent();
@@ -174,6 +181,12 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
                         }
                     }).runTaskLater(Movecraft.getInstance(), 3L);
                 };
+            }, (craft2) -> {
+                // Nothing was detected => the parent is free again (on success the subcraft took over the lock)
+                if (craft2 == null && parentLock != null) {
+                    parentLock.release();
+                }
+                return Effect.NONE;
             });
         }
 

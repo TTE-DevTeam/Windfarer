@@ -259,12 +259,25 @@ public class CraftManager implements Iterable<Craft>{
                        @NotNull World world, @Nullable Entity pilot,
                        @NotNull Audience audience,
                        @NotNull Function<Craft, Effect> postDetection) {
+        this.detectSubcraft(startPoint, type, supplier, world, pilot, audience, postDetection, null);
+    }
+
+    /**
+     * @param alwaysRunAfter see {@link #detect}. Note that on success it runs before the postDetection effect.
+     */
+    public void detectSubcraft(@NotNull MovecraftLocation startPoint,
+                       @NotNull TypeSafeCraftType type, @NotNull CraftSupplier supplier,
+                       @NotNull World world, @Nullable Entity pilot,
+                       @NotNull Audience audience,
+                       @NotNull Function<Craft, Effect> postDetection,
+                       @Nullable Function<@Nullable Craft, Effect> alwaysRunAfter) {
         WorldManager.INSTANCE.submit(new DetectionTask(
                 startPoint, CachedMovecraftWorld.of(world),
                 type, supplier,
                 world, pilot,
                 audience,
-                postDetection
+                postDetection,
+                alwaysRunAfter
         ), WorldManagerWorkers.HIGH_PRIORITY);
     }
 
