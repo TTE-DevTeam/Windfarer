@@ -8,6 +8,8 @@ import net.countercraft.movecraft.async.FuelBurnRunnable;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
+import net.countercraft.movecraft.craft.state.CraftState;
+import net.countercraft.movecraft.craft.state.CraftStateHandle;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.property.NamespacedKeyToDoubleProperty;
 import net.countercraft.movecraft.events.CraftSinkEvent;
@@ -17,6 +19,7 @@ import net.countercraft.movecraft.features.fuel.FuelDataTags;
 import net.countercraft.movecraft.features.fuel.FuelUtil;
 import net.countercraft.movecraft.processing.MovecraftWorld;
 import net.countercraft.movecraft.processing.WorldManager;
+import net.countercraft.movecraft.processing.WorldManagerExecutors;
 import net.countercraft.movecraft.processing.WorldManagerWorkers;
 import net.countercraft.movecraft.processing.effects.Effect;
 import net.countercraft.movecraft.processing.worker.WorldManagerWorker;
@@ -33,9 +36,14 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 import static net.countercraft.movecraft.features.fuel.FuelDataTags.IS_FUELED;
 
@@ -50,36 +58,78 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
 
     @Override
     public Effect get() {
-        boolean processingLockAcquired = false;
-        boolean completionOwnsProcessingLock = false;
-        try {
-            final long startTime = System.currentTimeMillis();
-            if (Settings.Debug)
-                Movecraft.getInstance().getLogger().info(String.format("Starting fuel burn task for craft <%s>...", craft.getUUID()));
-            // TODO: new craft status concept! Stop the craft from moving while we do something
-            // TODO: Add API for additional fuel sources and how to use them
-            //this.craft.setProcessing(true);
-            // Stop the craft from attempting anything funny
-            while (!craft.setProcessingActiveIfAvailable()) {
-                // First: check if this craft is already dead
-                if (!CraftManager.getInstance().isStillAlive(this.craft)) {
-                    return Effect.NONE;
-                }
-                // Then, wait
-                if (System.currentTimeMillis() - startTime > 5000) {
-                    Movecraft.getInstance().getLogger().warning(String.format("Fuel-burn task for craft <%s> timed out as craft was/is busy!", craft.getUUID()));
-                    return Effect.NONE;
-                }
+        final long startTime = System.currentTimeMillis();
+        if (Settings.Debug)
+            Movecraft.getInstance().getLogger().info(String.format("Starting fuel burn task for craft <%s>...", craft.getUUID()));
+        // TODO: Add API for additional fuel sources and how to use them
+        final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
 
-                // The craft is busy, so let's give it some more time to process
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return Effect.NONE;
-                }
+        try {
+            if (!CraftManager.getInstance().isStillAlive(this.craft)) {
+                FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
+                return Effect.NONE;
             }
-            processingLockAcquired = true;
+
+            // The craft must not move while we do something, wait up to 5s for it without blocking a thread.
+            // handleAsync: continue on the work stealing pool, never on the thread which released the blocking state
+            final CompletableFuture<Void> completion = craft.getStateTracker()
+                    .reserveStateAndWait(CraftState.FUEL_BURN, 5, TimeUnit.SECONDS)
+                    .handleAsync((handle, throwable) -> {
+                        if (throwable != null) {
+                            FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
+                            if (unwrap(throwable) instanceof TimeoutException) {
+                                if (CraftManager.getInstance().isStillAlive(this.craft)) {
+                                    Movecraft.getInstance().getLogger().warning(String.format("Fuel-burn task for craft <%s> timed out as craft was/is busy!", craft.getUUID()));
+                                }
+                            } else {
+                                Movecraft.getInstance().getLogger().log(Level.SEVERE, "Failed to reserve state for fuel burn of craft " + craft.getUUID(), unwrap(throwable));
+                            }
+                            return null;
+                        }
+
+                        Effect effect = Effect.NONE;
+                        try {
+                            if (CraftManager.getInstance().isStillAlive(this.craft)) {
+                                // Takes over the ownership of the state
+                                effect = this.calculate(handle, startTime, worker);
+                            } else {
+                                handle.release();
+                                FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
+                            }
+                        } catch (Throwable calculationError) {
+                            // calculate() releases the state and the in progress mark on its own
+                            Movecraft.getInstance().getLogger().log(Level.SEVERE, "Failed to calculate fuel burn for craft " + craft.getUUID(), calculationError);
+                        }
+                        if (effect != null && effect != Effect.NONE) {
+                            worker.submitEffectToWorldChanges(effect);
+                        }
+                        return null;
+                    }, WorldManagerExecutors.WORK_STEALING_POOL);
+
+            // Keep WorldManager alive/aware of this operation after get() returns.
+            worker.trackAsyncWork(completion);
+            return Effect.NONE;
+        } catch (RuntimeException | Error throwable) {
+            FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
+            throw throwable;
+        }
+    }
+
+    private static Throwable unwrap(Throwable throwable) {
+        Throwable current = throwable;
+        while (current instanceof CompletionException && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
+    }
+
+    /**
+     * Searches and prepares the fuel to burn. Owns the given state until the returned effect has run (the effect
+     * releases it), or until this method fails.
+     */
+    private Effect calculate(final CraftStateHandle stateHandle, final long startTime, final WorldManagerWorker worker) {
+        boolean completionOwnsState = false;
+        try {
 
             boolean hasFuel = false;
             double fuelBurnRate = this.fuelBurnRate;
@@ -113,7 +163,6 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
                 if (!furnaces.isEmpty()) {
                     // Access furnace inventories and determine the next active burner
                     // Also collect the burners in a list to update them later on
-                    final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(WorldManagerWorkers.LOW_PRIORITY);
 //                ArrayList<ForkJoinTask<Void>> workers = new ArrayList<>();
                     final NamespacedKeyToDoubleProperty fuelTypes = this.craft.getCraftProperties().get(PropertyKeys.FUEL_TYPES);
                     final double finalBurnRate = fuelBurnRate;
@@ -198,30 +247,28 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
             if (Settings.Debug)
                 Movecraft.getInstance().getLogger().info(String.format("Finished fuel burn task for craft <%s>! Time taken: %dms", craft.getUUID(), System.currentTimeMillis() - startTime));
 
-            // The lock remains held until the main-thread effects have been applied. This
+            // The state remains held until the main-thread effects have been applied. This
             // prevents movement from starting between calculation and fuel/world updates.
-            Effect completionEffect = new FinishFuelTask(craft, new Effect.AndEffect(additionalSteps));
-            completionOwnsProcessingLock = true;
+            Effect completionEffect = new FinishFuelTask(craft, stateHandle, new Effect.AndEffect(additionalSteps));
+            completionOwnsState = true;
             return completionEffect;
         } finally {
-            if (!completionOwnsProcessingLock) {
-                if (processingLockAcquired) {
-                    craft.setProcessing(false);
-                }
+            if (!completionOwnsState) {
+                stateHandle.release();
                 FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
             }
         }
 
     }
 
-    private record FinishFuelTask(Craft craft, Effect delegate) implements Effect {
+    private record FinishFuelTask(Craft craft, CraftStateHandle stateHandle, Effect delegate) implements Effect {
 
         @Override
         public void run() {
             try {
                 delegate.run();
             } finally {
-                craft.setProcessing(false);
+                stateHandle.release();
                 FuelBurnRunnable.craftsInProgress.remove(craft.getUUID());
             }
         }

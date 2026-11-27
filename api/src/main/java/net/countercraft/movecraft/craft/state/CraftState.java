@@ -75,6 +75,17 @@ public final class CraftState {
     );
 
     /**
+     * Burning fuel: the craft must not move or change while the fuel is searched and consumed, as the locations of
+     * the burners are used. Changes the shape of nothing and reads no more than the burners, so reading stays allowed
+     * for others. Holds the calculation flag, so no movement can be calculated meanwhile.
+     */
+    public static final CraftState FUEL_BURN = new CraftState(
+            "FUEL_BURN",
+            EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION),
+            EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING, CraftStateFlag.MODIFY_CRAFT_SHAPE)
+    );
+
+    /**
      * Compatibility state for the deprecated {@code setProcessing(true)}: holds and is blocked by everything.
      */
     public static final CraftState LEGACY_PROCESSING = new CraftState(
