@@ -189,7 +189,7 @@ public class BlockListener implements Listener {
                 return;
             }
 
-            final Optional<CraftStateHandle> shapeState = states.tryAcquire(CraftState.CRAFT_SHAPE_MODIFICATION);
+            final Optional<CraftStateHandle> shapeState = states.tryAcquire(CraftState.PISTON_MODIFICATION);
             if (shapeState.isEmpty()) {
                 // The craft is being read right now, the shape can't be changed
                 e.setCancelled(true);

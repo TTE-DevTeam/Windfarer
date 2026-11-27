@@ -75,13 +75,24 @@ public final class CraftState {
     );
 
     /**
+     * A piston is moving a block on a craft, this might change it's shape
+     * Needs a craft which is not moving or being changed. Several of these may run at the same time.
+     * Technically, reading is also problematic, but this is for SINGLE blocks, so it might just be fine
+     */
+    public static final CraftState PISTON_MODIFICATION = new CraftState(
+            "CRAFT_SHAPE_MODIFICATION",
+            EnumSet.of(CraftStateFlag.MODIFY_CRAFT_SHAPE),
+            EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING)
+    );
+
+    /**
      * Burning fuel: the craft must not move or change while the fuel is searched and consumed, as the locations of
      * the burners are used. Changes the shape of nothing and reads no more than the burners, so reading stays allowed
      * for others. Holds the calculation flag, so no movement can be calculated meanwhile.
      */
     public static final CraftState FUEL_BURN = new CraftState(
             "FUEL_BURN",
-            EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION),
+            EnumSet.of(CraftStateFlag.READ_CRAFT_SHAPE),
             EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING, CraftStateFlag.MODIFY_CRAFT_SHAPE)
     );
 
@@ -92,7 +103,7 @@ public final class CraftState {
      */
     public static final CraftState SUBCRAFT_DETECTION = new CraftState(
             "SUBCRAFT_DETECTION",
-            EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION),
+            EnumSet.of(CraftStateFlag.READ_CRAFT_SHAPE),
             EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING, CraftStateFlag.MODIFY_CRAFT_SHAPE)
     );
 
