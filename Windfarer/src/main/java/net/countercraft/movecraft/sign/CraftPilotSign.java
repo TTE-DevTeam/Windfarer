@@ -98,9 +98,9 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
                             if (parents.size() == 1) {
                                 Craft parent = parents.iterator().next();
                                 result = new CruiseOnPilotSubCraft(type, world, p, parent);
+                            } else {
+                                result = new CruiseOnPilotCraft(type, world, p);
                             }
-
-                            result = new CruiseOnPilotCraft(type, world, p);
                         }
                         // endregion CruiseOnPilot
                         // region Normal piloted crafts
