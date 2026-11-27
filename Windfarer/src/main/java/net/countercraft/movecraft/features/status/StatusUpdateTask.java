@@ -6,6 +6,8 @@ import net.countercraft.movecraft.async.AbstractWorker;
 import net.countercraft.movecraft.config.Settings;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
+import net.countercraft.movecraft.craft.state.CraftState;
+import net.countercraft.movecraft.craft.state.CraftStateHandle;
 import net.countercraft.movecraft.craft.type.PropertyKeys;
 import net.countercraft.movecraft.craft.type.RequiredBlockEntry;
 import net.countercraft.movecraft.features.status.events.CraftStatusUpdateEvent;
@@ -32,7 +34,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
@@ -57,16 +60,15 @@ public final class StatusUpdateTask implements Supplier<Effect> {
         craft.setDataTag(StatusManager.STATUS_CHECK_ACTIVE, true);
 
         final long startTime = System.currentTimeMillis();
-        final long lockDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        final AtomicBoolean processingAcquired = new AtomicBoolean(false);
+        final AtomicReference<CraftStateHandle> stateHandle = new AtomicReference<>();
         final WorldManagerWorker worker = WorldManagerWorker.getThreadLocalOrDefault(
                 WorldManagerWorkers.LOW_PRIORITY
         );
 
         try {
-            // Both lock acquisition and the expensive work are asynchronous. In particular,
+            // Both the state reservation and the expensive work are asynchronous. In particular,
             // a busy craft no longer makes a NORMAL_PRIORITY thread sleep/retry for up to 5s.
-            CompletableFuture<Void> completion = acquireProcessingAsync(lockDeadline)
+            CompletableFuture<Void> completion = reserveStateAsync(stateHandle)
                     .thenCompose(acquired -> {
                         if (!acquired) {
                             if (CraftManager.getInstance().isStillAlive(craft)) {
@@ -76,8 +78,10 @@ public final class StatusUpdateTask implements Supplier<Effect> {
                             }
                             return CompletableFuture.completedFuture(Effect.NONE);
                         }
+                        if (!CraftManager.getInstance().isStillAlive(craft)) {
+                            return CompletableFuture.completedFuture(Effect.NONE);
+                        }
 
-                        processingAcquired.set(true);
                         final MovecraftWorld world = craft.getMovecraftWorld();
                         return calculateStatusAsync(world, worker)
                                 .thenApply(result -> result
@@ -104,7 +108,7 @@ public final class StatusUpdateTask implements Supplier<Effect> {
                                     completionError
                             );
                         } finally {
-                            finishStatusCheck(processingAcquired.get());
+                            finishStatusCheck(stateHandle);
 
                             if (Settings.Debug) {
                                 Movecraft.getInstance().getLogger().info(
@@ -124,33 +128,34 @@ public final class StatusUpdateTask implements Supplier<Effect> {
             worker.trackAsyncWork(completion);
             return Effect.NONE;
         } catch (RuntimeException | Error throwable) {
-            finishStatusCheck(processingAcquired.get());
+            finishStatusCheck(stateHandle);
             throw throwable;
         }
     }
 
-    private CompletableFuture<Boolean> acquireProcessingAsync(long deadlineNanos) {
-        return CompletableFuture
-                .supplyAsync(() -> CraftManager.getInstance().isStillAlive(craft)
-                        && craft.setProcessingActiveIfAvailable(), WorldManagerExecutors.WORK_STEALING_POOL)
-                .thenCompose(acquired -> {
-                    if (acquired) {
-                        return CompletableFuture.completedFuture(true);
+    /**
+     * Reserves {@link CraftState#STATUS_UPDATE} on the craft, waiting up to 5s without blocking a thread.
+     * The handle is stored in {@code handleOut} as soon as it is granted, so it is always released in {@link #finishStatusCheck}.
+     *
+     * @return a future of whether the state could be set
+     */
+    private CompletableFuture<Boolean> reserveStateAsync(AtomicReference<CraftStateHandle> handleOut) {
+        if (!CraftManager.getInstance().isStillAlive(craft)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        // handleAsync: continue on the work stealing pool, never on the thread which released the blocking state (e.g. main thread)
+        return craft.getStateTracker()
+                .reserveStateAndWait(CraftState.STATUS_UPDATE, 5, TimeUnit.SECONDS)
+                .handleAsync((handle, throwable) -> {
+                    if (throwable != null) {
+                        if (unwrap(throwable) instanceof TimeoutException) {
+                            return false;
+                        }
+                        throw new CompletionException(throwable);
                     }
-                    if (!CraftManager.getInstance().isStillAlive(craft)
-                            || System.nanoTime() >= deadlineNanos) {
-                        return CompletableFuture.completedFuture(false);
-                    }
-
-                    // Retry without parking a worker thread. The delayed executor only
-                    // schedules the next attempt once the 10ms delay has elapsed.
-                    return CompletableFuture
-                            .runAsync(
-                                    () -> { },
-                                    CompletableFuture.delayedExecutor(10, TimeUnit.MILLISECONDS, WorldManagerExecutors.WORK_STEALING_POOL)
-                            )
-                            .thenCompose(ignored -> acquireProcessingAsync(deadlineNanos));
-                });
+                    handleOut.set(handle);
+                    return true;
+                }, WorldManagerExecutors.WORK_STEALING_POOL);
     }
 
     private CompletableFuture<Optional<StatusWorkerData>> calculateStatusAsync(
@@ -241,11 +246,12 @@ public final class StatusUpdateTask implements Supplier<Effect> {
         return () -> Bukkit.getPluginManager().callEvent(new CraftStatusUpdateEvent(craft));
     }
 
-    private void finishStatusCheck(boolean processingAcquired) {
+    private void finishStatusCheck(AtomicReference<CraftStateHandle> stateHandle) {
         craft.setDataTag(StatusManager.STATUS_CHECK_ACTIVE, false);
-        if (processingAcquired) {
+        CraftStateHandle handle = stateHandle.getAndSet(null);
+        if (handle != null) {
             craft.setDataTag(StatusManager.LAST_STATUS_CHECK, System.currentTimeMillis());
-            craft.setProcessing(false);
+            handle.release();
         }
     }
 
