@@ -55,6 +55,9 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
                 subcraft -> () -> {
                     Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(subcraft, CraftPilotEvent.Reason.SUB_CRAFT));
                     if (subcraft instanceof SubCraft) { // Subtract craft from the parent
+                        if (!SubcraftParentLock.acquire((SubCraft) subcraft, interactor)) {
+                            return;
+                        }
                         Craft parent = ((SubCraft) subcraft).getParent();
                         var newHitbox = parent.getHitBox().difference(subcraft.getHitBox());;
                         parent.setHitBox(newHitbox);
@@ -69,6 +72,7 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
                                 Craft parent = ((SubCraft) subcraft).getParent();
                                 var newHitbox = parent.getHitBox().union(subcraft.getHitBox());
                                 parent.setHitBox(newHitbox);
+                                ((SubCraft) subcraft).releaseParentState();
                             }
                             CraftManager.getInstance().release(subcraft, CraftReleaseEvent.Reason.SUB_CRAFT, false);
                         }

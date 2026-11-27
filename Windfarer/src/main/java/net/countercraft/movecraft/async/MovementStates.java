@@ -16,10 +16,13 @@ import java.util.Optional;
 public final class MovementStates {
     private final @NotNull CraftStateHandle own;
     private final @Nullable CraftStateHandle parent;
+    // false if the parent state belongs to the subcraft (for its whole lifetime) and is released by it
+    private final boolean ownsParent;
 
-    private MovementStates(@NotNull CraftStateHandle own, @Nullable CraftStateHandle parent) {
+    private MovementStates(@NotNull CraftStateHandle own, @Nullable CraftStateHandle parent, boolean ownsParent) {
         this.own = own;
         this.parent = parent;
+        this.ownsParent = ownsParent;
     }
 
     /**
@@ -34,9 +37,15 @@ public final class MovementStates {
             return null;
         }
         CraftStateHandle parentHandle = null;
+        boolean ownsParent = true;
         if (craft instanceof SubCraft subCraft) {
             Craft parent = subCraft.getParent();
-            if (parent != null && parent != craft) {
+            CraftStateHandle lifetimeHandle = subCraft.getParentStateHandle();
+            if (lifetimeHandle != null && !lifetimeHandle.isReleased()) {
+                // The subcraft already holds its parent, e.g. since it was detected by a sign
+                parentHandle = lifetimeHandle;
+                ownsParent = false;
+            } else if (parent != null && parent != craft) {
                 Optional<CraftStateHandle> acquired = parent.getStateTracker().tryAcquire(CraftState.SUBCRAFT_MOVEMENT_PARENT);
                 if (acquired.isEmpty()) {
                     own.get().release();
@@ -45,7 +54,7 @@ public final class MovementStates {
                 parentHandle = acquired.get();
             }
         }
-        return new MovementStates(own.get(), parentHandle);
+        return new MovementStates(own.get(), parentHandle, ownsParent);
     }
 
     /**
@@ -59,7 +68,7 @@ public final class MovementStates {
 
     public void release() {
         this.own.release();
-        if (this.parent != null) {
+        if (this.parent != null && this.ownsParent) {
             this.parent.release();
         }
     }

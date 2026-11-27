@@ -331,6 +331,9 @@ public class CraftManager implements Iterable<Craft>{
     }
 
     public void removeCraft(final Craft craft) {
+        if (craft instanceof SubCraft subCraft) {
+            subCraft.releaseParentState();
+        }
         crafts.remove(craft);
         craftsInPostDetection.remove(craft);
         CraftCache.removeCraft(craft);

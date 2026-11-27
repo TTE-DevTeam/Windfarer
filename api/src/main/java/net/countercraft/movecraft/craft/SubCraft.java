@@ -3,7 +3,9 @@ package net.countercraft.movecraft.craft;
 import net.countercraft.movecraft.util.MathUtils;
 import org.bukkit.block.TileState;
 import org.bukkit.persistence.PersistentDataType;
+import net.countercraft.movecraft.craft.state.CraftStateHandle;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface SubCraft extends Craft {
 
@@ -11,6 +13,31 @@ public interface SubCraft extends Craft {
     Craft getParent();
 
     void setParent(@NotNull Craft parent);
+
+    /**
+     * @return the state which is held on the parent for the whole lifetime of this subcraft
+     * ({@link net.countercraft.movecraft.craft.state.CraftState#SUBCRAFT_MOVEMENT_PARENT}), or null if none is held
+     */
+    default @Nullable CraftStateHandle getParentStateHandle() {
+        return null;
+    }
+
+    /**
+     * Sets the state held on the parent. The subcraft owns it and releases it with {@link #releaseParentState()}.
+     */
+    default void setParentStateHandle(@Nullable CraftStateHandle handle) {
+        throw new UnsupportedOperationException("This subcraft can't hold a state on its parent");
+    }
+
+    /**
+     * Releases the state held on the parent, if any. Does nothing if there is none or it was released already.
+     */
+    default void releaseParentState() {
+        CraftStateHandle handle = this.getParentStateHandle();
+        if (handle != null) {
+            handle.release();
+        }
+    }
 
     @Override
     default void removeUUIDMarkFromTile(TileState tile) {

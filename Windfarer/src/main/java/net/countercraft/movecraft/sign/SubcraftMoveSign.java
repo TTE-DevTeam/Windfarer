@@ -132,6 +132,9 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
                     Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(subcraft, CraftPilotEvent.Reason.SUB_CRAFT));
                     boolean movementAllowed = true;
                     if (subcraft instanceof SubCraft && ((SubCraft) subcraft).getParent() != null) {
+                        if (!SubcraftParentLock.acquire((SubCraft) subcraft, player)) {
+                            return;
+                        }
                         Craft parent = ((SubCraft) subcraft).getParent();
                         HitBox newHitbox = parent.getHitBox().difference(subcraft.getHitBox());
                         parent.setHitBox(newHitbox);
@@ -164,6 +167,7 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
                                 Craft parent = ((SubCraft) subcraft).getParent();
                                 HitBox newHitbox = parent.getHitBox().union(subcraft.getHitBox());
                                 parent.setHitBox(newHitbox);
+                                ((SubCraft) subcraft).releaseParentState();
                             }
 
                             CraftManager.getInstance().release(subcraft, net.countercraft.movecraft.events.CraftReleaseEvent.Reason.SUB_CRAFT, false);
