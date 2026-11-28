@@ -1,6 +1,7 @@
 package net.countercraft.movecraft.craft;
 
 import net.countercraft.movecraft.*;
+import net.countercraft.movecraft.async.MovementCompletion;
 import net.countercraft.movecraft.async.rotation.RotationTask;
 import net.countercraft.movecraft.async.translation.TranslationTask;
 import net.countercraft.movecraft.config.Settings;
@@ -40,6 +41,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.logging.Level;
 
@@ -119,16 +121,19 @@ public abstract class BaseCraft implements Craft {
     }
 
     @Override
+    @Deprecated(forRemoval = true)
     public boolean isNotProcessing() {
         return this.stateTracker.isIdle();
     }
 
     @Override
+    @Deprecated(forRemoval = true)
     public void setProcessing(boolean processing) {
         this.stateTracker.setLegacyProcessing(processing);
     }
 
     @Override
+    @Deprecated(forRemoval = true)
     public boolean setProcessingActiveIfAvailable() {
         return this.stateTracker.tryAcquireLegacyProcessing();
     }
@@ -225,13 +230,17 @@ public abstract class BaseCraft implements Craft {
             if (!getCraftProperties().get(PropertyKeys.ALLOW_VERTICAL_MOVEMENT))
                 dy = 0;
         }
-        if (dx == 0 && dy == 0 && dz == 0 && world.equals(w))
+        if (dx == 0 && dy == 0 && dz == 0 && world.equals(w)) {
+            MovementCompletion.movementFinished(this);
             return;
+        }
 
         if (!getCraftProperties().get(PropertyKeys.ALLOW_VERTICAL_TAKEOFF_AND_LANDING)
                 && dy != 0 && dx == 0 && dz == 0
-                && !(this instanceof SinkingCraft))
+                && !(this instanceof SinkingCraft)) {
+            MovementCompletion.movementFinished(this);
             return;
+        }
 
         final boolean relativeToCurrentWorld = world.equals(w);
         final World targetWorld = world;

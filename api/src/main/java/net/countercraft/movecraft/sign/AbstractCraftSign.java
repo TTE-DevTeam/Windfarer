@@ -50,7 +50,7 @@ public abstract class AbstractCraftSign extends AbstractMovecraftSign {
 
     // Similar to the super class variant
     // In addition a check for a existing craft is being made
-    // If the craft is a player craft that is currently processing and ignoreCraftIsBusy is set to false, this will quit early and call onCraftIsBusy()
+    // If the craft is a player craft that is currently moving or being changed (see CraftStateTracker#isMovingOrChangingShape) and ignoreCraftIsBusy is set to false, this will quit early and call onCraftIsBusy()
     // If no craft is found, onCraftNotFound() is called
     // Return true to cancel the event
     @Override
@@ -91,7 +91,7 @@ public abstract class AbstractCraftSign extends AbstractMovecraftSign {
         return false;
     }
 
-    // Called when the craft is a player craft and is processing and ignoreCraftIsBusy is set to false
+    // Called when the craft is a player craft and is moving or being changed and ignoreCraftIsBusy is set to false
     protected abstract void onCraftIsBusy(Entity interactor, Craft craft);
 
     // Validation method, intended to indicate if a player is allowed to execute a sign action on a mounted craft

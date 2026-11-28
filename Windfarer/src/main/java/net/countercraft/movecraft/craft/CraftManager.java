@@ -75,6 +75,13 @@ public class CraftManager implements Iterable<Craft>{
         instance.postTypeLoad();
     }
 
+    /**
+     * @return true if the craft was detected, but was neither added nor released yet
+     */
+    public boolean isInPostDetection(Craft craft) {
+        return craftsInPostDetection.contains(craft);
+    }
+
     public void addCraftInPostDetection(Craft craft) {
         craftsInPostDetection.add(craft);
     }
@@ -263,22 +270,21 @@ public class CraftManager implements Iterable<Craft>{
     }
 
     /**
-     * @param alwaysRunAfter see {@link #detect}. Note that on success it runs before the postDetection effect.
+     * @param onFailure run if the detection fails, no matter why (never if it succeeds). Runs on the thread of the detection.
      */
     public void detectSubcraft(@NotNull MovecraftLocation startPoint,
                        @NotNull TypeSafeCraftType type, @NotNull CraftSupplier supplier,
                        @NotNull World world, @Nullable Entity pilot,
                        @NotNull Audience audience,
                        @NotNull Function<Craft, Effect> postDetection,
-                       @Nullable Function<@Nullable Craft, Effect> alwaysRunAfter) {
+                       @Nullable Runnable onFailure) {
         WorldManager.INSTANCE.submit(new DetectionTask(
                 startPoint, CachedMovecraftWorld.of(world),
                 type, supplier,
                 world, pilot,
                 audience,
-                postDetection,
-                alwaysRunAfter
-        ), WorldManagerWorkers.HIGH_PRIORITY);
+                postDetection
+        ).withFailureCallback(onFailure), WorldManagerWorkers.HIGH_PRIORITY);
     }
 
     public void detect(@NotNull MovecraftLocation startPoint,
@@ -345,7 +351,8 @@ public class CraftManager implements Iterable<Craft>{
 
     public void removeCraft(final Craft craft) {
         if (craft instanceof SubCraft subCraft) {
-            subCraft.releaseParentState();
+            // Whatever way a subcraft ends: its blocks go back to its parent, which is unlocked then
+            subCraft.returnToParent();
         }
         crafts.remove(craft);
         craftsInPostDetection.remove(craft);

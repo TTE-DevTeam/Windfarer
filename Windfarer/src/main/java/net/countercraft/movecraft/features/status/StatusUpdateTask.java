@@ -158,6 +158,14 @@ public final class StatusUpdateTask implements Supplier<Effect> {
                 }, WorldManagerExecutors.WORK_STEALING_POOL);
     }
 
+    // WARNING: The calculation below runs on the WORK_STEALING_POOL and not as a task of a WorldManager worker.
+    // It may only read data which can be read from any thread (MovecraftWorld#getData and the like).
+    // Anything which needs the main thread, e.g. MovecraftWorld#getState, goes through WorldManager#executeMain and
+    // fails on such a thread with "No current worker for this thread!".
+    // If that is ever needed here: do NOT set the worker of the thread by hand, that bypasses the worker mechanism.
+    // Split the work into a task of its own instead: only reserve the craft state here (reserveStateAndWait), and when it
+    // is granted, submit a new task with WorldManager.INSTANCE.submit(...), which owns the state handle and runs on a
+    // regular worker. FuelBurnTask is the example: reservation in get(), calculation in Calculation#get().
     private CompletableFuture<Optional<StatusWorkerData>> calculateStatusAsync(
             @NotNull MovecraftWorld world,
             @NotNull WorldManagerWorker worker

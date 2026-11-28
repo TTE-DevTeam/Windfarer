@@ -15,6 +15,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
@@ -28,6 +29,8 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
     // TODO: Replace by writing to the signs nbt data
     /** The parent is locked for this long at most while a subcraft is detected */
     protected static final long DETECTION_LOCK_TIMEOUT_TICKS = 100;
+    /** A use of a sign is finished after this long at the latest (detection, movement and release together) */
+    protected static final long OPERATION_BACKSTOP_TICKS = 600;
     protected static final Set<MovecraftLocation> IN_USE = Collections.synchronizedSet(new HashSet<>());
 
     protected final Function<String, @Nullable TypeSafeCraftType> craftTypeRetrievalFunction;
@@ -141,30 +144,36 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
             return true;
         }
 
+        final SubcraftSignOperation operation = new SubcraftSignOperation(IN_USE, startPoint, parentLock);
+
         this.applyDefaultText(sign);
 
         final World world = sign.block().getWorld();
 
+        // Safety nets only, nothing may stay locked forever if something ends in a way nobody notices.
+        // Both do nothing if everything was finished regularly.
         if (parentLock != null) {
-            // Safety net, the lock must never be held forever, e.g. if detection fails in a way nobody notices.
-            // Does nothing if the lock was released or handed over to the subcraft already.
             new BukkitRunnable() {
                 @Override
                 public void run() {
+                    // Does nothing if the lock was handed over to the subcraft
                     parentLock.release();
                 }
             }.runTaskLater(this.pluginInstance.get(), DETECTION_LOCK_TIMEOUT_TICKS);
         }
-
-        this.runDetectTask(clickType, subcraftType, craft, world, interactor, startPoint, parentLock);
-
-        // TODO: Change this, it is ugly, should be done by the detect task itself
         new BukkitRunnable() {
             @Override
             public void run() {
-                IN_USE.remove(startPoint);
+                operation.finish();
             }
-        }.runTaskLater(this.pluginInstance.get(), 4);
+        }.runTaskLater(this.pluginInstance.get(), OPERATION_BACKSTOP_TICKS);
+
+        try {
+            this.runDetectTask(clickType, subcraftType, craft, world, interactor, startPoint, operation);
+        } catch (RuntimeException | Error throwable) {
+            operation.finish();
+            throw throwable;
+        }
 
         return true;
     }
@@ -203,10 +212,11 @@ public abstract class AbstractSubcraftSign extends AbstractCraftSign {
     /**
      * Detects and handles the subcraft.
      *
-     * @param parentLock holds the parent craft (if any) during detection. It has to be handed over to the subcraft,
-     *                   or released if nothing is detected. Null if there is no parent craft.
+     * @param operation this use of the sign. It has to be finished ({@link SubcraftSignOperation#finish()}) when everything is
+     *                  over: when the detection fails or the action is aborted at once, otherwise when the subcraft was
+     *                  released again after its movement. Its parent lock has to be handed over to the subcraft.
      */
-    protected abstract void runDetectTask(Action clickType, TypeSafeCraftType subcraftType, Craft parentCraft, World world, Entity interactor, MovecraftLocation startPoint, @Nullable ParentDetectionLock parentLock);
+    protected abstract void runDetectTask(Action clickType, TypeSafeCraftType subcraftType, Craft parentCraft, World world, Entity interactor, MovecraftLocation startPoint, @NotNull SubcraftSignOperation operation);
     protected abstract boolean isActionAllowed(final String action);
     protected abstract void onActionAlreadyInProgress(Entity interactor);
     protected abstract Component getDefaultTextFor(int line);

@@ -85,7 +85,7 @@ public class TranslationTask extends FuelAwareAsyncTask {
     @Override
     protected void execute() throws InterruptedException, ExecutionException {
         // A task may have waited in AsyncManager while another operation owned the craft.
-        // Refresh its snapshots now, after the processing lock has been acquired.
+        // Refresh its snapshots now, after the craft states of the movement have been reserved.
         oldHitBox = new SynchronizedBitmapHitBox(craft.getHitBox());
         oldFluidList = new BitmapHitBox(craft.getFluidLocations());
         newHitBox = new SynchronizedBitmapHitBox();

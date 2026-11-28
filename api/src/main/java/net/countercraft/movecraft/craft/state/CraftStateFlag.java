@@ -12,7 +12,12 @@ public enum CraftStateFlag {
     /** A movement (translation, rotation) is being calculated. */
     MOVEMENT_CALCULATION,
     /** A calculated movement is being applied to the world. */
-    MOVEMENT_PROCESSING;
+    MOVEMENT_PROCESSING,
+    /**
+     * A subcraft is being detected, cut out of this craft, is moving or is being merged back.
+     * Reading operations (status update, fuel burn, subcraft detection) are fine meanwhile, movements are not.
+     */
+    SUBCRAFT;
 
     private final int mask = 1 << this.ordinal();
 

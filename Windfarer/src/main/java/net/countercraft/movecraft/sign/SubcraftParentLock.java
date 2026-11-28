@@ -1,5 +1,7 @@
 package net.countercraft.movecraft.sign;
 
+import net.countercraft.movecraft.Movecraft;
+import net.countercraft.movecraft.async.MovementCompletion;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SubCraft;
@@ -7,6 +9,7 @@ import net.countercraft.movecraft.craft.state.CraftState;
 import net.countercraft.movecraft.craft.state.CraftStateHandle;
 import net.countercraft.movecraft.events.CraftReleaseEvent;
 import net.countercraft.movecraft.localisation.I18nSupport;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,6 +53,41 @@ final class SubcraftParentLock {
         subcraft.setParentStateHandle(handle.get());
         return true;
     }
+
+    /**
+     * Makes sure that a short lived subcraft is released as the consequence of its next movement: the blocks go back
+     * to the parent, the parent is unlocked, the subcraft is released and the use of the sign is over, no matter how the
+     * movement ended (or if it could not even start). Call before requesting the movement.
+     */
+    static void releaseAfterMovement(@NotNull Craft craft, @NotNull SubcraftSignOperation operation) {
+        final Runnable release = () -> {
+            try {
+                if (!CraftManager.getInstance().isStillAlive(craft)) {
+                    return;
+                }
+                if (craft instanceof SubCraft subCraft) {
+                    // Before the release event, so listeners see the parent as it is afterwards
+                    subCraft.mergeIntoParent();
+                }
+                if (!CraftManager.getInstance().tryRelease(craft, CraftReleaseEvent.Reason.SUB_CRAFT, false)) {
+                    CraftManager.getInstance().removeCraft(craft);
+                }
+            } finally {
+                operation.finish();
+            }
+        };
+        MovementCompletion.runAfterNextMovement(craft, release);
+
+        // Safety net only, in case a movement vanishes without a trace: the parent must never stay locked
+        Bukkit.getScheduler().runTaskLater(Movecraft.getInstance(), () -> {
+            if (!operation.isFinished() || CraftManager.getInstance().isStillAlive(craft)) {
+                Movecraft.getInstance().getLogger().warning("Subcraft " + craft.getUUID() + " was not released after its movement, releasing it now");
+                release.run();
+            }
+        }, SAFETY_NET_TICKS);
+    }
+
+    private static final long SAFETY_NET_TICKS = 200;
 
     private static void abort(@NotNull SubCraft subcraft, @Nullable Entity interactor) {
         if (interactor != null) {

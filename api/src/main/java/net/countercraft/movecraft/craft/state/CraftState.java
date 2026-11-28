@@ -27,17 +27,18 @@ public final class CraftState {
     public static final CraftState STATUS_UPDATE = new CraftState(
             "STATUS_UPDATE",
             EnumSet.of(CraftStateFlag.READ_CRAFT_SHAPE),
-            EnumSet.complementOf(EnumSet.of(CraftStateFlag.READ_CRAFT_SHAPE))
+            EnumSet.of(CraftStateFlag.MODIFY_CRAFT_SHAPE, CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING)
     );
 
     /**
-     * Pre-calculation of a movement (translation/rotation task). Blocks other movements and shape modifications.
-     * Reading the shape stays allowed.
+     * Pre-calculation of a movement (translation/rotation task). Blocks other movements, shape modifications and
+     * subcraft operations. Reading the shape stays allowed.
      */
     public static final CraftState MOVEMENT_CALCULATION = new CraftState(
             "MOVEMENT_CALCULATION",
             EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.READ_CRAFT_SHAPE),
-            EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING, CraftStateFlag.MODIFY_CRAFT_SHAPE)
+            EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING, CraftStateFlag.MODIFY_CRAFT_SHAPE,
+                    CraftStateFlag.SUBCRAFT)
     );
 
     /**
@@ -52,16 +53,26 @@ public final class CraftState {
     );
 
     /**
-     * Set on the direct parent of a subcraft while the subcraft moves. The parent can neither move nor be read
-     * nor be modified from the outside, and only one subcraft per parent moves at a time
-     * (sequential, so subcrafts can not overlap).
-     * It holds the processing flag as well, so that nothing can be cut out of the parent meanwhile.
+     * Set on the direct parent of a subcraft for the lifetime of the subcraft (it is cut out of the parent, moves and
+     * is merged back). The parent can not move or be modified from the outside meanwhile, but it can be read.
+     * Only one such subcraft per parent at a time (sequential, so subcrafts can not overlap).
      */
     public static final CraftState SUBCRAFT_MOVEMENT_PARENT = new CraftState(
             "SUBCRAFT_MOVEMENT_PARENT",
-            EnumSet.of(CraftStateFlag.MODIFY_CRAFT_SHAPE, CraftStateFlag.MOVEMENT_PROCESSING),
+            EnumSet.of(CraftStateFlag.SUBCRAFT),
             EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING,
-                    CraftStateFlag.READ_CRAFT_SHAPE, CraftStateFlag.MODIFY_CRAFT_SHAPE)
+                    CraftStateFlag.MODIFY_CRAFT_SHAPE, CraftStateFlag.SUBCRAFT)
+    );
+
+    /**
+     * Set on the parent while a subcraft which does not come back (e.g. a torpedo) is cut out of it. Only held while
+     * cutting out. The parent can not move or be modified from the outside meanwhile, but it can be read, and several
+     * of these may run at the same time.
+     */
+    public static final CraftState SUBCRAFT_CUT_OUT = new CraftState(
+            "SUBCRAFT_CUT_OUT",
+            EnumSet.of(CraftStateFlag.SUBCRAFT),
+            EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING, CraftStateFlag.MODIFY_CRAFT_SHAPE)
     );
 
     /**
@@ -71,7 +82,8 @@ public final class CraftState {
     public static final CraftState CRAFT_SHAPE_MODIFICATION = new CraftState(
             "CRAFT_SHAPE_MODIFICATION",
             EnumSet.of(CraftStateFlag.MODIFY_CRAFT_SHAPE),
-            EnumSet.of(CraftStateFlag.READ_CRAFT_SHAPE, CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING)
+            EnumSet.of(CraftStateFlag.READ_CRAFT_SHAPE, CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING,
+                    CraftStateFlag.SUBCRAFT)
     );
 
     /**
@@ -88,7 +100,7 @@ public final class CraftState {
     /**
      * Burning fuel: the craft must not move or change while the fuel is searched and consumed, as the locations of
      * the burners are used. Changes the shape of nothing and reads no more than the burners, so reading stays allowed
-     * for others. Holds the calculation flag, so no movement can be calculated meanwhile.
+     * for others. A movement may be calculated meanwhile, but not be applied (that needs the craft not to be read).
      */
     public static final CraftState FUEL_BURN = new CraftState(
             "FUEL_BURN",
@@ -98,18 +110,25 @@ public final class CraftState {
 
     /**
      * Set on the parent of a subcraft while the subcraft is detected (the world is read and the player may still
-     * cancel or fail). Nothing may move or change the parent meanwhile. It is turned into
+     * cancel or fail). Nothing may move or change the parent meanwhile, reading is fine. It is turned into
      * {@link #SUBCRAFT_MOVEMENT_PARENT} as soon as the subcraft exists.
      */
     public static final CraftState SUBCRAFT_DETECTION = new CraftState(
             "SUBCRAFT_DETECTION",
-            EnumSet.of(CraftStateFlag.READ_CRAFT_SHAPE),
+            EnumSet.of(CraftStateFlag.READ_CRAFT_SHAPE, CraftStateFlag.SUBCRAFT),
             EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING, CraftStateFlag.MODIFY_CRAFT_SHAPE)
     );
 
     /**
-     * Compatibility state for the deprecated {@code setProcessing(true)}: holds and is blocked by everything.
+     * Compatibility state for the deprecated {@code Craft#setProcessing(true)}: holds and is blocked by everything.
+     * <p>
+     * REPLACEMENT: Do not use it. Define a state which describes what you do (what it holds, what blocks it), or use
+     * one of the states of this class, and set it with {@link CraftStateTracker#tryAcquire(CraftState)} or
+     * {@link CraftStateTracker#reserveStateAndWait(CraftState)}. See docs/craft-state.md.
+     *
+     * @deprecated Only exists for the old processing flag
      */
+    @Deprecated(forRemoval = true)
     public static final CraftState LEGACY_PROCESSING = new CraftState(
             "LEGACY_PROCESSING",
             EnumSet.allOf(CraftStateFlag.class),

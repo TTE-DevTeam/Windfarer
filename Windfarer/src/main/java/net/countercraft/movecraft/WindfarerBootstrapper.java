@@ -48,6 +48,7 @@ public class WindfarerBootstrapper implements PluginBootstrap {
         WindfarerCommand.register(commands);
         ManOverboardCommand.register(commands);
         new ScuttleCommand().register(commands);
+        new ResetCraftStateCommand().register(commands);
         new ReleaseCommand().register(commands);
         new CraftInfoCommand().register(commands);
         ContactsCommand.register(commands);

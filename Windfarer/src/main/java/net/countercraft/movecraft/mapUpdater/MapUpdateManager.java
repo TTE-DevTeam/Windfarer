@@ -49,7 +49,7 @@ public class MapUpdateManager extends BukkitRunnable {
         if (updates.isEmpty()) return;
         Logger logger = Movecraft.getInstance().getLogger();
         long startTime = System.currentTimeMillis();
-        // and set all crafts that were updated to not processing
+        // The craft states of a movement are released by the PostMovementCommand, which is queued behind its updates
 
         //updates.sort((o1, o2) -> o1.getClass().getName().compareToIgnoreCase(o2.getClass().getName()));
 

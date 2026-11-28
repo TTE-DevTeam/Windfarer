@@ -23,7 +23,7 @@ public abstract class AbstractAsyncTask extends BukkitRunnable {
             System.err.println("Internal - Error - Processor task failed");
             exception.printStackTrace();
         } finally {
-            // AsyncManager owns the processing lock after submission. Always notify it,
+            // AsyncManager owns the craft states of the movement after submission. Always notify it,
             // including on failure, so the craft is not left locked indefinitely.
             this.submitCompletedTask();
         }

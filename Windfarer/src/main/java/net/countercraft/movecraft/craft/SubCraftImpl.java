@@ -9,6 +9,7 @@ public class SubCraftImpl extends BaseCraft implements SubCraft {
     @NotNull
     private Craft parent;
     private volatile CraftStateHandle parentStateHandle;
+    private boolean cutOut;
 
     public SubCraftImpl(@NotNull TypeSafeCraftType type, @NotNull World world, @NotNull Craft parent) {
         super(type, world);
@@ -24,6 +25,21 @@ public class SubCraftImpl extends BaseCraft implements SubCraft {
     @Override
     public void setParent(@NotNull Craft parent) {
         this.parent = parent;
+    }
+
+    @Override
+    public synchronized void cutOutOfParent() {
+        this.parent.setHitBox(this.parent.getHitBox().difference(this.getHitBox()));
+        this.cutOut = true;
+    }
+
+    @Override
+    public synchronized void mergeIntoParent() {
+        if (!this.cutOut) {
+            return;
+        }
+        this.cutOut = false;
+        this.parent.setHitBox(this.parent.getHitBox().union(this.getHitBox()));
     }
 
     @Override

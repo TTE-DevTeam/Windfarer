@@ -2,6 +2,7 @@ package net.countercraft.movecraft.sign;
 
 import net.countercraft.movecraft.Movecraft;
 import net.countercraft.movecraft.MovecraftLocation;
+import net.countercraft.movecraft.async.MovementCompletion;
 import net.countercraft.movecraft.craft.Craft;
 import net.countercraft.movecraft.craft.CraftManager;
 import net.countercraft.movecraft.craft.SubCraft;
@@ -24,6 +25,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Function;
@@ -106,11 +108,9 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
     }
 
     @Override
-    protected void runDetectTask(Action action, TypeSafeCraftType subcraftType, Craft craft, World world, Entity player, MovecraftLocation startPoint, @Nullable ParentDetectionLock parentLock) {
+    protected void runDetectTask(Action action, TypeSafeCraftType subcraftType, Craft craft, World world, Entity player, MovecraftLocation startPoint, @NotNull SubcraftSignOperation operation) {
         if (this.signWrapperCur == null) {
-            if (parentLock != null) {
-                parentLock.release();
-            }
+            operation.finish();
             return;
         }
         Vector movement = this.getMovementVector(this.signWrapperCur, subcraftType);
@@ -118,8 +118,8 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
             movement.multiply(-1);
         }
 
-        if (movement.length() == 0 && parentLock != null) {
-            parentLock.release();
+        if (movement.length() == 0) {
+            operation.finish();
         }
         if (movement.length() != 0) {
             final int deltaX = Math.toIntExact(Math.round(movement.getX()));
@@ -139,12 +139,12 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
                     Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(subcraft, CraftPilotEvent.Reason.SUB_CRAFT));
                     boolean movementAllowed = true;
                     if (subcraft instanceof SubCraft && ((SubCraft) subcraft).getParent() != null) {
-                        if (!SubcraftParentLock.acquire((SubCraft) subcraft, player, parentLock)) {
+                        if (!SubcraftParentLock.acquire((SubCraft) subcraft, player, operation.getParentLock())) {
+                            operation.finish();
                             return;
                         }
+                        ((SubCraft) subcraft).cutOutOfParent();
                         Craft parent = ((SubCraft) subcraft).getParent();
-                        HitBox newHitbox = parent.getHitBox().difference(subcraft.getHitBox());
-                        parent.setHitBox(newHitbox);
 
                         // Validate if this would move out of the parentcraft
 
@@ -162,32 +162,17 @@ public class SubcraftMoveSign extends AbstractSubcraftSign {
                         }
                     }
 
+                    // The subcraft is released as the consequence of its movement, however that ends
+                    SubcraftParentLock.releaseAfterMovement(subcraft, operation);
                     if (movementAllowed || !subcraftType.get(PropertyKeys.RESTRICT_TO_MOVEBOX)) {
                         subcraft.translate(world, deltaX, deltaY, deltaZ);
                     } else {
                         player.sendMessage(I18nSupport.getInternationalisedComponent("Subcraft Move - can't move out of the parentcraft!"));
+                        // No movement => it ends right here
+                        MovementCompletion.movementFinished(subcraft);
                     }
-
-                    (new BukkitRunnable() {
-                        public void run() {
-                            if (subcraft instanceof SubCraft) {
-                                Craft parent = ((SubCraft) subcraft).getParent();
-                                HitBox newHitbox = parent.getHitBox().union(subcraft.getHitBox());
-                                parent.setHitBox(newHitbox);
-                                ((SubCraft) subcraft).releaseParentState();
-                            }
-
-                            CraftManager.getInstance().release(subcraft, net.countercraft.movecraft.events.CraftReleaseEvent.Reason.SUB_CRAFT, false);
-                        }
-                    }).runTaskLater(Movecraft.getInstance(), 3L);
                 };
-            }, (craft2) -> {
-                // Nothing was detected => the parent is free again (on success the subcraft took over the lock)
-                if (craft2 == null && parentLock != null) {
-                    parentLock.release();
-                }
-                return Effect.NONE;
-            });
+            }, operation::finish); // Nothing was detected => everything is over
         }
 
     }

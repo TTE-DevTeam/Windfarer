@@ -132,9 +132,9 @@ public class CraftPilotSign extends AbstractCraftPilotSign {
                         Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(craft, CraftPilotEvent.Reason.PLAYER));
                         if (craft instanceof SubCraft) { // Subtract craft from the parent
                             Craft parent = ((SubCraft) craft).getParent();
-                            // Not possible while the parent moves, is read or is modified otherwise. Several subcrafts
-                            // may be cut out at the same time, the state is only held while cutting out.
-                            Optional<CraftStateHandle> shapeState = parent.getStateTracker().tryAcquire(CraftState.CRAFT_SHAPE_MODIFICATION);
+                            // Not possible while the parent moves or is modified otherwise (reading is fine). Several
+                            // subcrafts may be cut out at the same time, the state is only held while cutting out.
+                            Optional<CraftStateHandle> shapeState = parent.getStateTracker().tryAcquire(CraftState.SUBCRAFT_CUT_OUT);
                             if (shapeState.isEmpty()) {
                                 interactor.sendMessage(I18nSupport.getInternationalisedString("Detection - Parent Craft is busy"));
                                 CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.SUB_CRAFT, false);

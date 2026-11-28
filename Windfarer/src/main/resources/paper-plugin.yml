@@ -69,6 +69,12 @@ permissions:
   movecraft.scuttle.others:
     default: op
     description: "Command to scuttle other crafts than your own"
+  movecraft.resetcraftstate:
+    default: op
+    description: "Command to reset the states (movement, shape changes, ...) of a craft which is stuck"
+  movecraft.resetcraftstate.others:
+    default: op
+    description: "Command to reset the states of other crafts than your own, or to select crafts by arguments"
   movecraft.commands.craftinfo:
     default: true
     description: "Access to /craftinfo command"

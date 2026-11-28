@@ -19,6 +19,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.event.block.Action;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Function;
@@ -31,18 +32,14 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
     }
 
     @Override
-    protected void runDetectTask(Action clickType, TypeSafeCraftType subcraftType, Craft parentcraft, World world, Entity interactor, MovecraftLocation startPoint, @Nullable ParentDetectionLock parentLock) {
+    protected void runDetectTask(Action clickType, TypeSafeCraftType subcraftType, Craft parentcraft, World world, Entity interactor, MovecraftLocation startPoint, @NotNull SubcraftSignOperation operation) {
         final MovecraftRotation rotation = MovecraftRotation.fromAction(clickType);
         if (rotation == MovecraftRotation.NONE) {
-            if (parentLock != null) {
-                parentLock.release();
-            }
+            operation.finish();
             return;
         }
 
         // TODO: Migrate to use controller
-        // TODO: Introduce action queue for crafts to avoid beavering and to overall achieve a cleaner process
-        // TODO: Start over asynchronous task that locks the parent craft in place!
         CraftManager.getInstance().detectSubcraft(
                 startPoint,
                 subcraftType, (type, w, p, parents) -> {
@@ -59,36 +56,19 @@ public class SubcraftRotateSign extends AbstractSubcraftSign {
                 subcraft -> () -> {
                     Bukkit.getServer().getPluginManager().callEvent(new CraftPilotEvent(subcraft, CraftPilotEvent.Reason.SUB_CRAFT));
                     if (subcraft instanceof SubCraft) { // Subtract craft from the parent
-                        if (!SubcraftParentLock.acquire((SubCraft) subcraft, interactor, parentLock)) {
+                        if (!SubcraftParentLock.acquire((SubCraft) subcraft, interactor, operation.getParentLock())) {
+                            operation.finish();
                             return;
                         }
-                        Craft parent = ((SubCraft) subcraft).getParent();
-                        var newHitbox = parent.getHitBox().difference(subcraft.getHitBox());;
-                        parent.setHitBox(newHitbox);
+                        ((SubCraft) subcraft).cutOutOfParent();
                     }
 
+                    // The subcraft is released as the consequence of its rotation, however that ends
+                    SubcraftParentLock.releaseAfterMovement(subcraft, operation);
                     subcraft.rotate(rotation, startPoint, true);
-
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            if (subcraft instanceof SubCraft) {
-                                Craft parent = ((SubCraft) subcraft).getParent();
-                                var newHitbox = parent.getHitBox().union(subcraft.getHitBox());
-                                parent.setHitBox(newHitbox);
-                                ((SubCraft) subcraft).releaseParentState();
-                            }
-                            CraftManager.getInstance().release(subcraft, CraftReleaseEvent.Reason.SUB_CRAFT, false);
-                        }
-                    }.runTaskLater(Movecraft.getInstance(), 3);
                 },
-                // Nothing was detected => the parent is free again (on success the subcraft took over the lock)
-                craft -> {
-                    if (craft == null && parentLock != null) {
-                        parentLock.release();
-                    }
-                    return Effect.NONE;
-                }
+                // Nothing was detected => everything is over
+                operation::finish
         );
     }
 

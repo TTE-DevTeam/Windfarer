@@ -167,8 +167,8 @@ public class BlockListener implements Listener {
             final Craft craft = optCraft.get();
 
             final CraftStateTracker states = craft.getStateTracker();
-            // prevent pistons on moving crafts and while the shape of the craft changes
-            if (states.isMovingOrChangingShape()) {
+            // prevent pistons on moving crafts, and only on those
+            if (states.isMoving()) {
                 e.setCancelled(true);
                 return;
             }

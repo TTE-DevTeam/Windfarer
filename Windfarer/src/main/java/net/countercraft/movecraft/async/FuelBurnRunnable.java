@@ -34,7 +34,7 @@ public class FuelBurnRunnable implements Runnable {
     @Deprecated(forRemoval = true)
     public static final CraftDataTagKey<Set<TrackedLocation>> FURNACES = CraftDataTagRegistry.INSTANCE.registerTagKey(FuelDataTags.FURNACES_KEY, FuelUtil::getFuelBurners);
 
-    // TODO: Replace once a proper status concept has been established!
+    // Crafts with a fuel burn task which was queued or is running, so no overlapping tasks are queued for a craft
     public static final Set<UUID> craftsInProgress = ConcurrentHashMap.newKeySet();
 
 

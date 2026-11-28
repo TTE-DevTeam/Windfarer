@@ -27,9 +27,9 @@ import static net.countercraft.movecraft.features.fuel.FuelDataTags.FUEL_PERCENT
 /**
  * Updates fuel statistics and the lit state of the craft's tracked furnaces.
  *
- * This class intentionally does not acquire or release the craft processing lock. It is
+ * This class intentionally does not reserve or release any craft state. It is
  * also used after a craft has been released, when the remaining task is only to turn its
- * furnaces off. FuelBurnTask owns the lock for its complete calculation/effect lifecycle
+ * furnaces off. FuelBurnTask holds its state for its complete calculation/effect lifecycle
  * and calls {@link #createBurnerUpdateEffect()} directly.
  */
 public class UpdateFuelBurnersTask implements Supplier<Effect> {
@@ -50,7 +50,7 @@ public class UpdateFuelBurnersTask implements Supplier<Effect> {
     /**
      * Builds the main-thread effect for the burner block states and refreshes the fuel
      * percentage used by status signs. This method is safe to call from FuelBurnTask while
-     * that task owns the processing lock.
+     * that task holds its craft state.
      */
     protected Effect createBurnerUpdateEffect() {
         final MovecraftWorld movecraftWorld = craft.getMovecraftWorld();

@@ -100,23 +100,56 @@ public interface Craft {
     net.countercraft.movecraft.craft.state.CraftStateTracker getStateTracker();
 
     /**
+     * Legacy: asks if <i>anything</i> is going on with this craft.
+     * <p>
+     * REPLACEMENT: There is no single "processing" flag anymore. A craft has several states, which can be active at
+     * the same time (e.g. a status update reads it while a movement is calculated). Ask the tracker for what you are
+     * actually interested in:
+     * <pre>{@code
+     * craft.getStateTracker().isMoving();                  // a movement is calculated or applied
+     * craft.getStateTracker().isMovingOrChangingShape();   // additionally: the shape is modified or a subcraft is active
+     * craft.getStateTracker().isActive(CraftStateFlag.READ_CRAFT_SHAPE); // one specific flag
+     * craft.getStateTracker().isIdle();                    // nothing at all, this is what this method answered
+     * }</pre>
+     * See docs/craft-state.md.
+     *
      * @return true if no state flag is set at all
-     * @deprecated Use {@link #getStateTracker()}
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     boolean isNotProcessing();
 
     /**
-     * {@code true} sets a state blocking and holding everything, {@code false} releases only that state.
-     * @deprecated Use {@link #getStateTracker()}
+     * Legacy: {@code true} sets a state which holds and blocks everything, {@code false} releases only that state
+     * (other states are not touched).
+     * <p>
+     * REPLACEMENT: Describe what you do as a {@link net.countercraft.movecraft.craft.state.CraftState} (what it blocks
+     * and what it holds) and set it with the tracker. The result is a handle which belongs to you and which you release
+     * when you are done, exactly once is enough (releasing again does nothing):
+     * <pre>{@code
+     * // Right now, or not at all
+     * Optional<CraftStateHandle> handle = craft.getStateTracker().tryAcquire(CraftState.FUEL_BURN);
+     * if (handle.isPresent()) {
+     *     try { ...work... } finally { handle.get().release(); }
+     * }
+     *
+     * // Or wait for it without blocking a thread, in the order of the requests
+     * craft.getStateTracker().reserveStateAndWait(CraftState.FUEL_BURN, 5, TimeUnit.SECONDS)
+     *         .thenAccept(handle -> { ...work, release the handle at the end... });
+     * }</pre>
+     * See docs/craft-state.md.
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     void setProcessing(boolean processing);
 
     /**
-     * @deprecated Use {@link #getStateTracker()}
+     * Legacy: sets the state which holds and blocks everything, but only if nothing at all is going on with the craft.
+     * <p>
+     * REPLACEMENT: {@code craft.getStateTracker().tryAcquire(state)} sets the state you need if what it is blocked by is
+     * not active, and gives you the handle to release it, see {@link #setProcessing(boolean)} and docs/craft-state.md.
+     *
+     * @return true if the state was set
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     boolean setProcessingActiveIfAvailable();
 
     /**

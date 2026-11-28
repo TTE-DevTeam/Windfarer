@@ -38,6 +38,28 @@ public interface SubCraft extends Craft {
     }
 
     /**
+     * Cuts the blocks of this subcraft out of its parent. {@link #returnToParent()} gives them back.
+     */
+    default void cutOutOfParent() {
+        throw new UnsupportedOperationException("This subcraft can't be cut out of its parent");
+    }
+
+    /**
+     * Gives the blocks which were cut out of the parent back to it. Does nothing if there were none (anymore).
+     */
+    default void mergeIntoParent() {
+    }
+
+    /**
+     * Ends the lifetime of this subcraft in regard to its parent: gives the blocks back (see {@link #mergeIntoParent()})
+     * and releases the state held on the parent. Safe to be called multiple times.
+     */
+    default void returnToParent() {
+        this.mergeIntoParent();
+        this.releaseParentState();
+    }
+
+    /**
      * Releases the state held on the parent, if any. Does nothing if there is none or it was released already.
      */
     default void releaseParentState() {

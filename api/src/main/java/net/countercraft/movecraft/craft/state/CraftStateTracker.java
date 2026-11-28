@@ -52,9 +52,11 @@ public final class CraftStateTracker {
         return this.isActive(CraftStateFlag.MOVEMENT_CALCULATION) || this.isActive(CraftStateFlag.MOVEMENT_PROCESSING);
     }
 
-    /** @return true if the craft is moving (see {@link #isMoving()}) or its shape is being modified */
+    /** @return true if the craft is moving (see {@link #isMoving()}), its shape is being modified or a subcraft is out */
     public boolean isMovingOrChangingShape() {
-        return this.isMoving() || this.isActive(CraftStateFlag.MODIFY_CRAFT_SHAPE);
+        return this.isMoving()
+                || this.isActive(CraftStateFlag.MODIFY_CRAFT_SHAPE)
+                || this.isActive(CraftStateFlag.SUBCRAFT);
     }
 
     public boolean isActive(@NotNull CraftStateFlag flag) {
@@ -205,7 +207,13 @@ public final class CraftStateTracker {
     /**
      * Legacy {@code setProcessing(boolean)}: {@code true} sets {@link CraftState#LEGACY_PROCESSING}
      * (unconditionally, as the old flag did), {@code false} releases it. Other active states are not affected.
+     * <p>
+     * REPLACEMENT: Set a state which describes what you do with {@link #tryAcquire(CraftState)} or
+     * {@link #reserveStateAndWait(CraftState)} and release the handle you get, see docs/craft-state.md.
+     *
+     * @deprecated Only exists for {@code Craft#setProcessing(boolean)}
      */
+    @Deprecated(forRemoval = true)
     public void setLegacyProcessing(boolean processing) {
         if (!processing) {
             CraftStateHandle handle;
@@ -224,7 +232,14 @@ public final class CraftStateTracker {
         }
     }
 
-    /** Legacy {@code setProcessingActiveIfAvailable()}: sets {@link CraftState#LEGACY_PROCESSING} if nothing at all is active. */
+    /**
+     * Legacy {@code setProcessingActiveIfAvailable()}: sets {@link CraftState#LEGACY_PROCESSING} if nothing at all is active.
+     * <p>
+     * REPLACEMENT: {@link #tryAcquire(CraftState)} with a state which describes what you do, see docs/craft-state.md.
+     *
+     * @deprecated Only exists for {@code Craft#setProcessingActiveIfAvailable()}
+     */
+    @Deprecated(forRemoval = true)
     public boolean tryAcquireLegacyProcessing() {
         synchronized (this.lock) {
             if (this.legacyHandle != null) {

@@ -54,6 +54,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -68,7 +70,6 @@ public class AsyncManager extends BukkitRunnable {
     private int currentTick = 1;
 
     private final Map<AbstractAsyncTask, Ownership> ownershipMap = new HashMap<>();
-    private final Queue<PendingAlgorithm> pendingAlgorithms = new ArrayDeque<>();
     private final BlockingQueue<AbstractAsyncTask> finishedAlgorithms = new LinkedBlockingQueue<>();
     private final Set<MovementStates> clearanceSet = new HashSet<>();
     private final Map<Craft, Integer> cooldownCache = new WeakHashMap<>();
@@ -97,8 +98,8 @@ public class AsyncManager extends BukkitRunnable {
     }
 
     /**
-     * Queue an operation for its craft. A busy craft is retried on subsequent ticks;
-     * the atomic compare-and-set prevents two operations from acquiring it concurrently.
+     * Queue an operation for its craft. The operation waits for the craft to be free (in the order of the requests,
+     * without blocking a thread) and is dropped if the craft stays busy for too long.
      */
     public void submitTask(AbstractAsyncTask task, Craft c) {
         Objects.requireNonNull(task, "task");
@@ -106,8 +107,8 @@ public class AsyncManager extends BukkitRunnable {
     }
 
     /**
-     * Preferred submission form. The task is constructed only after the craft lock has
-     * been acquired, so snapshots such as the hitbox are taken from the craft's current
+     * Preferred submission form. The task is constructed only after the craft states have
+     * been reserved, so snapshots such as the hitbox are taken from the craft's current
      * state rather than from the time the request was queued.
      */
     public void submitTask(Supplier<? extends AbstractAsyncTask> taskFactory, Craft c) {
@@ -121,59 +122,64 @@ public class AsyncManager extends BukkitRunnable {
             return;
         }
 
-        pendingAlgorithms.add(new PendingAlgorithm(taskFactory, c));
-        startPendingAlgorithms();
+        if (!CraftManager.getInstance().isStillAlive(c)) {
+            MovementCompletion.movementFinished(c);
+            return;
+        }
+
+        // Granted immediately if the craft is free. The future may complete on any thread, the rest is tick thread state.
+        MovementStates.reserve(c).whenComplete((states, throwable) -> {
+            if (Bukkit.isPrimaryThread()) {
+                startTask(taskFactory, c, states, throwable);
+            } else {
+                Bukkit.getScheduler().runTask(Movecraft.getInstance(), () -> startTask(taskFactory, c, states, throwable));
+            }
+        });
     }
 
-    private void startPendingAlgorithms() {
-        // Inspect only the requests that were queued at the start of this pass. Busy
-        // crafts are appended at the tail, allowing unrelated crafts to make progress.
-        int requestsToInspect = pendingAlgorithms.size();
-        Set<Craft> craftsBlockedThisPass = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (int i = 0; i < requestsToInspect; i++) {
-            PendingAlgorithm pending = pendingAlgorithms.poll();
-            if (pending == null) {
-                return;
+    private void startTask(Supplier<? extends AbstractAsyncTask> taskFactory, Craft craft, MovementStates states, Throwable throwable) {
+        if (throwable != null) {
+            Throwable cause = throwable;
+            while (cause instanceof CompletionException && cause.getCause() != null) {
+                cause = cause.getCause();
             }
-
-            Craft craft = pending.craft();
-            if (!CraftManager.getInstance().isStillAlive(craft)) {
-                continue;
-            }
-            if (craftsBlockedThisPass.contains(craft)) {
-                pendingAlgorithms.add(pending);
-                continue;
-            }
-
-            // The craft (and the parent of a subcraft) must be free for a movement calculation
-            final MovementStates states = MovementStates.tryAcquire(craft);
-            if (states == null) {
-                craftsBlockedThisPass.add(craft);
-                pendingAlgorithms.add(pending);
-                continue;
-            }
-
-            AbstractAsyncTask task = null;
-            try {
-                task = Objects.requireNonNull(pending.taskFactory().get(), "taskFactory returned null");
-                ownershipMap.put(task, new Ownership(craft, states));
-                task.runTask(Movecraft.getInstance());
-            } catch (RuntimeException exception) {
-                if (task != null) {
-                    ownershipMap.remove(task);
+            if (cause instanceof TimeoutException) {
+                if (CraftManager.getInstance().isStillAlive(craft)) {
+                    Movecraft.getInstance().getLogger().warning(
+                            "Movement of craft " + craft.getUUID() + " was dropped as the craft was/is busy! State: " + craft.getStateTracker()
+                    );
                 }
-                states.release();
-                String taskName = task == null ? "task factory" : task.getClass().getSimpleName();
-                Movecraft.getInstance().getLogger().severe(
-                        "Could not schedule " + taskName
-                                + " for craft " + craft.getUUID() + ": " + exception.getMessage()
-                );
-                exception.printStackTrace();
+            } else {
+                Movecraft.getInstance().getLogger().log(java.util.logging.Level.SEVERE, "Could not reserve craft " + craft.getUUID() + " for a movement", cause);
             }
+            // The movement does not take place
+            MovementCompletion.movementFinished(craft);
+            return;
+        }
+
+        if (!CraftManager.getInstance().isStillAlive(craft)) {
+            states.release();
+            return;
+        }
+
+        AbstractAsyncTask task = null;
+        try {
+            task = Objects.requireNonNull(taskFactory.get(), "taskFactory returned null");
+            ownershipMap.put(task, new Ownership(craft, states));
+            task.runTask(Movecraft.getInstance());
+        } catch (RuntimeException exception) {
+            if (task != null) {
+                ownershipMap.remove(task);
+            }
+            states.release();
+            String taskName = task == null ? "task factory" : task.getClass().getSimpleName();
+            Movecraft.getInstance().getLogger().severe(
+                    "Could not schedule " + taskName
+                            + " for craft " + craft.getUUID() + ": " + exception.getMessage()
+            );
+            exception.printStackTrace();
         }
     }
-
-    private record PendingAlgorithm(Supplier<? extends AbstractAsyncTask> taskFactory, Craft craft) {}
 
     /** The craft of a running task and the states which are held for it until its movement has ended. */
     private record Ownership(Craft craft, MovementStates states) {}
@@ -612,7 +618,6 @@ public class AsyncManager extends BukkitRunnable {
 
     public void run() {
         clearAll();
-        startPendingAlgorithms();
 
         Map<Integer, List<Runnable>> functions = this.getTickFunctions();
 
@@ -634,10 +639,9 @@ public class AsyncManager extends BukkitRunnable {
         }
 
         processAlgorithmQueue();
-        startPendingAlgorithms();
 
         // now cleanup craft that are bugged and have not moved in the past 60 seconds,
-        //  but have no pilot or are still processing
+        //  but have no pilot or are still moving
         for (Craft craft : CraftManager.getInstance()) {
             if (craft.shouldAutoRelease(60000, 5000)) {
                 CraftManager.getInstance().release(craft, CraftReleaseEvent.Reason.INACTIVE, true);

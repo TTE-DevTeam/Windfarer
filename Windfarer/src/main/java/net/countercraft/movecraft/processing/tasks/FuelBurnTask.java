@@ -328,8 +328,8 @@ public class FuelBurnTask extends UpdateFuelBurnersTask implements Supplier<Effe
 
         @Override
         public void run() {
-            // FuelBurnTask owns the processing lock until this effect has run, so no
-            // movement/status task can invalidate the result between calculation and sink.
+            // FuelBurnTask holds its craft state until this effect has run, so no
+            // movement can be applied between calculation and sink and invalidate the result.
             // We were fueled, but now we are no longer fueled.
             if (craft.getDataTag(IS_FUELED)) {
                 if (craft.getCraftProperties().get(PropertyKeys.SINK_WHEN_OUT_OF_FUEL) && !fueled) {

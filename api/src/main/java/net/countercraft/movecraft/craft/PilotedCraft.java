@@ -1,5 +1,6 @@
 package net.countercraft.movecraft.craft;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -33,13 +34,15 @@ public interface PilotedCraft extends Craft {
 
     @Override
     default boolean shouldAutoRelease(final long autoReleaseTimeout, final long maxTimeBetweenCruiseUpdates) {
-        // Always returns false and marks the craft as no longer processing !!DANGEROUS!!
-        if (!this.isNotProcessing()) {
-            if (this.getCruising()) {
-                if(this.getLastCruiseUpdate() < System.currentTimeMillis() - maxTimeBetweenCruiseUpdates) {
-                    this.setProcessing(false);
-                }
-            }
+        // Never releases the craft, but acts as a watchdog: a cruising craft which is still moving, although it
+        // was not updated for far too long, is stuck. Its states are reset then, so it can move again.
+        // !!DANGEROUS!!: this also ends a movement which is in progress, so it is logged with the state of the craft.
+        // The movement states are released by their owners as well, doing it twice is harmless.
+        if (this.getCruising() && this.getStateTracker().isMoving()
+                && this.getLastCruiseUpdate() < System.currentTimeMillis() - maxTimeBetweenCruiseUpdates) {
+            Bukkit.getLogger().warning("Craft " + this.getUUID() + " seems to be stuck while cruising, resetting its states: "
+                    + this.getStateTracker());
+            this.getStateTracker().forceReset();
         }
         return false;
     }

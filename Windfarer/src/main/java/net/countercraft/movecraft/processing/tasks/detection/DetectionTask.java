@@ -66,8 +66,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-// TODO: It can happen that when a subcraft is piloted just at the wrong time when the craft moves, that the entire high priority pool locks itself up
-// TODO: In that case, a dead task stays inside the threadpool, that must be cleaned up! (Active: x; Current tasks: 1 => There was a missing clear on the currentTasks() list)
 public class DetectionTask implements Supplier<Effect> {
 
     private static final AllowedBlockValidator ALLOWED_BLOCK_VALIDATOR = new AllowedBlockValidator();
@@ -104,6 +102,8 @@ public class DetectionTask implements Supplier<Effect> {
     private final Audience audience;
     private final Function<Craft, Effect> postDetection;
     private final Function<@Nullable Craft, Effect> alwaysRunAfter;
+    private volatile Runnable failureCallback;
+    private final java.util.concurrent.atomic.AtomicBoolean failureReported = new java.util.concurrent.atomic.AtomicBoolean();
 
     private final LongAdder size = new LongAdder();
     private final Set<MovecraftLocation> visited = new AtomicLocationSet();
@@ -231,13 +231,44 @@ public class DetectionTask implements Supplier<Effect> {
         return parents;
     }
 
+    /**
+     * Sets a callback which is run (once, on the thread of the task) whenever the detection fails, no matter why:
+     * failed validation, the supplier rejecting the craft, a cancelled detect event or an exception.
+     * It is never run if the detection succeeds.
+     */
+    public DetectionTask withFailureCallback(@Nullable Runnable callback) {
+        this.failureCallback = callback;
+        return this;
+    }
+
+    private void notifyFailure() {
+        final Runnable callback = this.failureCallback;
+        if (callback != null && this.failureReported.compareAndSet(false, true)) {
+            try {
+                callback.run();
+            } catch (RuntimeException exception) {
+                Movecraft.getInstance().getLogger().log(java.util.logging.Level.SEVERE, "Detection failure callback failed", exception);
+            }
+        }
+    }
+
     @Override
     public Effect get() {
+        try {
+            return this.detect();
+        } catch (RuntimeException | Error throwable) {
+            this.notifyFailure();
+            throw throwable;
+        }
+    }
+
+    private Effect detect() {
         final long startTime = System.currentTimeMillis();
         this.audience.sendMessage(Component.text("Starting detection... Please wait..."));
         Movecraft.getInstance().getLogger().info(String.format("Starting detection task for pilot <%s> and type <%s>...", pilot == null ? "NULL" : pilot.getUniqueId(), this.type.getName()));
         frontier();
         if (!illegal.isEmpty()) {
+            this.notifyFailure();
             if (this.alwaysRunAfter != null) {
                 this.alwaysRunAfter.apply(null);
             }
@@ -252,6 +283,7 @@ public class DetectionTask implements Supplier<Effect> {
                 (a, b, c, d) -> Result.fail()
         ).validate(visitedMaterials, type, movecraftWorld, pilot) : result;
         if (!result.isSucess()) {
+            this.notifyFailure();
             Component message = result.getMessageComponent();
             if (this.alwaysRunAfter != null)
                 this.alwaysRunAfter.apply(null);
@@ -277,6 +309,7 @@ public class DetectionTask implements Supplier<Effect> {
         }
 
         if (!result.isSucess()) {
+            this.notifyFailure();
             Component message = result.getMessageComponent();
             if (this.alwaysRunAfter != null)
                 this.alwaysRunAfter.apply(craft);
@@ -300,6 +333,7 @@ public class DetectionTask implements Supplier<Effect> {
 
         WorldManager.INSTANCE.executeMain(() -> Bukkit.getPluginManager().callEvent(event));
         if (event.isCancelled()) {
+            this.notifyFailure();
             Movecraft.getInstance().getLogger().info(String.format("Detection task for pilot <%s> FAILED! DetectEvent was cancelled. Message: <%s>", pilot == null ? "NULL" : pilot.getUniqueId(), event.getFailMessage()));
             return () -> craft.getAudience().sendMessage(Component.text(event.getFailMessage()));
         }
@@ -346,8 +380,12 @@ public class DetectionTask implements Supplier<Effect> {
                 // Apply post detection effect
                 postDetection.apply(craft)
         ).andThen(
-                // Add craft to CraftManager
-                () -> CraftManager.getInstance().add(craft)
+                // Add craft to CraftManager, unless it was released by the post detection effect already
+                () -> {
+                    if (CraftManager.getInstance().isInPostDetection(craft)) {
+                        CraftManager.getInstance().add(craft);
+                    }
+                }
         );
     }
 
