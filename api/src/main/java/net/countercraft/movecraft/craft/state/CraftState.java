@@ -92,7 +92,7 @@ public final class CraftState {
      * Technically, reading is also problematic, but this is for SINGLE blocks, so it might just be fine
      */
     public static final CraftState PISTON_MODIFICATION = new CraftState(
-            "CRAFT_SHAPE_MODIFICATION",
+            "PISTON_MODIFICATION",
             EnumSet.of(CraftStateFlag.MODIFY_CRAFT_SHAPE),
             EnumSet.of(CraftStateFlag.MOVEMENT_CALCULATION, CraftStateFlag.MOVEMENT_PROCESSING)
     );
