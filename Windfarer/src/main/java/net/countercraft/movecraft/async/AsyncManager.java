@@ -569,6 +569,7 @@ public class AsyncManager extends BukkitRunnable {
                 dx = craft.getLastTranslation().getX();
                 dz = craft.getLastTranslation().getZ();
             }
+            // TODO: Write own specialized version of translate-task for sinking
             craft.translate(dx, -1, dz);
         }
     }
